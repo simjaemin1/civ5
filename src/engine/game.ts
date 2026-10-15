@@ -5,6 +5,11 @@ import type { TechDef } from './data'
 import { shuffle } from './rng'
 import { computeYields, happiness, totalWorkers } from './yields'
 import { makePlaceholderDeck } from './placeholderDeck'
+import { currentPlayer, drawTiles, gainCulture, say } from './core'
+import { choosePolicy } from './policies'
+import { invest, settleWonders } from './wonders'
+
+export { currentPlayer, gainCulture }
 
 export interface CreateOptions {
   seed: number
@@ -27,11 +32,18 @@ export function createGame(opts: CreateOptions): GameState {
       hand: [],
       wastelandPending: false,
       turn: null,
+      policy: null,
+      pendingPolicies: 0,
+      pendingCity: null,
+      wonders: [],
     })),
     order: [],
     turnIdx: 0,
     phase: 'setup',
     roundTechPicks: [],
+    wonderProgress: {},
+    wonderOwners: {},
+    investments: [],
     log: [],
   }
   state.order = state.players
@@ -41,20 +53,6 @@ export function createGame(opts: CreateOptions): GameState {
   shuffle(state, state.deck)
   beginTurn(state)
   return state
-}
-
-export const currentPlayer = (s: GameState): Player => s.players[s.order[s.turnIdx]]
-
-function say(s: GameState, msg: string): void {
-  s.log.push(`[R${s.round}] ${msg}`)
-}
-
-/** 덱에서 n장 뽑고, 뽑을 때마다(한 번의 뽑기마다) 덱을 섞는다. */
-function drawTiles(s: GameState, n: number): TileCard[] {
-  if (s.deck.length < n) throw new RuleError('타일 덱이 부족합니다')
-  const cards = s.deck.splice(0, n)
-  shuffle(s, s.deck)
-  return cards
 }
 
 function beginTurn(s: GameState): void {
@@ -76,23 +74,13 @@ function beginTurn(s: GameState): void {
 function endTurn(s: GameState): void {
   s.turnIdx++
   if (s.turnIdx >= s.order.length) {
-    // 정산: 불가사의 진척도, 전투 (이후 단계에서 구현)
+    // 정산: 불가사의 진척도 → 전투(이후 단계에서 구현)
+    settleWonders(s)
     s.round++
     s.turnIdx = 0
     s.roundTechPicks = []
   }
   beginTurn(s)
-}
-
-/** 문화를 n 얻어 새 타일을 붙인다. 첫 5타일의 남은 면이 있으면 거기에 먼저 붙인다. */
-export function gainCulture(s: GameState, p: Player, n: number): void {
-  for (let i = 0; i < n; i++) {
-    const [card] = drawTiles(s, 1)
-    const city = p.cities.find((c) => c.openSides.length > 0) ?? p.cities[0]
-    const side = city.openSides.shift()
-    city.tiles.push(side ? { card, role: 'side', side } : { card, role: 'extra' })
-  }
-  say(s, `${civById(p.civId).name} 문화 +${n}`)
 }
 
 export function prereqsMet(p: Player, tech: TechDef): boolean {
@@ -121,8 +109,19 @@ export function apply(prev: GameState, action: Action): GameState {
       expectPhase(s, 'research')
       s.phase = 'produce'
       return s
+    case 'choosePolicy':
+      expectPhase(s, 'research', 'produce')
+      choosePolicy(s, p, action.policy, action.discard)
+      return s
+    case 'buildSecondCity': return buildSecondCity(s, p, action)
+    case 'invest':
+      expectPhase(s, 'produce')
+      invest(s, p, action.cityId, action.wonderId, action.hammers)
+      return s
     case 'endProduction':
       expectPhase(s, 'produce')
+      if (p.pendingPolicies > 0) throw new RuleError('정책을 먼저 골라야 합니다')
+      if (p.pendingCity) throw new RuleError('두 번째 도시를 먼저 세워야 합니다')
       foodSettlement(s, p)
       endTurn(s)
       return s
@@ -148,17 +147,18 @@ function wasteland(s: GameState, p: Player, discardTileId: number): GameState {
   return s
 }
 
-function buildCity(
-  s: GameState,
-  p: Player,
-  a: Extract<Action, { type: 'buildCity' }>,
-): GameState {
-  expectPhase(s, 'setup')
-  const cityCard = p.hand.find((c) => c.id === a.cityTileId)
+/** 손에 든 타일로 도시를 세운다: 1장은 도시, 나머지는 서로 다른 면에 하나씩. */
+function foundCity(
+  hand: TileCard[],
+  a: { cityTileId: number; sideTiles: Partial<Record<Side, number>> },
+  id: number,
+  workers: number,
+): City {
+  const cityCard = hand.find((c) => c.id === a.cityTileId)
   if (!cityCard) throw new RuleError('손에 없는 타일입니다')
-  const others = p.hand.filter((c) => c.id !== a.cityTileId)
+  const others = hand.filter((c) => c.id !== a.cityTileId)
   const entries = Object.entries(a.sideTiles) as [Side, number][]
-  const ids = entries.map(([, id]) => id)
+  const ids = entries.map(([, tid]) => tid)
   if (
     entries.length !== others.length ||
     new Set(ids).size !== ids.length ||
@@ -168,19 +168,48 @@ function buildCity(
     throw new RuleError('도시 외의 타일을 서로 다른 면에 하나씩 붙여야 합니다')
   }
   const city: City = {
-    id: 0,
+    id,
     tiles: [{ card: cityCard, role: 'city' }],
-    workers: 1,
+    workers,
     placed: [],
     openSides: SIDES.filter((side) => !(side in a.sideTiles)),
   }
-  for (const [side, id] of entries) {
-    city.tiles.push({ card: others.find((c) => c.id === id)!, role: 'side', side })
+  for (const [side, tid] of entries) {
+    city.tiles.push({ card: others.find((c) => c.id === tid)!, role: 'side', side })
   }
+  return city
+}
+
+function buildCity(
+  s: GameState,
+  p: Player,
+  a: Extract<Action, { type: 'buildCity' }>,
+): GameState {
+  expectPhase(s, 'setup')
+  const city = foundCity(p.hand, a, 0, 1)
   p.cities.push(city)
   p.hand = []
   say(s, `${civById(p.civId).name} 도시 건설 (타일 ${city.tiles.length}장)`)
   s.phase = 'place'
+  return s
+}
+
+/** 인쇄기술: 문화 4로 얻은 타일 4장으로 두 번째 도시를 세운다. 일꾼은 첫 도시에서 1개 옮겨온다. */
+function buildSecondCity(
+  s: GameState,
+  p: Player,
+  a: Extract<Action, { type: 'buildSecondCity' }>,
+): GameState {
+  expectPhase(s, 'research', 'produce')
+  if (!p.pendingCity) throw new RuleError('세울 두 번째 도시가 없습니다')
+  const moved = p.cities[0].workers > 0 ? 1 : 0
+  const city = foundCity(p.pendingCity, a, 1, moved)
+  p.cities[0].workers -= moved
+  p.cities.push(city)
+  p.pendingCity = null
+  // 새 도시의 산출을 이번 차례에 쓸 수 있도록 다시 계산한다 (도시 타일은 항상 산출)
+  p.turn!.yields = computeYields(p)
+  say(s, `${civById(p.civId).name} 두 번째 도시 건설`)
   return s
 }
 
@@ -202,7 +231,7 @@ function placeWorkers(
     city.placed.push(tileId)
     if (city.placed.length > city.workers) throw new RuleError('일꾼이 모자랍니다')
   }
-  p.turn = { yields: computeYields(p), foodToScience: 0, researched: false }
+  p.turn = { yields: computeYields(p), foodToScience: 0, researched: false, produced: [], skipFoodSettle: false }
   s.phase = 'research'
   return s
 }
@@ -227,7 +256,15 @@ function research(s: GameState, p: Player, techId: string, foodToScience: number
   for (const e of tech.effects) {
     if (e.kind === 'culture') gainCulture(s, p, e.amount)
     else if (e.kind === 'general') p.generals += e.amount
-    // policy, compass, foodToScience(조건 확인용)는 이후 단계에서 처리
+    else if (e.kind === 'policy') p.pendingPolicies++
+    else if (e.kind === 'secondCity') {
+      if (p.cities.length === 1 && !p.pendingCity) p.pendingCity = drawTiles(s, 4) // 문화 4
+    } else if (e.kind === 'archaeology') {
+      // 고고학을 연구하는 순간 가진 사적지 1장당 문화 1 (이후 얻은 사적지는 해당 없음)
+      const sites = p.cities.reduce((n, c) => n + c.tiles.filter((t) => t.card.historic).length, 0)
+      if (sites > 0) gainCulture(s, p, sites)
+    }
+    // compass, foodToScience(조건 확인용) 등은 이후 단계에서 처리
   }
   // 기술 효과는 즉시 적용 ("다음 차례부터"만 제외): 산출을 다시 계산한다
   turn.yields = computeYields(p)
@@ -237,17 +274,22 @@ function research(s: GameState, p: Player, techId: string, foodToScience: number
 
 function foodSettlement(s: GameState, p: Player): void {
   const turn = p.turn!
-  let converted = turn.foodToScience
   const cap = happiness(p)
-  for (const c of p.cities) {
-    let food = turn.yields.cities.find((y) => y.cityId === c.id)!.food
-    const take = Math.min(converted, food)
-    food -= take
-    converted -= take
-    if (food < c.workers) {
-      c.workers = Math.max(0, c.workers - 1) // 한 차례에 최대 1개만 잃는다
-    } else if (food >= c.workers * 2 && totalWorkers(p) < cap) {
-      c.workers += 1
+  if (turn.skipFoodSettle) {
+    say(s, `${civById(p.civId).name} 식량 정산 생략 (전통/체제)`)
+  } else {
+    let converted = turn.foodToScience
+    for (const c of p.cities) {
+      let food = turn.yields.cities.find((y) => y.cityId === c.id)!.food
+      const take = Math.min(converted, food)
+      food -= take
+      converted -= take
+      if (food < c.workers) {
+        // 자유 정책 시행 중에는 식량이 모자라도 일꾼을 잃지 않는다. 한 차례에 최대 1개만 잃는다.
+        if (p.policy !== 'liberty') c.workers = Math.max(0, c.workers - 1)
+      } else if (food >= c.workers * 2 && totalWorkers(p) < cap) {
+        c.workers += 1
+      }
     }
   }
   // 어떤 이유로든 일꾼이 행복을 넘으면 넘친 만큼 버린다 (가장 많은 도시부터)
@@ -255,5 +297,5 @@ function foodSettlement(s: GameState, p: Player): void {
     const biggest = p.cities.reduce((a, b) => (b.workers > a.workers ? b : a))
     biggest.workers--
   }
-  say(s, `${civById(p.civId).name} 식량 정산 → 일꾼 ${totalWorkers(p)} / 행복 ${cap}`)
+  say(s, `${civById(p.civId).name} 일꾼 ${totalWorkers(p)} / 행복 ${cap}`)
 }
