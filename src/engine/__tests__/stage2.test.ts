@@ -377,3 +377,16 @@ describe('로그 번호', () => {
     expect(s.logSeq - before).toBeGreaterThanOrEqual(2)
   })
 })
+
+describe('레이더', () => {
+  it('연구하면 정책이 전제정치로 바뀐다', () => {
+    let s = mod(solo('korea'), (c) => {
+      c.players[0].policy = 'liberty'
+      c.players[0].techs.push('combined_arms')
+    })
+    s = apply(s, { type: 'placeWorkers', placements: [] })
+    s = mod(s, (c) => (c.players[0].turn!.yields.science = 99))
+    s = apply(s, { type: 'research', techId: 'radar' } as never)
+    expect(s.players[0].policy).toBe('despotism')
+  })
+})

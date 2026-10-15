@@ -440,6 +440,7 @@ function research(
     if (e.kind === 'culture') gainCulture(s, p, e.amount)
     else if (e.kind === 'general') gainGeneral(p, e.amount)
     else if (e.kind === 'policy') p.pendingPolicies++
+    else if (e.kind === 'setPolicy') p.policy = e.policy
     else if (e.kind === 'secondCity') {
       if (p.cities.length === 1 && !p.pendingCity) p.pendingCity = drawTiles(s, 4) // 문화 4
     } else if (e.kind === 'archaeology') {

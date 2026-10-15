@@ -73,6 +73,7 @@ export type TechEffect =
   | { kind: 'culture'; amount: number }
   | { kind: 'general'; amount: number }
   | { kind: 'policy' }
+  | { kind: 'setPolicy'; policy: PolicyId }
   | { kind: 'compass' }
   | { kind: 'secondCity' }
   | { kind: 'archaeology' }

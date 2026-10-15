@@ -439,6 +439,10 @@
     {
      "kind": "general",
      "amount": 1
+    },
+    {
+     "kind": "setPolicy",
+     "policy": "despotism"
     }
    ]
   },
