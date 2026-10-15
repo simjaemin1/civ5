@@ -18,7 +18,7 @@
       "id": "temple_of_artemis",
       "name": "아르테미스 사원",
       "tech": "archery",
-      "minHammers": 5,
+      "minHammers": 3,
       "effects": [
         {
           "kind": "militaryCostMinus",
@@ -31,7 +31,7 @@
       "id": "mausoleum",
       "name": "마우솔레움",
       "tech": "masonry",
-      "minHammers": 5,
+      "minHammers": 4,
       "condition": {
         "kind": "stoneInCity"
       },
@@ -47,7 +47,7 @@
       "id": "colossus",
       "name": "거신상",
       "tech": "iron_working",
-      "minHammers": 5,
+      "minHammers": 4,
       "condition": {
         "kind": "coastFirst5"
       },
@@ -63,7 +63,7 @@
       "id": "hanging_gardens",
       "name": "공중정원",
       "tech": "mathematics",
-      "minHammers": 5,
+      "minHammers": 4,
       "effects": [
         {
           "kind": "gardens"
@@ -75,7 +75,7 @@
       "id": "great_lighthouse",
       "name": "알렉산드리아 등대",
       "tech": "optics",
-      "minHammers": 5,
+      "minHammers": 4,
       "condition": {
         "kind": "coastFirst5"
       },
@@ -91,7 +91,7 @@
       "id": "pyramids",
       "name": "피라미드",
       "tech": "construction",
-      "minHammers": 6,
+      "minHammers": 5,
       "effects": [
         {
           "kind": "setPolicy",
@@ -104,22 +104,7 @@
       "id": "petra",
       "name": "페트라",
       "tech": "currency",
-      "minHammers": 6,
-      "effects": [
-        {
-          "kind": "desertBonus"
-        }
-      ],
-      "progressNeeded": 3,
-      "condition": {
-        "kind": "desertFirst5"
-      }
-    },
-    {
-      "id": "chichen_itza",
-      "name": "치첸이사",
-      "tech": "civil_service",
-      "minHammers": 7,
+      "minHammers": 5,
       "effects": [
         {
           "kind": "happiness",
@@ -129,10 +114,25 @@
       "progressNeeded": 2
     },
     {
+      "id": "chichen_itza",
+      "name": "치첸이사",
+      "tech": "civil_service",
+      "minHammers": 5,
+      "effects": [
+        {
+          "kind": "desertBonus"
+        }
+      ],
+      "progressNeeded": 2,
+      "condition": {
+        "kind": "desertFirst5"
+      }
+    },
+    {
       "id": "great_wall",
       "name": "만리장성",
       "tech": "engineering",
-      "minHammers": 7,
+      "minHammers": 5,
       "condition": {
         "kind": "mountainInCity"
       },
@@ -141,13 +141,13 @@
           "kind": "greatWall"
         }
       ],
-      "progressNeeded": 2
+      "progressNeeded": 1
     },
     {
       "id": "sistine_chapel",
       "name": "시스티나 성당",
       "tech": "acoustics",
-      "minHammers": 8,
+      "minHammers": 6,
       "effects": [
         {
           "kind": "culture",
@@ -160,7 +160,7 @@
       "id": "louvre",
       "name": "루브르",
       "tech": "archaeology",
-      "minHammers": 9,
+      "minHammers": 6,
       "condition": {
         "kind": "policy",
         "policy": "aesthetics"
@@ -181,7 +181,7 @@
       "id": "statue_of_liberty",
       "name": "자유의 여신상",
       "tech": "electricity",
-      "minHammers": 10,
+      "minHammers": 7,
       "condition": {
         "kind": "policy",
         "policy": "liberty"
@@ -197,7 +197,7 @@
       "id": "eiffel_tower",
       "name": "에펠탑",
       "tech": "radio",
-      "minHammers": 12,
+      "minHammers": 8,
       "effects": [
         {
           "kind": "setPolicy",
@@ -205,7 +205,7 @@
         },
         {
           "kind": "tourism",
-          "amount": 4
+          "amount": 3
         },
         {
           "kind": "happiness",
@@ -218,7 +218,7 @@
       "id": "pentagon",
       "name": "펜타곤",
       "tech": "combined_arms",
-      "minHammers": 12,
+      "minHammers": 8,
       "condition": {
         "kind": "policy",
         "policy": "despotism"
@@ -235,13 +235,13 @@
       "id": "internet_censorship",
       "name": "인터넷 검열시스템",
       "tech": "computers",
-      "minHammers": 15,
+      "minHammers": 10,
       "effects": [
         {
           "kind": "immuneCultureLoss"
         }
       ],
-      "progressNeeded": 4
+      "progressNeeded": 3
     }
   ]
 }

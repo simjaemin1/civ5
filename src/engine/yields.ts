@@ -34,7 +34,7 @@ export function ctxOf(player: Player): YieldCtx {
     civ: civById(player.civId),
     techs: new Set(player.techs),
     fresh: new Set(player.freshTechs),
-    desertBonus: player.wonders.includes('petra'),
+    desertBonus: player.wonders.includes('chichen_itza'),
   }
 }
 
@@ -63,7 +63,7 @@ export function tileYield(card: TileCard, ctx: YieldCtx): Yield {
     if (hit) y = addYield(y, m.yield)
   }
   if (ctx.desertBonus && card.terrains.includes('사막')) {
-    // 페트라: 영토의 모든 사막 타일 식량 +1
+    // 치첸이사: 영토의 모든 사막 타일 식량 +1
     y = { ...y, food: y.food + 1 }
   }
   return y
