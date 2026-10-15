@@ -308,8 +308,19 @@ describe('데이터 무결성', () => {
     expect([...TECHS.map((t) => t.id)].filter((id) => !done.has(id))).toEqual([])
   })
 
+  it('도표 확인 결과: 1줄은 공공행정→경제학→고고학→생물학→냉각기술→컴퓨터, 2줄은 음향학→과학이론→전기', () => {
+    const chain = (id: string): string[] => {
+      const pre = techById(id).prereqs?.[0]
+      return pre ? [...chain(pre), id] : [id]
+    }
+    expect(chain('computers').map((i) => techById(i).name)).toEqual(['공공행정', '경제학', '고고학', '생물학', '냉각기술', '컴퓨터'])
+    expect(chain('radio').map((i) => techById(i).name)).toEqual(['교육학', '음향학', '과학이론', '전기', '라디오'])
+    expect(techById('economics').cost).toBe(5)
+    expect(techById('archaeology').cost).toBe(8)
+  })
+
   it('규칙서가 참조하는 기술이 모두 트리에 있다', () => {
-    const refs = ['화약','강선','교체형부품','기계','산업화','공공행정','탄도학','기사도','군사과학','화학','다이너마이트','생물학','통합작전군','레이더','원자론','공학','음향학','고고학','전기','라디오','컴퓨터','신학','교육학','인쇄기술','냉각기술','세계화','로켓공학','아폴로 프로젝트']
+    const refs = ['화약','강선','교체형부품','기계','산업화','공공행정','탄도학','기사도','군사과학','화학','다이너마이트','생물학','과학이론','통합작전군','레이더','원자론','공학','음향학','고고학','전기','라디오','컴퓨터','신학','교육학','인쇄기술','냉각기술','세계화','로켓공학','아폴로 프로젝트']
     const names = new Set(TECHS.map((t) => t.name))
     expect(refs.filter((n) => !names.has(n))).toEqual([])
   })

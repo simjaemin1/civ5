@@ -48,6 +48,7 @@ export type TechEffect =
   | { kind: 'tourismPerCulture' }
   | { kind: 'ignoreRoundPicks' }
   | { kind: 'scienceVictory' }
+  | { kind: 'hammerToScience'; amount: number }
 export interface TechDef {
   id: string
   name: string
@@ -55,8 +56,6 @@ export interface TechDef {
   prereqs?: string[]
   effects: TechEffect[]
   cost: number
-  /** 아이콘만 보고 이름을 추정한 기술 */
-  nameUncertain?: boolean
 }
 
 export type Dir = 'L' | 'C' | 'R'
@@ -67,8 +66,11 @@ export interface MilitaryCardDef {
   tier?: number
   cost: number
   tech: string
-  /** 전투력 마크: 위치가 공격 방향, 숫자가 전투력 */
+  /** 전투력 마크: 위치가 공격 방향, 숫자가 전투력 (방향이 고정된 카드) */
   marks?: { dir: Dir; power: number }[]
+  /** 방향별로 따로 있는 카드: 전투력 power, 마크가 variantDirs의 각 방향인 카드가 한 장씩 존재 */
+  power?: number
+  variantDirs?: Dir[]
   /** 카드를 1개 골라 공격 */
   attack?: { choose: true; power: number }
   hp?: number
@@ -76,7 +78,8 @@ export interface MilitaryCardDef {
   noCounter?: boolean
   special?: string
   copies?: number
-  unknownStats?: boolean
+  notBattle?: boolean
+  note?: string
 }
 
 export const CIVS = civsJson as CivDef[]
