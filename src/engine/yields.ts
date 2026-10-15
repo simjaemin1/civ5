@@ -1,5 +1,5 @@
 import type { City, PartialYield, Player, Terrain, TileCard, TurnYields, Yield } from './types'
-import { RESOURCES, TERRAINS, WONDERS, civById } from './data'
+import { RESOURCES, TERRAINS, WONDERS, civById, wonderCardById } from './data'
 import type { CivDef } from './data'
 
 export const ZERO: Yield = { food: 0, hammer: 0, science: 0, gold: 0 }
@@ -24,10 +24,17 @@ export interface YieldCtx {
   techs: ReadonlySet<string>
   /** 이번 차례에 연구한 기술: "다음 차례부터" 효과를 제외한다 */
   fresh: ReadonlySet<string>
+  /** 치첸이사: 사막 타일 산출 +1 */
+  desertBonus: boolean
 }
 
 export function ctxOf(player: Player): YieldCtx {
-  return { civ: civById(player.civId), techs: new Set(player.techs), fresh: new Set(player.freshTechs) }
+  return {
+    civ: civById(player.civId),
+    techs: new Set(player.techs),
+    fresh: new Set(player.freshTechs),
+    desertBonus: player.wonders.includes('chichen_itza'),
+  }
 }
 
 export function tileYield(card: TileCard, ctx: YieldCtx): Yield {
@@ -54,6 +61,15 @@ export function tileYield(card: TileCard, ctx: YieldCtx): Yield {
       (m.resource !== undefined && card.resource === m.resource)
     if (hit) y = addYield(y, m.yield)
   }
+  if (ctx.desertBonus && card.terrains.includes('사막')) {
+    // 해석 임시: 사막 타일이 이미 내는 각 산출에 +1 (open-questions 참고)
+    y = {
+      food: y.food > 0 ? y.food + 1 : 0,
+      hammer: y.hammer > 0 ? y.hammer + 1 : 0,
+      science: y.science > 0 ? y.science + 1 : 0,
+      gold: y.gold > 0 ? y.gold + 1 : 0,
+    }
+  }
   return y
 }
 
@@ -75,6 +91,10 @@ export function computeYields(player: Player): TurnYields {
     }
     return { cityId: city.id, food, hammer }
   })
+  if (player.policy === 'rationalism') science += player.civId === 'korea' ? 6 : 4
+  if (player.wonders.includes('colossus')) gold += 4
+  // 공중정원: "카드에 적힌 턴당 산출 +1" 해석이 불분명해 첫 도시 식량 +1로 임시 처리
+  if (player.wonders.includes('hanging_gardens') && cities.length) cities[0].food += 1
   return { cities, science, gold }
 }
 
@@ -94,7 +114,26 @@ export function happiness(player: Player): number {
       if (t.card.wonder) bonus += WONDERS[t.card.wonder].happinessOnClaim ?? 0
     }
   }
+  // 완성한 불가사의의 행복 (페르시아는 2배)
+  const mult = civ.id === 'persia' ? 2 : 1
+  for (const id of player.wonders) {
+    for (const e of wonderCardById(id).effects) if (e.kind === 'happiness') bonus += e.amount * mult
+  }
   return civ.happiness + luxuries.size + bonus
+}
+
+/** 턴당 관광: 평등(일꾼 2개당 1), 세계화·냉각기술(문화 2당 1), 루브르 +2, 에펠탑 +4 (프랑스는 불가사의 관광 2배). */
+export function tourism(player: Player): number {
+  let t = 0
+  if (player.policy === 'equality') t += Math.floor(totalWorkers(player) / 2)
+  for (const tech of ['globalization', 'refrigeration']) {
+    if (player.techs.includes(tech)) t += Math.floor(culture(player) / 2)
+  }
+  const mult = player.civId === 'france' ? 2 : 1
+  for (const id of player.wonders) {
+    for (const e of wonderCardById(id).effects) if (e.kind === 'tourism') t += e.amount * mult
+  }
+  return t
 }
 
 export const totalWorkers = (p: Player): number => p.cities.reduce((n, c) => n + c.workers, 0)

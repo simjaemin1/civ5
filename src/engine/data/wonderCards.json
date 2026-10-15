@@ -1,0 +1,22 @@
+{
+  "_note": "규칙서 13장 불가사의 표. progressNeeded(카드 오른쪽 원 개수)는 자료가 없어 임시값 3, progressUnknown=true. 공중정원 효과('카드에 적힌 턴당 산출 +1')는 해석이 불분명해 임시 구현.",
+  "wonders": [
+    {"id":"statue_of_zeus","name":"제우스상","tech":"bronze_working","minHammers":3,"effects":[{"kind":"general","amount":1}]},
+    {"id":"temple_of_artemis","name":"아르테미스 사원","tech":"archery","minHammers":5,"effects":[{"kind":"militaryCostMinus","amount":1}]},
+    {"id":"mausoleum","name":"마우솔레움","tech":"masonry","minHammers":5,"condition":{"kind":"stoneInCity"},"effects":[{"kind":"happiness","amount":1}]},
+    {"id":"colossus","name":"거신상","tech":"iron_working","minHammers":5,"condition":{"kind":"coastFirst5"},"effects":[{"kind":"goldPerTurn","amount":4}]},
+    {"id":"hanging_gardens","name":"공중정원","tech":"mathematics","minHammers":5,"effects":[{"kind":"gardens"}]},
+    {"id":"great_lighthouse","name":"알렉산드리아 등대","tech":"optics","minHammers":5,"condition":{"kind":"coastFirst5"},"effects":[{"kind":"coastalAttackPlus","amount":1}]},
+    {"id":"pyramids","name":"피라미드","tech":"construction","minHammers":6,"effects":[{"kind":"setPolicy","policy":"liberty"}]},
+    {"id":"petra","name":"페트라","tech":"currency","minHammers":6,"effects":[{"kind":"happiness","amount":2}]},
+    {"id":"chichen_itza","name":"치첸이사","tech":"civil_service","minHammers":7,"condition":{"kind":"desertFirst5"},"effects":[{"kind":"desertBonus"}]},
+    {"id":"great_wall","name":"만리장성","tech":"engineering","minHammers":7,"condition":{"kind":"mountainInTerritory"},"effects":[{"kind":"greatWall"}]},
+    {"id":"sistine_chapel","name":"시스티나 성당","tech":"acoustics","minHammers":8,"effects":[{"kind":"culture","amount":1}]},
+    {"id":"louvre","name":"루브르","tech":"archaeology","minHammers":9,"condition":{"kind":"policy","policy":"aesthetics"},"effects":[{"kind":"setPolicy","policy":"equality"},{"kind":"tourism","amount":2}]},
+    {"id":"statue_of_liberty","name":"자유의 여신상","tech":"electricity","minHammers":10,"condition":{"kind":"policy","policy":"liberty"},"effects":[{"kind":"choosePolicy"}]},
+    {"id":"eiffel_tower","name":"에펠탑","tech":"radio","minHammers":12,"effects":[{"kind":"setPolicy","policy":"equality"},{"kind":"tourism","amount":4},{"kind":"happiness","amount":1}]},
+    {"id":"pentagon","name":"펜타곤","tech":"combined_arms","minHammers":12,"condition":{"kind":"policy","policy":"despotism"},"effects":[{"kind":"setPolicy","policy":"liberty"}]},
+    {"id":"internet_censorship","name":"인터넷 검열시스템","tech":"computers","minHammers":15,"effects":[{"kind":"immuneCultureLoss"}]}
+  ],
+  "progressNeededDefault": 3
+}

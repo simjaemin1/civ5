@@ -4,6 +4,8 @@ import resourcesJson from './data/resources.json'
 import wondersJson from './data/wonders.json'
 import techsJson from './data/techs.json'
 import militaryJson from './data/militaryCards.json'
+import wonderCardsJson from './data/wonderCards.json'
+import policiesJson from './data/policies.json'
 import type { PartialYield, Terrain } from './types'
 
 export interface TileMod {
@@ -102,4 +104,46 @@ export const techById = (id: string): TechDef => {
   const t = TECHS.find((x) => x.id === id)
   if (!t) throw new Error(`unknown tech ${id}`)
   return t
+}
+
+export type PolicyId =
+  | 'tradition' | 'aesthetics' | 'despotism' | 'regime'
+  | 'liberty' | 'rationalism' | 'equality' | 'diplomacy'
+export const POLICIES = policiesJson as Record<PolicyId, { name: string; desc: string }>
+
+export type WonderEffect =
+  | { kind: 'general'; amount: number }
+  | { kind: 'militaryCostMinus'; amount: number }
+  | { kind: 'happiness'; amount: number }
+  | { kind: 'goldPerTurn'; amount: number }
+  | { kind: 'gardens' }
+  | { kind: 'coastalAttackPlus'; amount: number }
+  | { kind: 'setPolicy'; policy: PolicyId }
+  | { kind: 'desertBonus' }
+  | { kind: 'greatWall' }
+  | { kind: 'culture'; amount: number }
+  | { kind: 'tourism'; amount: number }
+  | { kind: 'choosePolicy' }
+  | { kind: 'immuneCultureLoss' }
+export type WonderCondition =
+  | { kind: 'stoneInCity' }
+  | { kind: 'coastFirst5' }
+  | { kind: 'desertFirst5' }
+  | { kind: 'mountainInTerritory' }
+  | { kind: 'policy'; policy: PolicyId }
+export interface WonderCardDef {
+  id: string
+  name: string
+  tech: string
+  minHammers: number
+  condition?: WonderCondition
+  effects: WonderEffect[]
+}
+export const WONDER_CARDS = wonderCardsJson.wonders as WonderCardDef[]
+/** 카드 오른쪽 원 개수 자료가 없어 모든 불가사의에 임시값을 쓴다 */
+export const PROGRESS_NEEDED = wonderCardsJson.progressNeededDefault
+export const wonderCardById = (id: string): WonderCardDef => {
+  const w = WONDER_CARDS.find((x) => x.id === id)
+  if (!w) throw new Error(`unknown wonder ${id}`)
+  return w
 }
