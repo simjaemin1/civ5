@@ -91,6 +91,8 @@ export interface Player {
   military: CardInst[]
   /** 이번 차례에 일꾼처럼 타일에 올린 장군 수 (스웨덴) */
   generalWorkers: number
+  /** 불러들였지만 다음 차례에 도착하는 장군 */
+  returningGenerals: number
   /** 선전포고에 걸려 아직 쓸 수 없는 일꾼 수 (정산 때 풀림) */
   busyWorkers: number
   /** 이번 차례에 일꾼 1개를 정찰에 쓰고 있는지 */

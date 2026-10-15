@@ -46,6 +46,7 @@ export function createGame(opts: CreateOptions): GameState {
       wonders: [],
       military: [],
       generalWorkers: 0,
+      returningGenerals: 0,
       busyWorkers: 0,
       scouting: false,
       scouted: null,
@@ -84,6 +85,8 @@ function beginTurn(s: GameState): void {
   p.turn = null
   p.freshTechs = []
   p.generalWorkers = 0
+  p.generals += p.returningGenerals // 불러들인 장군은 다음 차례에 돌아온다
+  p.returningGenerals = 0
   if (p.cities.length === 0) {
     s.phase = 'setup'
     if (p.hand.length === 0) {

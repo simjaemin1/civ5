@@ -170,7 +170,7 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
                   {civById(game.players[o.defenderId].civId).name} 도시 {o.cityId + 1} 타일 #{o.tileId}
                 </span>
                 <button disabled={turn.recalled} onClick={() => dispatch({ type: 'recallGeneral', ...o })}>
-                  불러들이기 (장군 +1, 점령 해제)
+                  불러들이기 (점령 해제, 장군은 다음 차례에 돌아옴)
                 </button>
               </div>
             ))}

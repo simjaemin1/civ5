@@ -77,9 +77,9 @@ export function recallGeneral(s: GameState, p: Player, a: { defenderId: number; 
   const found = findTile(s.players[a.defenderId], a.cityId, a.tileId)
   if (!found || found.tile.occupiedBy !== p.id) throw new RuleError('내 장군이 점령 중인 타일이 아닙니다')
   found.tile.occupiedBy = undefined
-  p.generals += 1
+  p.returningGenerals += 1 // 다음 차례부터 쓸 수 있다
   p.turn!.recalled = true
-  say(s, `${civById(p.civId).name} 장군을 불러들임 (점령 해제)`)
+  say(s, `${civById(p.civId).name} 장군을 불러들임 (점령 해제, 다음 차례부터 사용)`)
 }
 
 export function declareWar(

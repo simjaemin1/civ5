@@ -91,7 +91,8 @@ describe('바뀐 룰: 승급과 장군', () => {
     const g = me(s).generals
     const a = { type: 'recallGeneral' as const, defenderId: 1, cityId: 0, tileId: s.players[1].cities[0].tiles[1].card.id }
     s = apply(s, a)
-    expect(me(s).generals).toBe(g + 1)
+    expect(me(s).generals).toBe(g) // 다음 차례부터 쓸 수 있다
+    expect(me(s).returningGenerals).toBe(1)
     expect(s.players[1].cities[0].tiles[1].occupiedBy).toBeUndefined()
     expect(() => apply(s, { ...a, tileId: s.players[1].cities[0].tiles[2].card.id })).toThrow(RuleError)
   })
