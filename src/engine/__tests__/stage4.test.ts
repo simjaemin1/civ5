@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { apply, computeYields, RuleError, producible } from '..'
+import { apply, computeYields, RuleError, producible, upgradeTargets } from '..'
 import { found, me, play, startGame, tile } from './helpers'
 import type { GameState } from '..'
 
@@ -38,6 +38,7 @@ describe('기술 카드: 산출 효과', () => {
   it('천문학: 첫 5타일에 산이 있으면 과학 +5', () => {
     const base = computeYields(me(solo())).science
     expect(computeYields(me(solo(['astronomy']))).science).toBe(base + 5)
+    // 첫 도시 첫 5타일에만 센다: 산이 6번째 이후에 오는 경우는 해당 없음
     const noMountain = solo(['astronomy'], [tile(['평지']), tile(['숲']), tile(['언덕']), tile(['해안']), tile(['평지'])])
     expect(computeYields(me(noMountain)).science).toBe(base)
   })
@@ -60,5 +61,38 @@ describe('기술 카드: 산출 효과', () => {
     s = mod(s, (c) => (c.players[0].turn!.yields.science = 14))
     s = apply(s, { type: 'research', techId: 'fusion' })
     expect(me(s).military.some((c) => c.defId === 'atomic_bomb')).toBe(true)
+  })
+})
+
+describe('바뀐 룰: 승급과 장군', () => {
+  it('승급은 중간 등급을 건너뛸 수 있다 (창병 → 대전차포)', () => {
+    let s = solo(['bronze_working', 'ballistics'])
+    s = mod(s, (c) => c.players[0].military.push({ uid: 900, defId: 'spearman', dirs: ['C'] }))
+    expect(upgradeTargets(me(s), me(s).military[0]).map((c) => c.id)).toContain('anti_tank_gun')
+    s = play(s, { type: 'placeWorkers', placements: [] }, { type: 'skipResearch' })
+    s = mod(s, (c) => (c.players[0].turn!.yields.gold = 15))
+    s = apply(s, { type: 'upgrade', uid: 900, toDefId: 'anti_tank_gun' })
+    expect(me(s).military.map((c) => c.defId)).toEqual(['anti_tank_gun'])
+    expect(me(s).turn!.yields.gold).toBe(0)
+  })
+
+  it('점령한 장군은 차례에 1개까지 불러들일 수 있다', () => {
+    let s = startGame(['korea', 'russia'], [hand(), hand()])
+    for (let i = 0; i < 2; i++) {
+      s = found(s)
+      s = play(s, { type: 'placeWorkers', placements: [] }, { type: 'skipResearch' }, { type: 'endProduction' })
+      if (s.phase === 'declare') s = apply(s, { type: 'endTurn' })
+    }
+    s = mod(s, (c) => {
+      c.players[1].cities[0].tiles[1].occupiedBy = 0
+      c.players[1].cities[0].tiles[2].occupiedBy = 0
+    })
+    s = play(s, { type: 'placeWorkers', placements: [] }, { type: 'skipResearch' })
+    const g = me(s).generals
+    const a = { type: 'recallGeneral' as const, defenderId: 1, cityId: 0, tileId: s.players[1].cities[0].tiles[1].card.id }
+    s = apply(s, a)
+    expect(me(s).generals).toBe(g + 1)
+    expect(s.players[1].cities[0].tiles[1].occupiedBy).toBeUndefined()
+    expect(() => apply(s, { ...a, tileId: s.players[1].cities[0].tiles[2].card.id })).toThrow(RuleError)
   })
 })

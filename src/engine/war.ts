@@ -61,6 +61,27 @@ export function declarationTargets(s: GameState, p: Player): DeclTarget[] {
   return out
 }
 
+/** 점령 중인 상대 타일 (내 장군이 올라가 있는 타일) */
+export function occupiedTiles(s: GameState, p: Player): { defenderId: number; cityId: number; tileId: number }[] {
+  const out: { defenderId: number; cityId: number; tileId: number }[] = []
+  for (const o of s.players) {
+    if (o.id === p.id) continue
+    for (const c of o.cities) for (const t of c.tiles) if (t.occupiedBy === p.id) out.push({ defenderId: o.id, cityId: c.id, tileId: t.card.id })
+  }
+  return out
+}
+
+/** 장군 불러들이기: 점령 중인 타일 하나를 풀고 장군을 돌려받는다 (차례에 1개까지). */
+export function recallGeneral(s: GameState, p: Player, a: { defenderId: number; cityId: number; tileId: number }): void {
+  if (p.turn!.recalled) throw new RuleError('장군은 한 차례에 1개까지만 불러들일 수 있습니다')
+  const found = findTile(s.players[a.defenderId], a.cityId, a.tileId)
+  if (!found || found.tile.occupiedBy !== p.id) throw new RuleError('내 장군이 점령 중인 타일이 아닙니다')
+  found.tile.occupiedBy = undefined
+  p.generals += 1
+  p.turn!.recalled = true
+  say(s, `${civById(p.civId).name} 장군을 불러들임 (점령 해제)`)
+}
+
 export function declareWar(
   s: GameState,
   p: Player,

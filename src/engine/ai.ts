@@ -6,8 +6,8 @@ import type { TechDef } from './data'
 import { apply, researchableTechs } from './game'
 import { ctxOf, tileYield, totalWorkers } from './yields'
 import { investableWonders, minHammers } from './wonders'
-import { cardCost, producible, uniqueOf } from './military'
-import { declarationTargets } from './war'
+import { cardCost, producible, uniqueOf, upgradeTargets } from './military'
+import { declarationTargets, occupiedTiles } from './war'
 import { currentPlayer } from './core'
 
 /** 규칙 검증용 단순 휴리스틱 AI. 후보 행동을 순서대로 시도해 규칙을 어기지 않는 첫 행동을 쓴다. */
@@ -221,12 +221,16 @@ function produceCandidates(s: GameState, p: Player): Action[] {
     // 군대가 3장 미만이면 군사 카드를 먼저, 그 뒤에는 불가사의에 망치를 모두 건다
     out.push(...(army < 3 || aiStyle === 'hammer' ? [...cardActions, ...wonderActions] : [...wonderActions, ...cardActions]))
   }
-  // 3) 금으로 승급
+  // 3) 금으로 승급 (가장 높은 단계부터 시도한다)
   if (!turn.upgraded && turn.yields.gold > 0) {
     for (const c of p.military) {
       for (const u of civById(p.civId).uniques) out.push({ type: 'upgrade', uid: c.uid, unique: u.name })
     }
-    for (const c of p.military) out.push({ type: 'upgrade', uid: c.uid })
+    for (const c of p.military) for (const t of upgradeTargets(p, c)) out.push({ type: 'upgrade', uid: c.uid, toDefId: t.id })
+  }
+  // 4) 장군이 없고 군대가 있으면 점령 중인 장군 1개를 불러들여 다시 전쟁에 쓴다
+  if (p.generals < 1 && !turn.recalled && army >= 2) {
+    for (const t of occupiedTiles(s, p)) out.push({ type: 'recallGeneral', ...t })
   }
   return out
 }

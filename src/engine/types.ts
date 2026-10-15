@@ -67,6 +67,8 @@ export interface TurnData {
 
   /** 전통·체제를 고른 차례에는 식량 정산을 하지 않는다 */
   skipFoodSettle: boolean
+  /** 이번 차례에 장군을 점령지에서 불러들였는가 (차례당 1개) */
+  recalled: boolean
 }
 
 export interface Player {
@@ -180,7 +182,8 @@ export type Action =
   | { type: 'buildSecondCity'; cityTileId: number; sideTiles: Partial<Record<Side, number>> }
   | { type: 'invest'; cityId: number; wonderId: string; hammers: number }
   | { type: 'produce'; cityId: number; defId: string; unique?: string }
-  | { type: 'upgrade'; uid: number; unique?: string }
+  | { type: 'upgrade'; uid: number; unique?: string; toDefId?: string }
+  | { type: 'recallGeneral'; defenderId: number; cityId: number; tileId: number }
   | { type: 'scout' }
   | { type: 'holdScouted' }
   | { type: 'releaseHeld' }

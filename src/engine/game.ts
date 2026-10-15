@@ -13,7 +13,7 @@ import {
 } from './military'
 import { endScouting, freeWorkers, holdScouted, releaseHeld, scout } from './scouting'
 import {
-  arrangeBattle, checkCultureDefeats, chooseTargets, declarationTargets, declareWar, findTile,
+  arrangeBattle, checkCultureDefeats, chooseTargets, declarationTargets, recallGeneral, declareWar, findTile,
   startNextBattle, detonateAtomicBomb, activateGreatWall,
 } from './war'
 
@@ -228,6 +228,11 @@ export function apply(prev: GameState, action: Action): GameState {
       foodSettlement(s, p)
       endTurn(s)
       return s
+    case 'recallGeneral':
+      expectPhase(s, 'produce', 'declare')
+      recallGeneral(s, p, action)
+      // 불러들인 장군으로 바로 선전포고할 수 있도록 선전포고 단계가 열린다 (생산 단계에서는 생산을 끝낸 뒤)
+      return s
     case 'declareWar':
       expectPhase(s, 'declare')
       declareWar(s, p, action)
@@ -389,6 +394,7 @@ function placeWorkers(s: GameState, p: Player, placements: Placement[]): GameSta
     upgraded: false,
     extraFood: 0,
     skipFoodSettle: false,
+    recalled: false,
   }
   s.phase = 'research'
   return s

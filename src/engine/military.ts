@@ -111,16 +111,24 @@ export function produceCard(
   say(s, `${civById(p.civId).name} ${a.unique ?? def.name} 생산 (망치 ${cost})`)
 }
 
-/** 금으로 승급: 가진 하위 카드를 바로 윗 단계로 바꾸고 상위 카드의 생산 비용만큼 금을 낸다. 한 차례에 한 장. 새 카드의 방향은 무작위. */
-export function upgradeCard(s: GameState, p: Player, a: { uid: number; unique?: string }): void {
+/** 지금 이 카드를 승급할 수 있는 상위 카드들 (중간 등급을 건너뛸 수 있다. 비싼 순) */
+export function upgradeTargets(p: Player, inst: CardInst): MilitaryCardDef[] {
+  const lower = cardById(inst.defId)
+  if (!lower.line || !lower.tier) return []
+  return MILITARY_CARDS.filter((c) => c.line === lower.line && c.tier! > lower.tier! && p.techs.includes(c.tech)).sort((a, b) => b.tier! - a.tier!)
+}
+
+/** 금으로 승급: 가진 하위 카드를 지금 만들 수 있는 상위 카드(중간 등급 건너뛰기 가능)로 바꾸고 상위 카드의 생산 비용만큼 금을 낸다. 한 차례에 한 장. 새 카드의 방향은 무작위. */
+export function upgradeCard(s: GameState, p: Player, a: { uid: number; unique?: string; toDefId?: string }): void {
   const turn = p.turn!
   if (turn.upgraded) throw new RuleError('승급은 한 차례에 한 장만 할 수 있습니다')
   const inst = p.military.find((c) => c.uid === a.uid)
   if (!inst) throw new RuleError('내 카드가 아닙니다')
   const lower = cardById(inst.defId)
   if (!lower.line || !lower.tier) throw new RuleError('승급할 수 없는 카드입니다')
-  const upper = MILITARY_CARDS.find((c) => c.line === lower.line && c.tier === lower.tier! + 1)
-  if (!upper) throw new RuleError('더 윗 단계가 없습니다')
+  const options = upgradeTargets(p, inst)
+  const upper = a.toDefId ? options.find((c) => c.id === a.toDefId) : a.unique ? options.find((c) => c.id === uniqueOf(p, a.unique!)?.base) : options[options.length - 1]
+  if (!upper) throw new RuleError(options.length ? '그 카드로는 승급할 수 없습니다' : '지금 승급할 수 있는 윗 단계가 없습니다 (기술 확인)')
   const uq = a.unique ? uniqueOf(p, a.unique) : undefined
   if (a.unique && (!uq || uq.base !== upper.id)) throw new RuleError('그 고유 유닛으로 승급할 수 없습니다')
   if (!p.techs.includes(uq?.tech ?? upper.tech)) throw new RuleError('필요한 기술이 없습니다')

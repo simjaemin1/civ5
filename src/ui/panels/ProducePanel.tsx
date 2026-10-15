@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { MILITARY_CARDS, cardById, cardCost, civById, investableWonders, minHammers, producible, uniqueOf, wonderCardById, TECHS } from '../../engine'
+import { MILITARY_CARDS, cardById, cardCost, civById, investableWonders, minHammers, producible, uniqueOf, upgradeTargets, wonderCardById, TECHS, occupiedTiles } from '../../engine'
 import { cardText, conditionText, ICON, wonderEffectText } from '../format'
 import type { PanelProps } from './types'
 
@@ -9,12 +9,8 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
   const [amounts, setAmounts] = useState<Record<string, number>>({})
 
   const upgrades = player.military
-    .map((c) => {
-      const lower = cardById(c.defId)
-      const upper = lower.line && lower.tier ? MILITARY_CARDS.find((u) => u.line === lower.line && u.tier === lower.tier! + 1) : undefined
-      return upper ? { inst: c, lower, upper } : null
-    })
-    .filter((x): x is NonNullable<typeof x> => x !== null)
+    .map((c) => ({ inst: c, lower: cardById(c.defId), options: upgradeTargets(player, c) }))
+    .filter((x) => x.options.length > 0)
 
   const enemyExtra = game.players.flatMap((o) =>
     o.cities.flatMap((c) => c.tiles.filter((t) => t.occupiedBy === player.id && t.role === 'extra').map((t) => ({ o, c, t }))),
@@ -120,30 +116,33 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
       <details>
         <summary>금으로 승급 ({upgrades.length}장 가능, 한 차례에 한 장{turn.upgraded ? ' — 이번 차례 사용함' : ''})</summary>
         <div className="list">
-          {upgrades.map(({ inst, lower, upper }) => {
-            const cost = cardCost(player, upper)
-            return (
-              <div key={inst.uid} className="row">
-                <span>
-                  {lower.name} → {cardText({ defId: upper.id })} (방향은 무작위)
-                </span>
-                <b>
-                  {ICON.gold}
-                  {cost}
-                </b>
-                <button disabled={turn.upgraded || turn.yields.gold < cost || !player.techs.includes(upper.tech)} onClick={() => dispatch({ type: 'upgrade', uid: inst.uid })}>
-                  승급
-                </button>
-                {civ.uniques
-                  .filter((u) => u.base === upper.id && (game.uniqueSupply[u.name]?.length ?? 0) > 0)
-                  .map((u) => (
-                    <button key={u.name} disabled={turn.upgraded || turn.yields.gold < cost || !player.techs.includes(u.tech ?? upper.tech)} onClick={() => dispatch({ type: 'upgrade', uid: inst.uid, unique: u.name })}>
-                      {u.name}(으)로 승급 (남은 {game.uniqueSupply[u.name].length}/3장)
+          {upgrades.map(({ inst, lower, options }) => (
+            <div key={inst.uid} className="col">
+              <b>{lower.name}</b>
+              {options.map((upper) => {
+                const cost = cardCost(player, upper)
+                return (
+                  <div key={upper.id} className="row">
+                    <span>→ {cardText({ defId: upper.id })} (방향은 무작위, 중간 등급 건너뛰기 가능)</span>
+                    <b>
+                      {ICON.gold}
+                      {cost}
+                    </b>
+                    <button disabled={turn.upgraded || turn.yields.gold < cost} onClick={() => dispatch({ type: 'upgrade', uid: inst.uid, toDefId: upper.id })}>
+                      승급
                     </button>
-                  ))}
-              </div>
-            )
-          })}
+                    {civ.uniques
+                      .filter((u) => u.base === upper.id && (game.uniqueSupply[u.name]?.length ?? 0) > 0)
+                      .map((u) => (
+                        <button key={u.name} disabled={turn.upgraded || turn.yields.gold < cost || !player.techs.includes(u.tech ?? upper.tech)} onClick={() => dispatch({ type: 'upgrade', uid: inst.uid, unique: u.name })}>
+                          {u.name}(으)로 승급 (남은 {game.uniqueSupply[u.name].length}/3장)
+                        </button>
+                      ))}
+                  </div>
+                )
+              })}
+            </div>
+          ))}
         </div>
       </details>
 
@@ -155,6 +154,24 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
               <div key={c.uid} className="row">
                 <span>{cardText(c)}</span>
                 {player.civId === 'india' && <button onClick={() => dispatch({ type: 'sacrificeCard', uid: c.uid })}>공용 덱에 돌려 파괴 (식량 +2)</button>}
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
+
+      {occupiedTiles(game, player).length > 0 && (
+        <details>
+          <summary>점령 중인 장군 불러들이기 (차례에 1개{turn.recalled ? ' — 이번 차례 사용함' : ''})</summary>
+          <div className="list">
+            {occupiedTiles(game, player).map((o) => (
+              <div key={`${o.defenderId}:${o.cityId}:${o.tileId}`} className="row">
+                <span>
+                  {civById(game.players[o.defenderId].civId).name} 도시 {o.cityId + 1} 타일 #{o.tileId}
+                </span>
+                <button disabled={turn.recalled} onClick={() => dispatch({ type: 'recallGeneral', ...o })}>
+                  불러들이기 (장군 +1, 점령 해제)
+                </button>
               </div>
             ))}
           </div>
