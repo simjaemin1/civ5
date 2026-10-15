@@ -4,7 +4,7 @@ import { cardById, civById } from './data'
 import type { MilitaryCardDef } from './data'
 import { say } from './core'
 import { freeWorkers } from './scouting'
-import { isCoastalOnly, uniqueOf } from './military'
+import { isCoastalOnly, releaseUnique, uniqueOf } from './military'
 import { culture, tourism } from './yields'
 
 export interface DeclTarget {
@@ -284,6 +284,7 @@ function resolveBattle(s: GameState): void {
       p.military = p.military.filter((c) => c.uid !== u.inst.uid)
       // 파괴된 카드는 공용 덱으로 돌아간다. 오스만은 상대의 해안 전용 카드를 파괴하면 그 카드를 가져온다.
       if (enemy.civId === 'ottoman' && isCoastalOnly(u.inst)) enemy.military.push(u.inst)
+      else releaseUnique(s, u.inst) // 파괴된 고유 유닛은 3장 재고로 돌아간다
     }
   }
   say(

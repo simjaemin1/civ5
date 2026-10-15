@@ -159,6 +159,122 @@ describe('군사 카드 공개 범위', () => {
   })
 })
 
+/** 고유 유닛 한 장을 재고에서 꺼내 문명에게 준다 */
+function giveUnique(s: GameState, pid: number, unique: string, defId: string, dir?: 'L' | 'C' | 'R'): number {
+  const def = cardById(defId)
+  const supply = s.uniqueSupply[unique]
+  const v = def.variantDirs ? (dir ?? def.variantDirs[0]) : 'x'
+  supply.splice(supply.indexOf(v), 1)
+  const uid = s.nextUid++
+  s.players[pid].military.push({ uid, defId, dir: def.variantDirs ? (v as 'L' | 'C' | 'R') : undefined, unique })
+  return uid
+}
+
+describe('고유 유닛은 3장만 존재한다', () => {
+  const spain = (techs: string[]) => {
+    let s = found(startGame(['spain'], [hand4()]))
+    s = mod(s, (c) => c.players[0].techs.push(...techs))
+    return play(s, { type: 'placeWorkers', placements: [] }, { type: 'skipResearch' })
+  }
+  const produceUnique = (s: GameState) => {
+    const ready = mod(s, (c) => {
+      c.players[0].turn!.produced = []
+      c.players[0].turn!.yields.cities[0].hammer = 20
+    })
+    return apply(ready, { type: 'produce', cityId: 0, defId: 'musketman', unique: '테르시오' })
+  }
+
+  it('방향 카드의 고유 유닛은 왼쪽·가운데·오른쪽 한 장씩 3장이 무작위 순서로 나오고, 4장째는 만들 수 없다', () => {
+    let s = spain(['gunpowder'])
+    expect([...s.uniqueSupply['테르시오']].sort()).toEqual(['C', 'L', 'R'])
+    for (let i = 0; i < 3; i++) s = produceUnique(s)
+    const dirs = me(s).military.filter((c) => c.unique === '테르시오').map((c) => c.dir)
+    expect([...dirs].sort()).toEqual(['C', 'L', 'R'])
+    expect(s.uniqueSupply['테르시오']).toEqual([])
+    expect(() => produceUnique(s)).toThrow(RuleError)
+    // 일반 머스킷병은 계속 만들 수 있다 (무제한)
+    const ready = mod(s, (c) => {
+      c.players[0].turn!.produced = []
+      c.players[0].turn!.yields.cities[0].hammer = 20
+    })
+    expect(() => apply(ready, { type: 'produce', cityId: 0, defId: 'musketman' })).not.toThrow()
+  })
+
+  it('방향이 없는 카드의 고유 유닛(인도 전투 코끼리)도 3장까지', () => {
+    let s = found(startGame(['india'], [hand4()]))
+    s = mod(s, (c) => c.players[0].techs.push('animal_husbandry'))
+    s = play(s, { type: 'placeWorkers', placements: [] }, { type: 'skipResearch' })
+    expect(s.uniqueSupply['전투 코끼리']).toEqual(['x', 'x', 'x'])
+    for (let i = 0; i < 3; i++) {
+      s = mod(s, (c) => {
+        c.players[0].turn!.produced = []
+        c.players[0].turn!.yields.cities[0].hammer = 20
+      })
+      s = apply(s, { type: 'produce', cityId: 0, defId: 'chariot', unique: '전투 코끼리' })
+    }
+    s = mod(s, (c) => {
+      c.players[0].turn!.produced = []
+      c.players[0].turn!.yields.cities[0].hammer = 20
+    })
+    expect(() => apply(s, { type: 'produce', cityId: 0, defId: 'chariot', unique: '전투 코끼리' })).toThrow(RuleError)
+  })
+
+  it('고유 유닛을 희생(인도)하거나 승급으로 바꾸면 3장 재고로 돌아간다', () => {
+    let s = found(startGame(['india'], [hand4()]))
+    s = mod(s, (c) => c.players[0].techs.push('animal_husbandry'))
+    s = play(s, { type: 'placeWorkers', placements: [] }, { type: 'skipResearch' })
+    s = mod(s, (c) => (c.players[0].turn!.yields.cities[0].hammer = 20))
+    s = apply(s, { type: 'produce', cityId: 0, defId: 'chariot', unique: '전투 코끼리' })
+    expect(s.uniqueSupply['전투 코끼리']).toHaveLength(2)
+    s = apply(s, { type: 'sacrificeCard', uid: me(s).military[0].uid })
+    expect(s.uniqueSupply['전투 코끼리']).toHaveLength(3)
+
+    let t = spain(['gunpowder', 'rifling'])
+    t = produceUnique(t)
+    expect(t.uniqueSupply['테르시오']).toHaveLength(2)
+    t = mod(t, (c) => (c.players[0].turn!.yields.gold = 20))
+    t = apply(t, { type: 'upgrade', uid: me(t).military[0].uid }) // 머스킷병 → 소총병
+    expect(t.uniqueSupply['테르시오']).toHaveLength(3)
+  })
+
+  it('전투에서 파괴된 고유 유닛은 3장 재고로 돌아간다', () => {
+    let d = 0
+    let s = toBattle(round2(['russia', 'spain']), (c) => {
+      c.players[0].generals = 1
+      give(c, 0, 'tank')
+      give(c, 0, 'tank')
+      d = giveUnique(c, 1, '테르시오', 'musketman', 'C')
+    }, { pid: 1, idx: 1 })
+    expect(s.uniqueSupply['테르시오']).toHaveLength(2)
+    const [t1, t2] = s.players[0].military.map((c) => c.uid)
+    s = arrange(s, 0, [t1, t2, null, null])
+    s = arrange(s, 1, [null, d, null, null])
+    // 러시아가 먼저 대상을 고른다: 탱크 두 장(전투력 4+4=8)이 체력 5의 테르시오를 파괴
+    s = apply(s, { type: 'chooseTargets', playerId: 0, picks: { [t1]: d, [t2]: d } })
+    expect(ids(s, 1)).not.toContain(d)
+    expect(s.uniqueSupply['테르시오']).toHaveLength(3)
+  })
+
+  it('오스만이 상대의 해안 전용 고유 유닛(제고이센)을 파괴하면 빼앗아 가고, 파괴될 때까지 재고에 돌아오지 않는다', () => {
+    let ship = 0
+    let s = toBattle(round2(['netherlands', 'ottoman']), (c) => {
+      c.players[0].generals = 1
+      ship = giveUnique(c, 0, '제고이센', 'battleship', 'L')
+      give(c, 1, 'tank')
+      give(c, 1, 'tank')
+    }, { pid: 1, idx: 3 }) // 오스만의 해안 타일: 해안 전투
+    expect(s.battle!.coastal).toBe(true)
+    expect(s.uniqueSupply['제고이센']).toHaveLength(2)
+    const [t1, t2] = s.players[1].military.map((c) => c.uid)
+    s = arrange(s, 0, [ship, null, null, null])
+    s = arrange(s, 1, [t1, t2, null, null])
+    s = apply(s, { type: 'chooseTargets', playerId: 1, picks: { [t1]: ship, [t2]: ship } }) // 4+4=8 ≥ 체력 8
+    expect(s.players[0].military.some((c) => c.uid === ship)).toBe(false)
+    expect(s.players[1].military.some((c) => c.uid === ship && c.unique === '제고이센')).toBe(true) // 오스만이 가져감
+    expect(s.uniqueSupply['제고이센']).toHaveLength(2) // 재고에 돌아오지 않는다
+  })
+})
+
 describe('금으로 승급', () => {
   const setup = () => {
     let s = startGame(['denmark'], [hand4()])

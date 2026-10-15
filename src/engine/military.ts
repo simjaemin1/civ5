@@ -8,6 +8,26 @@ import { nextRandom } from './rng'
 /** 한 종류의 군사 카드는 최대 6장까지 보유할 수 있다. 공용 덱의 카드는 사실상 무제한이라 재고는 세지 않는다. */
 export const MAX_HOLD = 6
 
+/**
+ * 고유 유닛은 3장만 만들어져 있다: 방향 카드는 왼쪽·가운데·오른쪽 한 장씩, 방향이 없는 카드는 같은 카드 3장.
+ * 파괴되면 다시 만들 수 있지만, 오스만에게 빼앗긴 카드(제고이센)는 파괴될 때까지 다시 만들 수 없다.
+ */
+export function initUniqueSupply(civIds: string[]): Record<string, string[]> {
+  const supply: Record<string, string[]> = {}
+  for (const id of civIds) {
+    for (const u of civById(id).uniques) {
+      const base = cardById(u.base)
+      supply[u.name] = base.variantDirs ? [...base.variantDirs] : ['x', 'x', 'x']
+    }
+  }
+  return supply
+}
+
+/** 판에서 사라지는 고유 유닛은 3장 재고로 돌아간다 (빼앗긴 경우는 호출하지 않는다). */
+export function releaseUnique(s: GameState, c: CardInst): void {
+  if (c.unique && s.uniqueSupply[c.unique]) s.uniqueSupply[c.unique].push(c.dir ?? 'x')
+}
+
 export const hasAny = (p: Player, wonder: string): boolean => p.wonders.includes(wonder)
 
 /** 아르테미스 사원: 군사 카드 생산 비용 -1 */
@@ -27,7 +47,7 @@ export const isCoastalCity = (city: City): boolean => first5(city).some((t) => t
 export const isCoastalOnly = (c: CardInst): boolean => c.defId === 'battleship'
 
 /** 이 문명이 지금 만들 수 있는 카드 (기술 보유, 한 종류 6장 보유 한도). */
-export function producible(_s: GameState, p: Player, defId: string, unique?: string): { def: MilitaryCardDef; uq?: UniqueUnitDef } | null {
+export function producible(s: GameState, p: Player, defId: string, unique?: string): { def: MilitaryCardDef; uq?: UniqueUnitDef } | null {
   const uq = unique ? uniqueOf(p, unique) : undefined
   if (unique && !uq) return null
   const id = uq ? uq.base : defId
@@ -36,14 +56,23 @@ export function producible(_s: GameState, p: Player, defId: string, unique?: str
   const tech = uq?.tech ?? def.tech
   if (!p.techs.includes(tech)) return null
   if (p.military.filter((c) => c.defId === id).length >= MAX_HOLD) return null
+  if (uq && (s.uniqueSupply[uq.name]?.length ?? 0) === 0) return null // 고유 유닛 3장이 모두 존재함
   return { def, uq }
 }
 
-/** 방향이 있는 카드는 만들 때 공격 방향이 무작위로 정해진다 (왼쪽·가운데·오른쪽 같은 확률). */
+/**
+ * 새 카드: 방향이 있는 카드는 방향이 무작위로 정해진다 (같은 확률).
+ * 고유 유닛은 남은 3장 중 하나가 무작위로 나온다.
+ */
 function newCard(s: GameState, defId: string, unique?: string): CardInst {
   const def = cardById(defId)
+  if (unique) {
+    const supply = s.uniqueSupply[unique]
+    const v = supply.splice(Math.floor(nextRandom(s) * supply.length), 1)[0]
+    return { uid: s.nextUid++, defId, dir: def.variantDirs ? (v as Dir) : undefined, unique }
+  }
   const dir: Dir | undefined = def.variantDirs ? def.variantDirs[Math.floor(nextRandom(s) * def.variantDirs.length)] : undefined
-  return { uid: s.nextUid++, defId, dir, unique }
+  return { uid: s.nextUid++, defId, dir }
 }
 
 export function produceCard(
@@ -83,9 +112,11 @@ export function upgradeCard(s: GameState, p: Player, a: { uid: number; unique?: 
   if (a.unique && (!uq || uq.base !== upper.id)) throw new RuleError('그 고유 유닛으로 승급할 수 없습니다')
   if (!p.techs.includes(uq?.tech ?? upper.tech)) throw new RuleError('필요한 기술이 없습니다')
   if (p.military.filter((c) => c.defId === upper.id).length >= MAX_HOLD) throw new RuleError('한 종류는 6장까지만 가질 수 있습니다')
+  if (uq && (s.uniqueSupply[uq.name]?.length ?? 0) === 0) throw new RuleError('그 고유 유닛 3장이 모두 존재합니다')
   const cost = cardCost(p, upper, uq)
   if (turn.yields.gold < cost) throw new RuleError('금이 모자랍니다')
   p.military = p.military.filter((c) => c.uid !== a.uid)
+  releaseUnique(s, inst) // 승급으로 바뀐 하위 고유 유닛은 재고로 돌아간다
   p.military.push(newCard(s, upper.id, a.unique))
   turn.upgraded = true
   turn.yields.gold -= cost
@@ -95,8 +126,10 @@ export function upgradeCard(s: GameState, p: Player, a: { uid: number; unique?: 
 /** 인도: 군사 카드 1장을 공용 덱에 돌려 파괴하면 그 차례 식량 +2 */
 export function sacrificeCard(s: GameState, p: Player, uid: number): void {
   if (p.civId !== 'india') throw new RuleError('인도만 쓸 수 있는 능력입니다')
-  if (!p.military.some((c) => c.uid === uid)) throw new RuleError('내 카드가 아닙니다')
+  const inst = p.military.find((c) => c.uid === uid)
+  if (!inst) throw new RuleError('내 카드가 아닙니다')
   p.military = p.military.filter((c) => c.uid !== uid)
+  releaseUnique(s, inst)
   p.turn!.extraFood += 2
   p.turn!.yields.cities[0].food += 2
   say(s, `인도 군사 카드 파괴 → 식량 +2`)

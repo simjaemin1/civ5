@@ -68,7 +68,7 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
                   </div>
                 </details>
                 <details>
-                  <summary>군사 카드 생산 (방향이 있는 카드는 생산할 때 무작위로 정해집니다)</summary>
+                  <summary>군사 카드 생산 (방향이 있는 카드는 생산할 때 무작위로 정해지고, 고유 유닛은 3장만 존재합니다)</summary>
                   <div className="list">
                     {MILITARY_CARDS.flatMap((def) => {
                       const entries: { unique?: string }[] = [{}, ...civ.uniques.filter((u) => u.base === def.id).map((u) => ({ unique: u.name }))]
@@ -79,7 +79,7 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
                           const cost = cardCost(player, def, e.unique ? uniqueOf(player, e.unique) : undefined)
                           return (
                             <div key={key} className="row">
-                              <span>{cardLine(def, undefined, e.unique)}</span>
+                              <span>{cardLine(def, undefined, e.unique)}{e.unique ? ` — 고유 유닛, 남은 ${game.uniqueSupply[e.unique].length}/3장` : ''}</span>
                               <b>
                                 {ICON.hammer}
                                 {cost}
@@ -119,6 +119,13 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
                 <button disabled={turn.upgraded || turn.yields.gold < cost || !player.techs.includes(upper.tech)} onClick={() => dispatch({ type: 'upgrade', uid: inst.uid })}>
                   승급
                 </button>
+                {civ.uniques
+                  .filter((u) => u.base === upper.id && (game.uniqueSupply[u.name]?.length ?? 0) > 0)
+                  .map((u) => (
+                    <button key={u.name} disabled={turn.upgraded || turn.yields.gold < cost || !player.techs.includes(u.tech ?? upper.tech)} onClick={() => dispatch({ type: 'upgrade', uid: inst.uid, unique: u.name })}>
+                      {u.name}(으)로 승급 (남은 {game.uniqueSupply[u.name].length}/3장)
+                    </button>
+                  ))}
               </div>
             )
           })}

@@ -26,6 +26,11 @@ function checkInvariants(s: GameState): void {
       else expect(m.dir).toBeUndefined()
     }
   }
+  // 고유 유닛은 항상 3장: 재고 + 문명들이 가진 장수 (빼앗긴 카드는 가져간 문명이 가진 것으로 센다)
+  for (const [name, supply] of Object.entries(s.uniqueSupply)) {
+    const held = s.players.reduce((n, p) => n + p.military.filter((m) => m.unique === name).length, 0)
+    expect(supply.length + held, `${name} 고유 유닛 수`).toBe(3)
+  }
   // 타일 id는 어디에도 중복되지 않는다
   const ids: number[] = s.deck.map((t) => t.id)
   for (const p of s.players) {

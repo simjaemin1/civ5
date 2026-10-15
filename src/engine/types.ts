@@ -150,6 +150,8 @@ export interface GameState {
   /** 이번 라운드의 불가사의 투자 (정산 때 처리) */
   investments: { wonderId: string; playerId: number; cityId: number; hammers: number }[]
   nextUid: number
+  /** 고유 유닛은 좌·중·우 3장만 존재한다: 이름별로 아직 만들 수 있는 카드 ('L'|'C'|'R'|'x') */
+  uniqueSupply: Record<string, string[]>
   declarations: Declaration[]
   battle: BattleState | null
   eldoradoFound: boolean
