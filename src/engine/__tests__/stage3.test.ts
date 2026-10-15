@@ -129,6 +129,23 @@ describe('군사 카드 생산', () => {
   })
 })
 
+describe('군사 카드 공개 범위', () => {
+  it('로그에는 무엇을 생산·승급했는지만 남고 공격 방향은 남지 않는다', () => {
+    let s = found(startGame(['denmark'], [hand4()]))
+    s = mod(s, (c) => c.players[0].techs.push('agriculture', 'iron_working'))
+    s = play(s, { type: 'placeWorkers', placements: [] }, { type: 'skipResearch' })
+    s = mod(s, (c) => {
+      c.players[0].turn!.yields.cities[0].hammer = 5
+      c.players[0].turn!.yields.gold = 10
+    })
+    s = apply(s, { type: 'produce', cityId: 0, defId: 'warrior', dir: 'C' })
+    expect(s.log.at(-1)).toContain('전사')
+    s = apply(s, { type: 'upgrade', uid: s.players[0].military[0].uid, dir: 'R' })
+    expect(s.log.at(-1)).toContain('장검사')
+    expect(s.log.filter((l) => /생산|승급/.test(l)).join('\n')).not.toMatch(/왼쪽|가운데|오른쪽|\bL\b|\bC\b|\bR\b/)
+  })
+})
+
 describe('금으로 승급', () => {
   const setup = () => {
     let s = startGame(['denmark'], [hand4()])

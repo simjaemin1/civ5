@@ -11,7 +11,7 @@ interface Props {
   actor: number
 }
 
-/** 문명별 현황: 다른 문명의 타일·기술·정책·불가사의를 언제든 확인한다 (공개 정보). 군사 카드는 장수만 보인다. */
+/** 문명별 현황: 다른 문명의 타일·기술·정책·불가사의를 언제든 확인한다 (공개 정보). 군사 카드는 장수만 보이고 공격 방향은 비공개다. */
 export function CivInspector({ game, seats, actor }: Props) {
   const defaultId = game.order.find((id) => id !== actor && !game.players[id].eliminated) ?? actor
   const [sel, setSel] = useState<number | null>(null)
@@ -45,7 +45,7 @@ export function CivInspector({ game, seats, actor }: Props) {
         <span>기술 <b>{p.techs.length}</b></span>
         <span>정책 <b>{policyName(p.policy)}</b></span>
         <span>장군 <b>{p.generals}</b></span>
-        <span>군사 카드 <b>{p.military.length}장</b> <small className="muted">(종류는 비공개)</small></span>
+        <span>군사 카드 <b>{p.military.length}장</b> <small className="muted">(방향은 비공개, 생산 내역은 로그)</small></span>
         <span>불가사의 <b>{p.wonders.map((w) => WONDER_CARDS.find((x) => x.id === w)?.name).join(', ') || '없음'}</b></span>
       </p>
       {(held.length > 0 || occupying.length > 0) && (

@@ -135,6 +135,7 @@ export function InfoTabs({ game, viewer }: { game: GameState; viewer: number }) 
       )}
       {tab === 'card' && (
         <div className="scroll">
+        <p className="muted">남은 장수만 공개합니다. 누가 어떤 방향의 카드를 가졌는지는 비공개이고, 무엇을 생산했는지는 로그에 남습니다.</p>
         <table className="table">
           <thead>
             <tr>
@@ -150,7 +151,9 @@ export function InfoTabs({ game, viewer }: { game: GameState; viewer: number }) 
                 <td>{c.name}</td>
                 <td>{c.cost}</td>
                 <td>{TECHS.find((t) => t.id === c.tech)?.name}</td>
-                <td>{game.cardPool[c.id].map((v) => (v === 'x' ? '●' : v)).join(' ') || '—'}</td>
+                <td>
+                  {game.cardPool[c.id].length}/{c.variantDirs ? c.variantDirs.length : (c.copies ?? 3)}장
+                </td>
               </tr>
             ))}
           </tbody>
