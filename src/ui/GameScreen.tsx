@@ -6,6 +6,7 @@ import { CivInspector } from './CivInspector'
 import { InfoTabs, PlayersTable } from './InfoTabs'
 import type { Seat } from './SetupScreen'
 import { ICON } from './format'
+import { BattleReportModal } from './BattleReportModal'
 import { BattlePanel } from './panels/BattlePanel'
 import { DeclarePanel } from './panels/DeclarePanel'
 import { PendingPanel } from './panels/PendingPanel'
@@ -38,6 +39,11 @@ export function GameScreen({ initial, seats, onExit }: Props) {
   const [notice, setNotice] = useState<string[]>([])
   const [speed, setSpeed] = useState(300)
   const [revealed, setRevealed] = useState('')
+  // 전투 결과 장면: 아직 확인하지 않은 가장 최근 전투가 있으면 띄운다 (되돌리기·불러오기로 줄어들면 다시 띄우지 않는다)
+  const reports = game.battleReports ?? []
+  const latest = reports.length ? reports[reports.length - 1] : null
+  const [seenBattle, setSeenBattle] = useState(latest?.seq ?? 0)
+  const pendingReport = latest && latest.seq > seenBattle && seats.some((s) => !s.ai) ? latest : null
 
   const actor = actorOf(game)
   const actorSeat = seats[actor]
@@ -67,7 +73,7 @@ export function GameScreen({ initial, seats, onExit }: Props) {
 
   // AI 자리는 자동으로 진행한다
   useEffect(() => {
-    if (over || !actorSeat.ai) return
+    if (over || !actorSeat.ai || pendingReport) return
     const t = setTimeout(() => {
       try {
         setGame((g) => aiStep(g).state)
@@ -76,7 +82,7 @@ export function GameScreen({ initial, seats, onExit }: Props) {
       }
     }, speed)
     return () => clearTimeout(t)
-  }, [game, over, actorSeat.ai, speed])
+  }, [game, over, actorSeat.ai, speed, pendingReport])
 
   // 자동 저장
   useEffect(() => {
@@ -148,6 +154,7 @@ export function GameScreen({ initial, seats, onExit }: Props) {
 
   return (
     <div className="game">
+      {pendingReport && <BattleReportModal game={game} report={pendingReport} onClose={() => setSeenBattle(pendingReport.seq)} />}
       <header className="top">
         <div>
           <b>라운드 {game.round}</b> · {PHASE[game.phase]} ·{' '}

@@ -134,3 +134,34 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .notice b { margin-right: 8px; }
 .policy { display: flex; flex-direction: column; gap: 6px; }
 .policy button { display: flex; flex-direction: column; gap: 2px; height: 100%; }
+
+/* 전투 카드 배치 */
+.hand { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.card-chip { text-align: left; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 8px; padding: 6px 8px; cursor: grab; font-size: 0.85rem; max-width: 100%; }
+.card-chip.held { outline: 2px solid var(--accent); background: var(--now); }
+.card-chip.used { opacity: 0.6; }
+.slot-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 8px 0; }
+.drop-slot { border: 2px dashed var(--line); border-radius: 10px; padding: 8px; min-height: 120px; display: flex; flex-direction: column; gap: 4px; background: var(--surface); cursor: pointer; }
+.drop-slot.target { border-color: var(--accent); }
+.drop-slot.filled { border-style: solid; background: var(--own-bg); border-color: var(--own-line); }
+.drop-slot .slot-card { font-size: 0.82rem; }
+.link { align-self: flex-start; background: none; border: none; color: var(--accent); text-decoration: underline; cursor: pointer; padding: 0; }
+
+/* 전투 결과 장면 */
+.modal-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.55); display: flex; align-items: flex-start; justify-content: center; padding: 16px; overflow: auto; z-index: 50; }
+.modal { background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; width: min(980px, 100%); }
+.scene { border: 1px solid var(--line); border-radius: 10px; padding: 8px; margin: 10px 0; background: var(--bg); }
+.scene-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 4px 0; }
+.scene-row.vs { text-align: center; color: var(--muted); }
+.side-label { font-weight: 700; margin: 4px 2px; }
+.cell { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.unit { border: 1px solid var(--line); border-radius: 8px; padding: 6px; display: flex; flex-direction: column; gap: 2px; font-size: 0.82rem; background: var(--surface); min-height: 110px; }
+.unit.empty { color: var(--muted); align-items: center; justify-content: center; border-style: dashed; }
+.unit.alive { border-color: var(--own-line); background: var(--own-bg); }
+.unit.dead { border-color: var(--err-line); background: var(--err-bg); }
+.unit .state { font-weight: 700; margin-top: auto; }
+.hits { margin: 8px 0; font-size: 0.85rem; }
+.result h3 { margin: 6px 0 10px; }
+@media (max-width: 760px) {
+  .slot-row, .scene-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

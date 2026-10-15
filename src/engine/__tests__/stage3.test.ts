@@ -394,6 +394,14 @@ describe('전투 규칙', () => {
     expect(s.players[0].generals).toBe(1)
     expect(s.players[1].cities[0].tiles[1].occupiedBy).toBeUndefined()
     expect(s.players[0].busyWorkers).toBe(0)
+    // 전투 장면을 위한 결과 보고가 남는다
+    const r = s.battleReports.at(-1)!
+    expect(r).toMatchObject({ attackerId: 0, defenderId: 1, kind: 'normal', winner: 'defender', survivors: { attacker: 1, defender: 1 } })
+    expect(r.units.map((u) => [u.owner, u.slot, u.destroyed])).toEqual([[0, 1, false], [1, 4, false]])
+    expect(r.units[0].inst.defId).toBe('warrior')
+    expect(r.units[1].counterDamage + r.units[1].attackDamage).toBeGreaterThanOrEqual(0)
+    expect(r.hits).toEqual([]) // 서로 마주 본 공격이 없었다
+    expect(r.outcome).toContain('점령 실패')
   })
 
   it('수비 측에 쓸 카드가 없으면 공격 측이 이겨 타일을 점령한다', () => {
@@ -409,6 +417,7 @@ describe('전투 규칙', () => {
     expect(s.players[0].generals).toBe(0) // 장군은 타일 위에
     expect(s.phase).toBe('place') // 다음 라운드
     expect(s.round).toBe(3)
+    expect(s.battleReports.at(-1)).toMatchObject({ winner: 'attacker', outcome: '타일 점령' })
   })
 
   it('점령당한 타일에는 일꾼을 올릴 수 없다', () => {

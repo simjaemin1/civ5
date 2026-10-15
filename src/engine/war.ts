@@ -1,4 +1,4 @@
-import type { BattleState, CardInst, City, Declaration, GameState, Player, PlacedTile } from './types'
+import type { BattleHit, BattleState, CardInst, City, Declaration, GameState, Player, PlacedTile } from './types'
 import { RuleError, SIDES } from './types'
 import { cardById, civById } from './data'
 import { gainCulture, say } from './core'
@@ -308,12 +308,16 @@ function resolveBattle(s: GameState): void {
   interface Calc {
     total: Map<number, number>
     hits: Map<number, Unit[]>
+    inAtk: Map<number, number>
+    inCnt: Map<number, number>
+    links: BattleHit[]
   }
   /** 모든 카드가 동시에 공격한 결과. over: 사무라이처럼 전투력이 새로 정해진 카드 */
   const compute = (over: Map<number, number>): Calc => {
     const attacksIn = new Map<number, number[]>()
     const counterIn = new Map<number, number>()
     const hits = new Map<number, Unit[]>()
+    const links: BattleHit[] = []
     for (const u of all) hits.set(u.inst.uid, [])
     for (const pid of [attackerId, defenderId]) {
       const enemyId = pid === attackerId ? defenderId : attackerId
@@ -336,6 +340,7 @@ function resolveBattle(s: GameState): void {
           if (!a.target) continue // 빈칸: 대미지도 반격도 없음
           const list = attacksIn.get(a.target.inst.uid) ?? []
           list.push(dmg(u, a.target, a.power))
+          links.push({ from: { pid: u.owner, slot: u.slot }, to: { pid: a.target.owner, slot: a.target.slot }, power: list[list.length - 1] })
           attacksIn.set(a.target.inst.uid, list)
           hits.get(u.inst.uid)!.push(a.target)
           if (!(u.st.noCounter && eff(u))) {
@@ -354,11 +359,16 @@ function resolveBattle(s: GameState): void {
       if (eff(u) && u.st.effect === 'immortal') counterIn.set(u.inst.uid, Math.min(counterIn.get(u.inst.uid) ?? 0, 1))
     }
     const total = new Map<number, number>()
+    const inAtk = new Map<number, number>()
+    const inCnt = new Map<number, number>()
     for (const u of all) {
       const a = (attacksIn.get(u.inst.uid) ?? []).reduce((x, y) => x + y, 0)
-      total.set(u.inst.uid, a + (counterIn.get(u.inst.uid) ?? 0))
+      const c = counterIn.get(u.inst.uid) ?? 0
+      inAtk.set(u.inst.uid, a)
+      inCnt.set(u.inst.uid, c)
+      total.set(u.inst.uid, a + c)
     }
-    return { total, hits }
+    return { total, hits, inAtk, inCnt, links }
   }
 
   // 조건이 붙은 효과는 대미지 계산 결과를 보고 판정한다: 먼저 계산하고, 사무라이(받은 총 대미지 3 이상이면 전투력 4)를 반영해 다시 계산한다.
@@ -431,6 +441,42 @@ function resolveBattle(s: GameState): void {
       if (city) destroyCity(s, defender, city)
     }
   }
+  const winnerSide: 'attacker' | 'defender' = attackerWins ? 'attacker' : 'defender'
+  const outcome =
+    decl.kind === 'city'
+      ? attackerWins && survivors(attackerId).some((u) => u.st.siege && eff(u))
+        ? '도시 파괴'
+        : '도시를 지켜냈다'
+      : decl.kind === 'retake'
+        ? attackerWins
+          ? '탈환 성공 (상대 장군이 돌아갔다)'
+          : '탈환 실패'
+        : attackerWins
+          ? '타일 점령'
+          : '점령 실패 (장군은 돌아왔다)'
+  s.battleReports.push({
+    seq: (s.battleReports.at(-1)?.seq ?? 0) + 1,
+    round: s.round,
+    attackerId,
+    defenderId,
+    kind: decl.kind,
+    terrains: [...terrains],
+    coastal: b.coastal,
+    units: all.map((u) => ({
+      inst: structuredClone(u.inst),
+      owner: u.owner,
+      slot: u.slot,
+      hp: hpOf(u),
+      attackDamage: calc.inAtk.get(u.inst.uid) ?? 0,
+      counterDamage: calc.inCnt.get(u.inst.uid) ?? 0,
+      destroyed: destroyed.has(u.inst.uid),
+    })),
+    hits: calc.links,
+    survivors: { attacker: survivors(attackerId).length, defender: survivors(defenderId).length },
+    winner: winnerSide,
+    outcome,
+  })
+  if (s.battleReports.length > 30) s.battleReports.shift()
   s.battle = null
 }
 

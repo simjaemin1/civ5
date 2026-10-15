@@ -135,6 +135,41 @@ export interface BattleState {
   coastal: boolean
 }
 
+/** 전투 결과 보고: 화면에서 전투 장면을 보여 주기 위해 전투가 끝날 때마다 남긴다 */
+export interface BattleUnitReport {
+  inst: CardInst
+  owner: number
+  /** 1~4번 자리 */
+  slot: number
+  /** 효과를 반영한 체력 */
+  hp: number
+  /** 상대 공격으로 받은 대미지와 공격하며 받은 반격 대미지 */
+  attackDamage: number
+  counterDamage: number
+  destroyed: boolean
+}
+export interface BattleHit {
+  from: { pid: number; slot: number }
+  to: { pid: number; slot: number }
+  /** 실제로 준 대미지 (면역이면 0) */
+  power: number
+}
+export interface BattleReport {
+  seq: number
+  round: number
+  attackerId: number
+  defenderId: number
+  kind: Declaration['kind']
+  terrains: string[]
+  coastal: boolean
+  units: BattleUnitReport[]
+  hits: BattleHit[]
+  survivors: { attacker: number; defender: number }
+  winner: 'attacker' | 'defender'
+  /** 결과 한 줄: 타일 점령, 도시 파괴 등 */
+  outcome: string
+}
+
 export type Phase = 'setup' | 'place' | 'research' | 'produce' | 'declare' | 'battle' | 'over'
 
 export interface GameState {
@@ -161,6 +196,8 @@ export interface GameState {
   eldoradoFound: boolean
   /** 지금까지 쓴 로그 줄 수 (log는 최근 줄만 남기므로 새 줄 수를 셀 때 쓴다) */
   logSeq: number
+  /** 최근 전투 결과 (최대 30개) */
+  battleReports: BattleReport[]
   winner: { playerId: number; type: 'science' | 'culture' | 'conquest' } | null
   log: string[]
 }

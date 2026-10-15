@@ -35,37 +35,91 @@ function Arrange({ game, me, dispatch }: { game: GameState; me: Player; dispatch
   const b = game.battle!
   const usable = me.military.filter((c) => usableInBattle(game, b, me, c))
   const [slots, setSlots] = useState<(number | null)[]>([null, null, null, null])
-  const taken = new Set(slots.filter((x): x is number => x !== null))
+  const [held, setHeld] = useState<number | null>(null) // 집어 든 카드 (클릭 → 자리 클릭, 또는 끌어다 놓기)
+  const placed = new Set(slots.filter((x): x is number => x !== null))
+  const inst = (uid: number | null) => (uid === null ? undefined : usable.find((c) => c.uid === uid))
+
+  /** 카드를 자리에 놓는다. 이미 다른 자리에 있으면 옮기고, 자리에 카드가 있으면 서로 바꾼다. */
+  const put = (uid: number, slot: number) => {
+    const next = [...slots]
+    const from = next.indexOf(uid)
+    const displaced = next[slot]
+    next[slot] = uid
+    if (from >= 0) next[from] = displaced
+    setSlots(next)
+    setHeld(null)
+  }
+  const clickSlot = (i: number) => {
+    if (held !== null) put(held, i)
+    else if (slots[i] !== null) setHeld(slots[i]) // 놓인 카드를 집어 다른 자리로 옮긴다
+  }
+  const clear = (i: number) => {
+    const next = [...slots]
+    next[i] = null
+    setSlots(next)
+  }
+
   return (
     <>
       <h4>{civById(me.civId).name}: 카드 놓기 (상대에게 보이지 않게)</h4>
-      {usable.length === 0 && <p className="muted">쓸 수 있는 카드가 없습니다.</p>}
-      <div className="slots">
-        {slots.map((s, i) => (
-          <label key={i} className="slot">
-            <b>{i + 1}번</b>
-            <select
-              value={s ?? ''}
-              onChange={(e) => {
-                const next = [...slots]
-                next[i] = e.target.value === '' ? null : Number(e.target.value)
-                setSlots(next)
-              }}
-            >
-              <option value="">(비움)</option>
-              {usable
-                .filter((c) => c.uid === s || !taken.has(c.uid))
-                .map((c) => (
-                  <option key={c.uid} value={c.uid}>
-                    {label(me, c)}
-                  </option>
-                ))}
-            </select>
-          </label>
+      <p className="muted">카드를 눌러 집은 뒤 자리를 누르거나, 카드를 자리로 끌어다 놓으세요. 내 1번 자리는 상대 4번 자리와 마주 봅니다. 놓인 카드를 누르면 다시 집어 옮길 수 있습니다.</p>
+      <div className="hand">
+        {usable.length === 0 && <p className="muted">쓸 수 있는 카드가 없습니다.</p>}
+        {usable.map((c) => (
+          <button
+            key={c.uid}
+            draggable
+            onDragStart={(e) => {
+              e.dataTransfer.setData('text/plain', String(c.uid))
+              setHeld(c.uid)
+            }}
+            className={`card-chip ${held === c.uid ? 'held' : ''} ${placed.has(c.uid) ? 'used' : ''}`}
+            onClick={() => setHeld(held === c.uid ? null : c.uid)}
+            title={placed.has(c.uid) ? '이미 자리에 있음 (다른 자리를 누르면 옮김)' : undefined}
+          >
+            {label(me, c)}
+            {placed.has(c.uid) && <small> · {slots.indexOf(c.uid) + 1}번에 놓음</small>}
+          </button>
         ))}
       </div>
+      <div className="slot-row">
+        {slots.map((s, i) => {
+          const c = inst(s)
+          return (
+            <div
+              key={i}
+              className={`drop-slot ${held !== null ? 'target' : ''} ${c ? 'filled' : ''}`}
+              role="button"
+              tabIndex={0}
+              onClick={() => clickSlot(i)}
+              onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && clickSlot(i)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault()
+                const uid = Number(e.dataTransfer.getData('text/plain'))
+                if (!Number.isNaN(uid) && usable.some((m) => m.uid === uid)) put(uid, i)
+              }}
+            >
+              <b>{i + 1}번</b>
+              <small className="muted">상대 {4 - i >= 1 ? `${4 - i}번과 마주 봄` : '(마주 보는 자리 없음)'}</small>
+              <div className="slot-card">{c ? label(me, c) : <span className="muted">(비어 있음)</span>}</div>
+              {c && (
+                <button
+                  className="link"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    clear(i)
+                  }}
+                >
+                  빼기
+                </button>
+              )}
+            </div>
+          )
+        })}
+      </div>
       <button className="primary" onClick={() => dispatch({ type: 'arrangeBattle', playerId: me.id, slots })}>
-        확정
+        확정 ({placed.size}장 배치)
       </button>
     </>
   )
