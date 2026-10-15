@@ -111,3 +111,15 @@ describe('AI 시뮬레이션', () => {
     expect(made.size).toBeGreaterThanOrEqual(5)
   }, 240000)
 })
+
+describe('AI 과학 승리 전략', () => {
+  it('나침반 → 행복·일꾼 증식 → 아폴로로 과학 승리가 실제로 나온다', () => {
+    const types: string[] = []
+    for (const seed of [1, 2, 4, 8]) {
+      const { state } = simulate(seed, ['korea', 'egypt'], 2500)
+      checkInvariants(state)
+      types.push(state.winner?.type ?? 'none')
+    }
+    expect(types).toContain('science')
+  }, 240000)
+})

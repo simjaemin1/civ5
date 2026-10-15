@@ -1,6 +1,6 @@
 import type { Action, GameState, Player, Side, TileCard } from './types'
 import { RuleError, SIDES } from './types'
-import { MILITARY_CARDS, TECHS, cardById, civById } from './data'
+import { MILITARY_CARDS, RESOURCES, TECHS, WONDERS, cardById, civById } from './data'
 import { cardStats } from './cardstats'
 import type { TechDef } from './data'
 import { apply, researchableTechs } from './game'
@@ -13,7 +13,7 @@ import { currentPlayer } from './core'
 /** 규칙 검증용 단순 휴리스틱 AI. 후보 행동을 순서대로 시도해 규칙을 어기지 않는 첫 행동을 쓴다. */
 
 const weight = (y: { food: number; hammer: number; science: number; gold: number }) =>
-  y.food * 1.0 + y.hammer * 1.1 + y.science * 1.3 + y.gold * 0.4
+  y.food * 1.6 + y.hammer * 1.1 + y.science * 1.3 + y.gold * 0.4
 
 /** 지금 입력을 해야 하는 문명 (전투 중에는 카드를 놓거나 대상을 골라야 하는 쪽) */
 export function actorOf(s: GameState): number {
@@ -47,7 +47,7 @@ function foundAction(p: Player, hand: TileCard[]): Action {
 
 function placements(p: Player, reserveFree: number): { cityId: number; tileId: number }[] {
   const out: { cityId: number; tileId: number }[] = []
-  let budget = Math.max(0, totalWorkers(p) - p.busyWorkers - (p.held ? 1 : 0) - reserveFree)
+  let budget = Math.max(0, totalWorkers(p) - p.busyWorkers - (p.held || p.scouting ? 1 : 0) - reserveFree)
   for (const city of p.cities) {
     const tiles = city.tiles
       .filter((t) => t.role !== 'city' && (t.occupiedBy === undefined || t.occupiedBy === p.id))
@@ -76,8 +76,24 @@ function apolloMissing(p: Player): Set<string> {
 const APOLLO_RUSH = 8
 const rushingApollo = (p: Player): boolean => apolloMissing(p).size <= APOLLO_RUSH
 
-function techPriority(t: TechDef, rush?: Set<string>): number {
-  let v = t.cost + (rush?.has(t.id) ? 500 : 0)
+/** 나침반 → 행복 타일 정찰 → 두 번째 도시(인쇄기술) → 일꾼 증식을 노리는 기술 우선순위 */
+const COMPASS_CHAIN = new Set(['sailing', 'optics', 'compass'])
+function buildPriority(p: Player, t: TechDef): number {
+  if (p.techs.includes('compass') === false && COMPASS_CHAIN.has(t.id)) return 300
+  let v = 0
+  // 내 영토에 있는 사치 자원을 열어 주는 기술은 행복(= 일꾼 상한)을 늘린다
+  for (const c of p.cities) {
+    for (const tile of c.tiles) {
+      const r = tile.card.resource ? RESOURCES[tile.card.resource] : undefined
+      if (r?.luxuryTech === t.id) v += 40
+    }
+  }
+  if (t.id === 'printing_press') v += 60
+  return v
+}
+
+function techPriority(t: TechDef, rush?: Set<string>, p?: Player): number {
+  let v = t.cost + (rush?.has(t.id) ? 500 : 0) + (p && !rush ? buildPriority(p, t) : 0)
   for (const e of t.effects) {
     if (e.kind === 'foodToScience') v += 5
     else if (e.kind === 'secondCity') v += 8
@@ -96,7 +112,7 @@ function researchCandidates(s: GameState, p: Player): Action[] {
   const hammers = turn.yields.cities.reduce((n, c) => n + c.hammer, 0)
   const out: Action[] = []
   const rush = rushingApollo(p) ? apolloMissing(p) : undefined
-  const techs = researchableTechs(s).sort((a, b) => techPriority(b, rush) - techPriority(a, rush))
+  const techs = researchableTechs(s).sort((a, b) => techPriority(b, rush, p) - techPriority(a, rush, p))
   for (const t of techs) {
     let need = t.cost - turn.yields.science
     let foodConv = 0
@@ -116,7 +132,7 @@ function researchCandidates(s: GameState, p: Player): Action[] {
   return out
 }
 
-const POLICY_PREFERENCE = ['rationalism', 'liberty', 'aesthetics', 'despotism', 'equality', 'regime', 'diplomacy', 'tradition'] as const
+const POLICY_PREFERENCE = ['aesthetics', 'tradition', 'rationalism', 'liberty', 'despotism', 'equality', 'regime', 'diplomacy'] as const
 
 /** 만들 수 있는 카드 후보: 비싼 순, 같은 값이면 고유 유닛을 먼저 (고유 유닛은 일반 카드보다 강하다) */
 function cardOptions(p: Player): { def: (typeof MILITARY_CARDS)[number]; unique?: string; cost: number }[] {
@@ -139,6 +155,35 @@ function pendingCandidates(s: GameState, p: Player): Action[] {
   }
   void s
   return out
+}
+
+/** 정찰한 타일을 맡아둘 가치: 행복(사치 자원·행복 자연경관)과 식량이 높을수록 크다 */
+function holdValue(p: Player, card: TileCard): number {
+  let v = 0
+  const owned = new Set<string>()
+  for (const c of p.cities) for (const t of c.tiles) if (t.card.resource) owned.add(t.card.resource)
+  const r = card.resource ? RESOURCES[card.resource] : undefined
+  if (r?.luxuryTech && !owned.has(card.resource!)) v += 8
+  if (card.resource === 'aluminum') v += 6
+  if (card.wonder && (WONDERS[card.wonder].happinessOnClaim ?? 0) > 0) v += 9
+  return v + tileScore(p, card) * 0.5
+}
+const HOLD_THRESHOLD = 7
+
+/** 정찰은 3라운드에 한 번만 (일꾼 1개가 그 차례 쉬므로) */
+function scoutCandidates(s: GameState, p: Player): Action[] {
+  if (!p.techs.includes('compass') || rushingApollo(p)) return []
+  if (p.held || p.scouting || p.scouted || totalWorkers(p) < 4 || s.round % 3 !== 0) return []
+  return [{ type: 'scout' }]
+}
+
+/** 이번 차례에 문화(= 새 타일)가 들어올 가망이 있으면 정찰한 좋은 타일을 맡아둔다 */
+function holdCandidates(p: Player, research: Action[]): Action[] {
+  if (!p.scouted || p.held || holdValue(p, p.scouted) < HOLD_THRESHOLD) return []
+  const first = research.find((a): a is Extract<Action, { type: 'research' }> => a.type === 'research')
+  const tech = first ? TECHS.find((t) => t.id === first.techId) : undefined
+  const hope = p.pendingPolicies > 0 || !!tech?.effects.some((e) => e.kind === 'culture' || e.kind === 'policy')
+  return hope ? [{ type: 'holdScouted' }] : []
 }
 
 function foundSecond(hand: TileCard[]): Action {
@@ -234,13 +279,16 @@ export function aiCandidates(s: GameState): Action[] {
     case 'place': {
       const reserve = p.generals > 0 && p.military.length >= 2 ? 1 : 0
       return [
+        ...scoutCandidates(s, p),
         { type: 'placeWorkers', placements: placements(p, reserve) },
         { type: 'placeWorkers', placements: placements(p, 0) },
         { type: 'placeWorkers', placements: [] },
       ]
     }
-    case 'research':
-      return [...pendingCandidates(s, p), ...researchCandidates(s, p)]
+    case 'research': {
+      const research = researchCandidates(s, p)
+      return [...holdCandidates(p, research), ...pendingCandidates(s, p), ...research]
+    }
     case 'produce':
       return [...pendingCandidates(s, p), ...produceCandidates(s, p), { type: 'endProduction' }]
     case 'declare':
