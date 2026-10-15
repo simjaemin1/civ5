@@ -4,7 +4,7 @@
 
 ## 구조
 - `src/engine/` — UI와 무관한 순수 규칙 엔진 (`createGame`, `apply(state, action)`).
-  - `data/*.json` — 문명·지형·자원·자연경관·기술 데이터 (나중에 Java 등으로 옮길 때 그대로 재사용)
+  - `data/*.json` — 문명·지형·자원·자연경관·기술 트리(52장)·군사 카드 데이터 (나중에 Java 등으로 옮길 때 그대로 재사용)
   - `placeholderDeck.ts` — **임시** 타일 덱 160장 (실제 카드 목록 없음)
 - `src/App.tsx` — UI (아직 자리표시)
 

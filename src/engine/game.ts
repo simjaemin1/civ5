@@ -98,12 +98,9 @@ export function gainCulture(s: GameState, p: Player, n: number): void {
 export function prereqsMet(p: Player, tech: TechDef): boolean {
   if (p.techs.includes(tech.id)) return false
   if (tech.prereqs?.length) return tech.prereqs.every((id) => p.techs.includes(id))
-  if (tech.column === 1) return true
-  // 잠정 규칙: 연결선 데이터가 없는 기술은 같은 비용의 다른 기술이나 앞 열 기술이 있으면 연구 가능
-  return p.techs.some((id) => {
-    const o = techById(id)
-    return o.cost === tech.cost || o.column === tech.column - 1
-  })
+  if (tech.cost === 0) return true
+  // 연결선이 없는 기술: 같은 비용의 다른 기술을 하나 가진 뒤 연구할 수 있다
+  return p.techs.some((id) => id !== tech.id && techById(id).cost === tech.cost)
 }
 
 export function researchableTechs(s: GameState): TechDef[] {

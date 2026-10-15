@@ -1,25 +1,531 @@
 {
-  "_note": "부분 데이터. 열별 과학 비용은 규칙서 23쪽: 0,1,1,4,5,8,8,10,14,20(아폴로). 기술 이름·연결선은 규칙서 도표가 아이콘뿐이라 초반 19장만 입력함. prereqs는 규칙서 본문에 명시된 것만 입력.",
-  "columnCosts": [0,1,1,4,5,8,8,10,14,20],
-  "techs": [
-    {"id":"agriculture","name":"농업","column":1,"effects":[]},
-    {"id":"writing","name":"문자","column":1,"effects":[{"kind":"foodToScience"}]},
-    {"id":"archery","name":"궁술","column":1,"effects":[]},
-    {"id":"sailing","name":"항해","column":1,"effects":[]},
-    {"id":"animal_husbandry","name":"목축업","column":1,"effects":[]},
-    {"id":"mining","name":"광업","column":1,"effects":[]},
-    {"id":"bronze_working","name":"청동기술","column":1,"effects":[]},
-    {"id":"calendar","name":"역법","column":2,"effects":[]},
-    {"id":"drama","name":"드라마와 시","column":2,"effects":[{"kind":"culture","amount":1}]},
-    {"id":"mathematics","name":"수학","column":2,"effects":[]},
-    {"id":"optics","name":"광학","column":2,"prereqs":["sailing"],"effects":[]},
-    {"id":"horseback","name":"기마술","column":2,"effects":[{"kind":"general","amount":1}]},
-    {"id":"masonry","name":"석공술","column":2,"effects":[]},
-    {"id":"iron_working","name":"철제기술","column":2,"effects":[]},
-    {"id":"philosophy","name":"철학","column":3,"effects":[{"kind":"policy"}]},
-    {"id":"compass","name":"나침반","column":3,"prereqs":["optics"],"effects":[{"kind":"compass"}]},
-    {"id":"trapping","name":"수렵","column":3,"effects":[]},
-    {"id":"construction","name":"건축","column":3,"effects":[]},
-    {"id":"currency","name":"화폐","column":3,"effects":[{"kind":"policy"}]}
-  ]
+ "_note": "규칙서 12쪽 기술 트리에서 읽음. 열별 과학 비용: 0,1,1,4,5,8,8,10,14,20. prereqs는 도표의 연결선(없으면 같은 비용의 다른 기술이 있어야 연구 가능). 이름은 아이콘 식별이라 nameUncertain 표시된 6개는 추정. 효과는 규칙서 본문에서 확인된 것만 입력.",
+ "columnCosts": [
+  0,
+  1,
+  1,
+  4,
+  5,
+  8,
+  8,
+  10,
+  14,
+  20
+ ],
+ "techs": [
+  {
+   "id": "agriculture",
+   "name": "농업",
+   "column": 1,
+   "effects": []
+  },
+  {
+   "id": "calendar",
+   "name": "역법",
+   "column": 2,
+   "prereqs": [
+    "agriculture"
+   ],
+   "effects": []
+  },
+  {
+   "id": "civil_service",
+   "name": "공공행정",
+   "column": 4,
+   "effects": []
+  },
+  {
+   "id": "banking",
+   "name": "은행업",
+   "column": 5,
+   "prereqs": [
+    "civil_service"
+   ],
+   "effects": [],
+   "nameUncertain": true
+  },
+  {
+   "id": "economics",
+   "name": "경제학",
+   "column": 6,
+   "prereqs": [
+    "banking"
+   ],
+   "effects": [],
+   "nameUncertain": true
+  },
+  {
+   "id": "archaeology",
+   "name": "고고학",
+   "column": 7,
+   "prereqs": [
+    "economics"
+   ],
+   "effects": [
+    {
+     "kind": "archaeology"
+    }
+   ]
+  },
+  {
+   "id": "refrigeration",
+   "name": "냉각기술",
+   "column": 8,
+   "prereqs": [
+    "archaeology"
+   ],
+   "effects": [
+    {
+     "kind": "tourismPerCulture"
+    }
+   ]
+  },
+  {
+   "id": "computers",
+   "name": "컴퓨터",
+   "column": 9,
+   "prereqs": [
+    "refrigeration"
+   ],
+   "effects": []
+  },
+  {
+   "id": "writing",
+   "name": "문자",
+   "column": 1,
+   "effects": [
+    {
+     "kind": "foodToScience"
+    }
+   ]
+  },
+  {
+   "id": "drama",
+   "name": "드라마와 시",
+   "column": 2,
+   "prereqs": [
+    "writing"
+   ],
+   "effects": [
+    {
+     "kind": "culture",
+     "amount": 1
+    }
+   ]
+  },
+  {
+   "id": "education",
+   "name": "교육학",
+   "column": 4,
+   "effects": [
+    {
+     "kind": "ignoreRoundPicks"
+    }
+   ]
+  },
+  {
+   "id": "acoustics",
+   "name": "음향학",
+   "column": 5,
+   "prereqs": [
+    "education"
+   ],
+   "effects": []
+  },
+  {
+   "id": "biology",
+   "name": "생물학",
+   "column": 6,
+   "prereqs": [
+    "acoustics"
+   ],
+   "effects": [],
+   "nameUncertain": true
+  },
+  {
+   "id": "electricity",
+   "name": "전기",
+   "column": 7,
+   "prereqs": [
+    "biology"
+   ],
+   "effects": []
+  },
+  {
+   "id": "radio",
+   "name": "라디오",
+   "column": 8,
+   "prereqs": [
+    "electricity"
+   ],
+   "effects": [
+    {
+     "kind": "policy"
+    }
+   ]
+  },
+  {
+   "id": "globalization",
+   "name": "세계화",
+   "column": 9,
+   "prereqs": [
+    "radio"
+   ],
+   "effects": [
+    {
+     "kind": "tourismPerCulture"
+    }
+   ]
+  },
+  {
+   "id": "archery",
+   "name": "궁술",
+   "column": 1,
+   "effects": []
+  },
+  {
+   "id": "mathematics",
+   "name": "수학",
+   "column": 2,
+   "prereqs": [
+    "archery"
+   ],
+   "effects": []
+  },
+  {
+   "id": "philosophy",
+   "name": "철학",
+   "column": 3,
+   "prereqs": [
+    "mathematics"
+   ],
+   "effects": [
+    {
+     "kind": "policy"
+    }
+   ]
+  },
+  {
+   "id": "chivalry",
+   "name": "기사도",
+   "column": 4,
+   "prereqs": [
+    "philosophy"
+   ],
+   "effects": []
+  },
+  {
+   "id": "rifling",
+   "name": "강선",
+   "column": 6,
+   "effects": [
+    {
+     "kind": "general",
+     "amount": 1
+    }
+   ]
+  },
+  {
+   "id": "dynamite",
+   "name": "다이너마이트",
+   "column": 7,
+   "prereqs": [
+    "rifling"
+   ],
+   "effects": []
+  },
+  {
+   "id": "ballistics",
+   "name": "탄도학",
+   "column": 8,
+   "prereqs": [
+    "dynamite"
+   ],
+   "effects": []
+  },
+  {
+   "id": "rocketry",
+   "name": "로켓공학",
+   "column": 9,
+   "prereqs": [
+    "ballistics"
+   ],
+   "effects": []
+  },
+  {
+   "id": "sailing",
+   "name": "항해",
+   "column": 1,
+   "effects": []
+  },
+  {
+   "id": "optics",
+   "name": "광학",
+   "column": 2,
+   "prereqs": [
+    "sailing"
+   ],
+   "effects": []
+  },
+  {
+   "id": "compass",
+   "name": "나침반",
+   "column": 3,
+   "prereqs": [
+    "optics"
+   ],
+   "effects": [
+    {
+     "kind": "compass"
+    }
+   ]
+  },
+  {
+   "id": "machinery",
+   "name": "기계",
+   "column": 4,
+   "prereqs": [
+    "compass"
+   ],
+   "effects": []
+  },
+  {
+   "id": "interchangeable_parts",
+   "name": "교체형부품",
+   "column": 8,
+   "effects": []
+  },
+  {
+   "id": "robotics",
+   "name": "로봇공학",
+   "column": 9,
+   "prereqs": [
+    "interchangeable_parts"
+   ],
+   "effects": [],
+   "nameUncertain": true
+  },
+  {
+   "id": "animal_husbandry",
+   "name": "목축업",
+   "column": 1,
+   "effects": []
+  },
+  {
+   "id": "horseback",
+   "name": "기마술",
+   "column": 2,
+   "prereqs": [
+    "animal_husbandry"
+   ],
+   "effects": [
+    {
+     "kind": "general",
+     "amount": 1
+    }
+   ]
+  },
+  {
+   "id": "trapping",
+   "name": "수렵",
+   "column": 3,
+   "prereqs": [
+    "horseback"
+   ],
+   "effects": []
+  },
+  {
+   "id": "theology",
+   "name": "신학",
+   "column": 4,
+   "prereqs": [
+    "trapping"
+   ],
+   "effects": [
+    {
+     "kind": "policy"
+    }
+   ]
+  },
+  {
+   "id": "astronomy",
+   "name": "천문학",
+   "column": 5,
+   "prereqs": [
+    "theology"
+   ],
+   "effects": [],
+   "nameUncertain": true
+  },
+  {
+   "id": "atomic_theory",
+   "name": "원자론",
+   "column": 8,
+   "effects": []
+  },
+  {
+   "id": "fusion",
+   "name": "핵융합",
+   "column": 9,
+   "prereqs": [
+    "atomic_theory"
+   ],
+   "effects": [],
+   "nameUncertain": true
+  },
+  {
+   "id": "mining",
+   "name": "광업",
+   "column": 1,
+   "effects": []
+  },
+  {
+   "id": "masonry",
+   "name": "석공술",
+   "column": 2,
+   "prereqs": [
+    "mining"
+   ],
+   "effects": []
+  },
+  {
+   "id": "construction",
+   "name": "건축",
+   "column": 3,
+   "prereqs": [
+    "masonry"
+   ],
+   "effects": []
+  },
+  {
+   "id": "engineering",
+   "name": "공학",
+   "column": 4,
+   "prereqs": [
+    "construction"
+   ],
+   "effects": [
+    {
+     "kind": "policy"
+    }
+   ]
+  },
+  {
+   "id": "printing_press",
+   "name": "인쇄기술",
+   "column": 5,
+   "prereqs": [
+    "engineering"
+   ],
+   "effects": [
+    {
+     "kind": "secondCity"
+    }
+   ]
+  },
+  {
+   "id": "combined_arms",
+   "name": "통합작전군",
+   "column": 8,
+   "effects": []
+  },
+  {
+   "id": "radar",
+   "name": "레이더",
+   "column": 9,
+   "prereqs": [
+    "combined_arms"
+   ],
+   "effects": [
+    {
+     "kind": "general",
+     "amount": 1
+    }
+   ]
+  },
+  {
+   "id": "bronze_working",
+   "name": "청동기술",
+   "column": 1,
+   "effects": []
+  },
+  {
+   "id": "iron_working",
+   "name": "철제기술",
+   "column": 2,
+   "prereqs": [
+    "bronze_working"
+   ],
+   "effects": []
+  },
+  {
+   "id": "currency",
+   "name": "화폐",
+   "column": 3,
+   "prereqs": [
+    "iron_working"
+   ],
+   "effects": [
+    {
+     "kind": "policy"
+    }
+   ]
+  },
+  {
+   "id": "gunpowder",
+   "name": "화약",
+   "column": 4,
+   "prereqs": [
+    "currency"
+   ],
+   "effects": []
+  },
+  {
+   "id": "chemistry",
+   "name": "화학",
+   "column": 5,
+   "prereqs": [
+    "gunpowder"
+   ],
+   "effects": []
+  },
+  {
+   "id": "industrialization",
+   "name": "산업화",
+   "column": 6,
+   "prereqs": [
+    "chemistry"
+   ],
+   "effects": []
+  },
+  {
+   "id": "military_science",
+   "name": "군사과학",
+   "column": 7,
+   "prereqs": [
+    "industrialization"
+   ],
+   "effects": [
+    {
+     "kind": "general",
+     "amount": 1
+    }
+   ]
+  },
+  {
+   "id": "apollo",
+   "name": "아폴로 프로젝트",
+   "column": 10,
+   "prereqs": [
+    "rocketry",
+    "robotics",
+    "fusion"
+   ],
+   "effects": [
+    {
+     "kind": "scienceVictory"
+    }
+   ]
+  }
+ ]
 }

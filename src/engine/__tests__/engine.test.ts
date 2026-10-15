@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { apply, createGame, currentPlayer, culture, happiness, primaryTerrain, researchableTechs, tileYield, ctxOf, RuleError } from '..'
+import { apply, createGame, currentPlayer, culture, happiness, primaryTerrain, researchableTechs, tileYield, ctxOf, RuleError, TECHS, COLUMN_COSTS, MILITARY_CARDS, techById } from '..'
 import type { GameState } from '..'
 import { found, me, play, startGame, tile } from './helpers'
 
@@ -214,10 +214,9 @@ describe('기술 연구', () => {
     expect(researchableTechs(s).map((t) => t.id)).not.toContain('optics')
   })
 
-  it('드라마와 시: 즉시 문화 1 → 새 타일이 남은 면에 붙는다', () => {
-    // 한국(과학2)로 비용 1 기술 연구: 먼저 역법 선행인 농업 필요 없이, 잠정 규칙상 1열 기술 보유 필요
+  it('드라마와 시: 문자 선행, 즉시 문화 1 → 새 타일이 남은 면에 붙는다', () => {
     let s = solo('korea')
-    s = play(s, { type: 'placeWorkers', placements: [] }, { type: 'research', techId: 'agriculture' }, { type: 'endProduction' })
+    s = play(s, { type: 'placeWorkers', placements: [] }, { type: 'research', techId: 'writing' }, { type: 'endProduction' })
     s = toResearch(s)
     expect(me(s).cities[0].openSides).toHaveLength(1)
     s = apply(s, { type: 'research', techId: 'drama' })
@@ -227,9 +226,10 @@ describe('기술 연구', () => {
   })
 
   it('문자: 식량을 1:1로 과학으로 바꿔 연구, 남은 식량으로 정산', () => {
-    // 덴마크(과학0): 문자 연구 후 다음 차례에 식량 2를 과학으로 → 비용 1 기술 연구
+    // 덴마크(과학0): 문자 → 농업(비용 0) 연구 후, 식량 1을 과학으로 바꿔 역법(비용 1) 연구
     let s = solo('denmark')
     s = play(s, { type: 'placeWorkers', placements: [] }, { type: 'research', techId: 'writing' }, { type: 'endProduction' })
+    s = play(s, { type: 'placeWorkers', placements: [] }, { type: 'research', techId: 'agriculture' }, { type: 'endProduction' })
     s = toResearch(s)
     expect(() => apply(s, { type: 'research', techId: 'calendar' })).toThrow(RuleError)
     s = apply(s, { type: 'research', techId: 'calendar', foodToScience: 1 })
@@ -262,10 +262,63 @@ describe('기술 연구', () => {
     expect(me(s).turn!.yields.cities[0].hammer).toBe(1)
   })
 
-  it('기마술: 위대한 장군 +1', () => {
+  it('기마술: 목축업 선행, 위대한 장군 +1', () => {
     let s = solo('korea')
-    s = play(s, { type: 'placeWorkers', placements: [] }, { type: 'research', techId: 'agriculture' }, { type: 'endProduction' })
+    s = play(s, { type: 'placeWorkers', placements: [] }, { type: 'research', techId: 'animal_husbandry' }, { type: 'endProduction' })
     s = play(s, { type: 'placeWorkers', placements: [] }, { type: 'research', techId: 'horseback' })
     expect(me(s).generals).toBe(1)
+  })
+
+  it('연결선이 없는 기술은 같은 비용의 다른 기술이 있어야 연구 가능 (공공행정, 비용 4)', () => {
+    let s = toResearch(solo('korea'))
+    s = structuredClone(s)
+    expect(researchableTechs(s).map((t) => t.id)).not.toContain('civil_service')
+    s.players[0].techs.push('agriculture') // 비용 0: 해당 없음
+    expect(researchableTechs(s).map((t) => t.id)).not.toContain('civil_service')
+    s.players[0].techs.push('machinery') // 비용 4
+    expect(researchableTechs(s).map((t) => t.id)).toContain('civil_service')
+  })
+})
+
+describe('데이터 무결성', () => {
+  it('기술 52장, 선행 기술 id가 모두 존재하고 비용은 열 비용표를 따른다', () => {
+    expect(TECHS).toHaveLength(52)
+    const ids = new Set(TECHS.map((t) => t.id))
+    for (const t of TECHS) {
+      for (const pre of t.prereqs ?? []) expect(ids.has(pre), `${t.id} <- ${pre}`).toBe(true)
+      expect(t.cost).toBe(COLUMN_COSTS[t.column - 1])
+    }
+    expect(techById('apollo').cost).toBe(20)
+  })
+
+  it('기술 트리에 순환이 없고, 시작 기술에서 모든 기술에 도달 가능하다', () => {
+    // 선행 관계만 따라 위상정렬이 가능해야 한다 (연결선 없는 기술은 같은 비용 규칙으로 열림)
+    const done = new Set<string>()
+    let progress = true
+    while (progress) {
+      progress = false
+      for (const t of TECHS) {
+        if (done.has(t.id)) continue
+        const ok = t.prereqs?.length
+          ? t.prereqs.every((p) => done.has(p))
+          : t.cost === 0 || [...done].some((d) => techById(d).cost === t.cost)
+        if (ok) { done.add(t.id); progress = true }
+      }
+    }
+    expect([...TECHS.map((t) => t.id)].filter((id) => !done.has(id))).toEqual([])
+  })
+
+  it('규칙서가 참조하는 기술이 모두 트리에 있다', () => {
+    const refs = ['화약','강선','교체형부품','기계','산업화','공공행정','탄도학','기사도','군사과학','화학','다이너마이트','생물학','통합작전군','레이더','원자론','공학','음향학','고고학','전기','라디오','컴퓨터','신학','교육학','인쇄기술','냉각기술','세계화','로켓공학','아폴로 프로젝트']
+    const names = new Set(TECHS.map((t) => t.name))
+    expect(refs.filter((n) => !names.has(n))).toEqual([])
+  })
+
+  it('군사 카드: 기술 id가 존재하고 비용이 규칙서 표와 같다', () => {
+    const ids = new Set(TECHS.map((t) => t.id))
+    for (const c of MILITARY_CARDS) expect(ids.has(c.tech), `${c.id} -> ${c.tech}`).toBe(true)
+    const cost = (id: string) => MILITARY_CARDS.find((c) => c.id === id)!.cost
+    expect([cost('warrior'), cost('infantry'), cost('anti_tank_gun'), cost('bomber'), cost('atomic_bomb')]).toEqual([5, 16, 15, 14, 15])
+    expect(MILITARY_CARDS).toHaveLength(25)
   })
 })
