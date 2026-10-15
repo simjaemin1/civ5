@@ -5,8 +5,12 @@ import { shuffle } from './rng'
 
 export const currentPlayer = (s: GameState): Player => s.players[s.order[s.turnIdx]]
 
+const MAX_LOG = 400
+
 export function say(s: GameState, msg: string): void {
   s.log.push(`[R${s.round}] ${msg}`)
+  // 상태를 매번 복사하므로 로그는 최근 줄만 남긴다
+  if (s.log.length > MAX_LOG) s.log.splice(0, s.log.length - MAX_LOG)
 }
 
 /** 덱에서 n장 뽑고, 뽑을 때마다(한 번의 뽑기마다) 덱을 섞는다. */
