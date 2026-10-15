@@ -109,3 +109,24 @@ describe('공중정원', () => {
     expect(y.gold).toBe(base.gold)
   })
 })
+
+describe('승부 없음', () => {
+  it('180라운드까지 승부가 안 나면 무승부로 끝난다', () => {
+    let s = solo()
+    s = mod(s, (c) => (c.round = 180))
+    s = play(s, { type: 'placeWorkers', placements: [] }, { type: 'skipResearch' }, { type: 'endProduction' })
+    if (s.phase === 'declare') s = apply(s, { type: 'endTurn' })
+    expect(s.phase).toBe('over')
+    expect(s.winner).toBeNull()
+    expect(s.round).toBe(180)
+    expect(() => apply(s, { type: 'placeWorkers', placements: [] })).toThrow(RuleError)
+  })
+
+  it('179라운드까지는 계속된다', () => {
+    let s = mod(solo(), (c) => (c.round = 179))
+    s = play(s, { type: 'placeWorkers', placements: [] }, { type: 'skipResearch' }, { type: 'endProduction' })
+    if (s.phase === 'declare') s = apply(s, { type: 'endTurn' })
+    expect(s.phase).toBe('place')
+    expect(s.round).toBe(180)
+  })
+})

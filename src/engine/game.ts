@@ -121,6 +121,9 @@ function endTurn(s: GameState): void {
   beginTurn(s)
 }
 
+/** 이 라운드까지 승부가 안 나면 무승부로 끝난다 */
+export const MAX_ROUNDS = 180
+
 /** 라운드 정산 중: 선전포고가 남아 있으면 다음 전투를 시작하고, 없으면 라운드를 끝낸다. */
 function continueRound(s: GameState): void {
   while (true) {
@@ -133,6 +136,12 @@ function continueRound(s: GameState): void {
   }
   checkCultureDefeats(s)
   if (s.winner) {
+    s.phase = 'over'
+    return
+  }
+  if (s.round >= MAX_ROUNDS) {
+    // 승부 없음: 정해진 라운드 안에 승리 조건을 이룬 문명이 없으면 무승부로 끝난다 (winner는 null)
+    say(s, `${MAX_ROUNDS}라운드가 지나 승부 없이 끝났습니다`)
     s.phase = 'over'
     return
   }

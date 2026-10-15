@@ -98,7 +98,7 @@ export function GameScreen({ initial, seats, onExit }: Props) {
     main = (
       <div className="panel banner">
         <h2>
-          🏆 {civById(game.players[game.winner!.playerId].civId).name} — {WIN[game.winner!.type]}
+          {game.winner ? `🏆 ${civById(game.players[game.winner.playerId].civId).name} — ${WIN[game.winner.type]}` : '🤝 승부 없음 (무승부)'}
         </h2>
         <p>라운드 {game.round}에서 게임이 끝났습니다.</p>
       </div>
