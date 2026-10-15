@@ -49,6 +49,8 @@ export interface TurnYields {
 export interface TurnData {
   yields: TurnYields
   foodToScience: number
+  /** 과학이론: 망치를 과학으로 바꾼 개수 (최대 2) */
+  hammerToScience: number
   researched: boolean
   /** 이번 차례에 이미 생산을 한 도시 */
   produced: number[]
@@ -100,7 +102,7 @@ export type Action =
   | { type: 'buildCity'; cityTileId: number; sideTiles: Partial<Record<Side, number>> }
   | { type: 'wasteland'; discardTileId: number }
   | { type: 'placeWorkers'; placements: { cityId: number; tileId: number }[] }
-  | { type: 'research'; techId: string; foodToScience?: number }
+  | { type: 'research'; techId: string; foodToScience?: number; hammerToScience?: number }
   | { type: 'skipResearch' }
   | { type: 'endProduction' }
   | { type: 'choosePolicy'; policy: PolicyId; discard?: { cityId: number; count: number }[] }

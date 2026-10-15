@@ -314,8 +314,8 @@ describe('고고학', () => {
   it('연구하는 순간 가진 사적지 1장당 문화 1', () => {
     const hand = [tile(['평지']), tile(['숲'], { historic: true }), tile(['언덕'], { historic: true }), tile(['해안'])]
     let s = mod(solo('korea', hand), (c) => c.players[0].techs.push('writing'))
-    // 고고학은 경제학 선행. 선행 기술을 직접 지정한다
-    s = mod(s, (c) => c.players[0].techs.push('civil_service', 'machinery', 'banking', 'economics'))
+    // 고고학은 경제학 선행(경제학은 공공행정 선행). 선행 기술을 직접 지정한다
+    s = mod(s, (c) => c.players[0].techs.push('civil_service', 'machinery', 'economics'))
     s = apply(s, { type: 'placeWorkers', placements: [] })
     s = mod(s, (c) => (c.players[0].turn!.yields.science = 8))
     const before = culture(me(s))
@@ -331,5 +331,38 @@ describe('불가사의 데이터', () => {
     for (const w of WONDER_CARDS) expect(ids.has(w.tech), `${w.id} -> ${w.tech}`).toBe(true)
     const min = (id: string) => WONDER_CARDS.find((w) => w.id === id)!.minHammers
     expect([min('statue_of_zeus'), min('pyramids'), min('sistine_chapel'), min('eiffel_tower'), min('internet_censorship')]).toEqual([3, 6, 8, 12, 15])
+  })
+})
+
+describe('과학이론: 망치를 과학으로', () => {
+  // 한국(과학 2)이 비용 4 기술(공공행정)을 망치 2로 보태 연구
+  const base = (techs: string[]) =>
+    mod(solo('korea'), (c) => c.players[0].techs.push('machinery', ...techs))
+  const placed = (s: GameState, hammers: number) =>
+    mod(toResearch(s), (c) => (c.players[0].turn!.yields.cities[0].hammer = hammers))
+
+  it('과학이론이 없으면 변환할 수 없다', () => {
+    const s = placed(base([]), 5)
+    expect(() => apply(s, { type: 'research', techId: 'civil_service', hammerToScience: 2 })).toThrow(RuleError)
+  })
+
+  it('망치 2개를 과학으로 바꿔 연구하고, 바꾼 망치는 생산에 쓸 수 없다', () => {
+    // 도시(언덕, 망치 2) + 일꾼을 올린 언덕(망치 2) = 망치 4
+    const hills = [tile(['언덕']), tile(['언덕']), tile(['평지']), tile(['평지'])]
+    let s = mod(solo('korea', hills), (c) => c.players[0].techs.push('machinery', 'scientific_theory'))
+    const hill = me(s).cities[0].tiles.find((t) => t.role === 'side' && t.card.terrains[0] === '언덕')!.card.id
+    s = apply(s, { type: 'placeWorkers', placements: [{ cityId: 0, tileId: hill }] })
+    expect(me(s).turn!.yields.cities[0].hammer).toBe(4)
+    expect(() => apply(s, { type: 'research', techId: 'civil_service' })).toThrow(RuleError) // 과학 2 < 4
+    s = apply(s, { type: 'research', techId: 'civil_service', hammerToScience: 2 })
+    expect(me(s).techs).toContain('civil_service')
+    expect(me(s).turn!.yields.cities[0].hammer).toBe(2) // 바꾼 2개는 생산에 쓸 수 없다
+  })
+
+  it('최대 2개까지, 가진 망치까지만 바꿀 수 있다', () => {
+    const s = placed(base(['scientific_theory']), 5)
+    expect(() => apply(s, { type: 'research', techId: 'civil_service', hammerToScience: 3 })).toThrow(RuleError)
+    const few = placed(base(['scientific_theory']), 1)
+    expect(() => apply(few, { type: 'research', techId: 'civil_service', hammerToScience: 2 })).toThrow(RuleError)
   })
 })

@@ -104,7 +104,7 @@ export function apply(prev: GameState, action: Action): GameState {
     case 'wasteland': return wasteland(s, p, action.discardTileId)
     case 'buildCity': return buildCity(s, p, action)
     case 'placeWorkers': return placeWorkers(s, p, action.placements)
-    case 'research': return research(s, p, action.techId, action.foodToScience ?? 0)
+    case 'research': return research(s, p, action.techId, action.foodToScience ?? 0, action.hammerToScience ?? 0)
     case 'skipResearch':
       expectPhase(s, 'research')
       s.phase = 'produce'
@@ -208,7 +208,7 @@ function buildSecondCity(
   p.cities.push(city)
   p.pendingCity = null
   // 새 도시의 산출을 이번 차례에 쓸 수 있도록 다시 계산한다 (도시 타일은 항상 산출)
-  p.turn!.yields = computeYields(p)
+  p.turn!.yields = recomputeYields(p)
   say(s, `${civById(p.civId).name} 두 번째 도시 건설`)
   return s
 }
@@ -231,12 +231,30 @@ function placeWorkers(
     city.placed.push(tileId)
     if (city.placed.length > city.workers) throw new RuleError('일꾼이 모자랍니다')
   }
-  p.turn = { yields: computeYields(p), foodToScience: 0, researched: false, produced: [], skipFoodSettle: false }
+  p.turn = { yields: computeYields(p), foodToScience: 0, hammerToScience: 0, researched: false, produced: [], skipFoodSettle: false }
   s.phase = 'research'
   return s
 }
 
-function research(s: GameState, p: Player, techId: string, foodToScience: number): GameState {
+/** 산출을 다시 계산하고, 이미 과학으로 바꾼 망치를 도시 순서대로 뺀다. */
+function recomputeYields(p: Player) {
+  const y = computeYields(p)
+  let left = p.turn!.hammerToScience
+  for (const c of y.cities) {
+    const take = Math.min(left, c.hammer)
+    c.hammer -= take
+    left -= take
+  }
+  return y
+}
+
+function research(
+  s: GameState,
+  p: Player,
+  techId: string,
+  foodToScience: number,
+  hammerToScience: number,
+): GameState {
   expectPhase(s, 'research')
   const tech = techById(techId)
   if (!researchableTechs(s).some((t) => t.id === techId)) throw new RuleError('지금 연구할 수 없는 기술입니다')
@@ -244,9 +262,17 @@ function research(s: GameState, p: Player, techId: string, foodToScience: number
   const food = turn.yields.cities.reduce((n, c) => n + c.food, 0)
   if (foodToScience > 0 && !p.techs.includes('writing')) throw new RuleError('문자를 연구해야 식량을 과학으로 바꿀 수 있습니다')
   if (foodToScience < 0 || foodToScience > food) throw new RuleError('바꿀 식량이 잘못되었습니다')
-  if (turn.yields.science + foodToScience < tech.cost) throw new RuleError('과학이 모자랍니다')
+  const hammers = turn.yields.cities.reduce((n, c) => n + c.hammer, 0)
+  if (hammerToScience > 0 && !p.techs.includes('scientific_theory')) {
+    throw new RuleError('과학이론을 연구해야 망치를 과학으로 바꿀 수 있습니다')
+  }
+  if (hammerToScience < 0 || hammerToScience > 2 || hammerToScience > hammers) {
+    throw new RuleError('망치는 가진 만큼, 최대 2개까지 과학으로 바꿀 수 있습니다')
+  }
+  if (turn.yields.science + foodToScience + hammerToScience < tech.cost) throw new RuleError('과학이 모자랍니다')
 
   turn.foodToScience = foodToScience
+  turn.hammerToScience = hammerToScience
   turn.researched = true
   p.techs.push(tech.id)
   p.freshTechs.push(tech.id)
@@ -267,7 +293,7 @@ function research(s: GameState, p: Player, techId: string, foodToScience: number
     // compass, foodToScience(조건 확인용) 등은 이후 단계에서 처리
   }
   // 기술 효과는 즉시 적용 ("다음 차례부터"만 제외): 산출을 다시 계산한다
-  turn.yields = computeYields(p)
+  turn.yields = recomputeYields(p)
   s.phase = 'produce'
   return s
 }
