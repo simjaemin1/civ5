@@ -12,6 +12,12 @@ import { currentPlayer } from './core'
 
 /** 규칙 검증용 단순 휴리스틱 AI. 후보 행동을 순서대로 시도해 규칙을 어기지 않는 첫 행동을 쓴다. */
 
+/** 실험용 AI 성향: 'hammer'는 망치 올인 (타일은 망치 위주, 군사 카드를 먼저 만든다) */
+let aiStyle: 'default' | 'hammer' = 'default'
+export const setAiStyle = (style: 'default' | 'hammer'): void => {
+  aiStyle = style
+}
+
 const weight = (y: { food: number; hammer: number; science: number; gold: number }) =>
   y.food * 1.6 + y.hammer * 1.1 + y.science * 1.3 + y.gold * 0.4
 
@@ -29,6 +35,7 @@ export function actorOf(s: GameState): number {
 
 function tileScore(p: Player, card: TileCard): number {
   const y = tileYield(card, ctxOf(p))
+  if (aiStyle === 'hammer') return y.hammer * 4 + y.food * 1.5 + y.science * 0.3
   // 아폴로 질주: 식량이 곧 과학이므로 식량과 과학을 크게 친다
   if (rushingApollo(p)) return y.food * 3 + y.science * 3 + y.hammer * 0.5 + y.gold * 0.2
   return weight(y)
@@ -74,7 +81,7 @@ function apolloMissing(p: Player): Set<string> {
 
 /** 극후반: 아폴로까지 남은 기술이 이 정도면 과학 승리를 향해 달린다 (자유 정책 + 식량 전부를 과학으로) */
 const APOLLO_RUSH = 8
-const rushingApollo = (p: Player): boolean => apolloMissing(p).size <= APOLLO_RUSH
+const rushingApollo = (p: Player): boolean => aiStyle === 'default' && apolloMissing(p).size <= APOLLO_RUSH
 
 /** 나침반 → 행복 타일 정찰 → 두 번째 도시(인쇄기술) → 일꾼 증식을 노리는 기술 우선순위 */
 const COMPASS_CHAIN = new Set(['sailing', 'optics', 'compass'])
@@ -172,7 +179,7 @@ const HOLD_THRESHOLD = 7
 
 /** 정찰은 3라운드에 한 번만 (일꾼 1개가 그 차례 쉬므로) */
 function scoutCandidates(s: GameState, p: Player): Action[] {
-  if (!p.techs.includes('compass') || rushingApollo(p)) return []
+  if (aiStyle === 'hammer' || !p.techs.includes('compass') || rushingApollo(p)) return []
   if (p.held || p.scouting || p.scouted || totalWorkers(p) < 4 || s.round % 3 !== 0) return []
   return [{ type: 'scout' }]
 }
@@ -212,7 +219,7 @@ function produceCandidates(s: GameState, p: Player): Action[] {
       cardActions.push({ type: 'produce', cityId: city.id, defId: o.def.id, unique: o.unique })
     }
     // 군대가 3장 미만이면 군사 카드를 먼저, 그 뒤에는 불가사의에 망치를 모두 건다
-    out.push(...(army < 3 ? [...cardActions, ...wonderActions] : [...wonderActions, ...cardActions]))
+    out.push(...(army < 3 || aiStyle === 'hammer' ? [...cardActions, ...wonderActions] : [...wonderActions, ...cardActions]))
   }
   // 3) 금으로 승급
   if (!turn.upgraded && turn.yields.gold > 0) {
