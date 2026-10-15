@@ -82,7 +82,7 @@ const instOf = (p: Player, uid: number): CardInst | undefined => p.military.find
 const defOf = (c: CardInst): MilitaryCardDef => cardById(c.defId)
 
 /** 전투에 낼 수 있는 카드인지: 원자폭탄 제외, 해안 전용 카드는 해안 타일 전투에서만, 줄루는 자기 원래 영토 전투에서 임피 불가. */
-function usableInBattle(s: GameState, b: BattleState, p: Player, c: CardInst): boolean {
+export function usableInBattle(s: GameState, b: BattleState, p: Player, c: CardInst): boolean {
   const def = defOf(c)
   if (def.notBattle || def.hp === undefined) return false
   if (isCoastalOnly(c) && !b.coastal) return false
