@@ -1,429 +1,438 @@
 {
- "_note": "규칙서 이미지 카드에서 읽음. marks: 카드 위쪽 전투력 마크(L=왼쪽, C=가운데, R=오른쪽)와 그 전투력. attack.choose: '카드를 1개 골라 전투력 N으로 공격'. variantDirs가 있는 카드는 전투력 power의 마크가 L·C·R 각각 한 방향인 카드가 따로 있고(사용자 확인), 생산할 때 방향이 무작위로 정해진다(사용자 확인). 공용 덱의 카드는 사실상 무제한이고 한 종류는 6장까지 보유할 수 있다.",
- "cards": [
-  {
-   "id": "warrior",
-   "name": "전사",
-   "line": "infantry",
-   "tier": 1,
-   "cost": 5,
-   "tech": "agriculture",
-   "hp": 3,
-   "def": 0,
-   "variantDirs": [
-    "L",
-    "C",
-    "R"
-   ],
-   "power": 1
-  },
-  {
-   "id": "longswordsman",
-   "name": "장검사",
-   "line": "infantry",
-   "tier": 2,
-   "cost": 7,
-   "tech": "iron_working",
-   "hp": 4,
-   "def": 1,
-   "variantDirs": [
-    "L",
-    "C",
-    "R"
-   ],
-   "power": 1
-  },
-  {
-   "id": "musketman",
-   "name": "머스킷병",
-   "line": "infantry",
-   "tier": 3,
-   "cost": 9,
-   "tech": "gunpowder",
-   "hp": 5,
-   "def": 1,
-   "variantDirs": [
-    "L",
-    "C",
-    "R"
-   ],
-   "power": 2
-  },
-  {
-   "id": "rifleman",
-   "name": "소총병",
-   "line": "infantry",
-   "tier": 4,
-   "cost": 12,
-   "tech": "rifling",
-   "hp": 5,
-   "def": 3,
-   "variantDirs": [
-    "L",
-    "C",
-    "R"
-   ],
-   "power": 2
-  },
-  {
-   "id": "infantry",
-   "name": "보병",
-   "line": "infantry",
-   "tier": 5,
-   "cost": 16,
-   "tech": "interchangeable_parts",
-   "hp": 6,
-   "def": 2,
-   "variantDirs": [
-    "L",
-    "C",
-    "R"
-   ],
-   "power": 4
-  },
-  {
-   "id": "archer",
-   "name": "궁수",
-   "line": "ranged",
-   "tier": 1,
-   "cost": 5,
-   "tech": "archery",
-   "hp": 2,
-   "def": 0,
-   "noCounter": true,
-   "variantDirs": [
-    "L",
-    "C",
-    "R"
-   ],
-   "power": 1
-  },
-  {
-   "id": "composite_bowman",
-   "name": "합성궁병",
-   "line": "ranged",
-   "tier": 2,
-   "cost": 6,
-   "tech": "construction",
-   "hp": 3,
-   "def": 0,
-   "noCounter": true,
-   "variantDirs": [
-    "L",
-    "C",
-    "R"
-   ],
-   "power": 2
-  },
-  {
-   "id": "crossbowman",
-   "name": "석궁병",
-   "line": "ranged",
-   "tier": 3,
-   "cost": 8,
-   "tech": "machinery",
-   "hp": 4,
-   "def": 1,
-   "noCounter": true,
-   "variantDirs": [
-    "L",
-    "C",
-    "R"
-   ],
-   "power": 2
-  },
-  {
-   "id": "gatling_gun",
-   "name": "게틀링기관총",
-   "line": "ranged",
-   "tier": 4,
-   "cost": 10,
-   "tech": "industrialization",
-   "hp": 4,
-   "def": 3,
-   "noCounter": true,
-   "variantDirs": [
-    "L",
-    "C",
-    "R"
-   ],
-   "power": 2
-  },
-  {
-   "id": "bazooka",
-   "name": "바주카",
-   "line": "ranged",
-   "tier": 5,
-   "cost": 12,
-   "tech": "interchangeable_parts",
-   "hp": 5,
-   "def": 2,
-   "noCounter": true,
-   "variantDirs": [
-    "L",
-    "C",
-    "R"
-   ],
-   "power": 3
-  },
-  {
-   "id": "spearman",
-   "name": "창병",
-   "line": "anti_cavalry",
-   "tier": 1,
-   "cost": 5,
-   "tech": "bronze_working",
-   "hp": 2,
-   "def": 1,
-   "variantDirs": [
-    "L",
-    "C",
-    "R"
-   ],
-   "power": 1
-  },
-  {
-   "id": "pikeman",
-   "name": "파이크병",
-   "line": "anti_cavalry",
-   "tier": 2,
-   "cost": 8,
-   "tech": "civil_service",
-   "hp": 3,
-   "def": 3,
-   "variantDirs": [
-    "L",
-    "C",
-    "R"
-   ],
-   "power": 1
-  },
-  {
-   "id": "anti_tank_gun",
-   "name": "대전차포",
-   "line": "anti_cavalry",
-   "tier": 3,
-   "cost": 15,
-   "tech": "ballistics",
-   "hp": 4,
-   "def": 5,
-   "special": "tanksMustTarget",
-   "variantDirs": [
-    "L",
-    "C",
-    "R"
-   ],
-   "power": 1
-  },
-  {
-   "id": "chariot",
-   "name": "전차",
-   "line": "cavalry",
-   "tier": 1,
-   "cost": 5,
-   "tech": "animal_husbandry",
-   "attack": {
-    "choose": true,
-    "power": 1
-   },
-   "hp": 1,
-   "def": 1
-  },
-  {
-   "id": "horseman",
-   "name": "기마병",
-   "line": "cavalry",
-   "tier": 2,
-   "cost": 7,
-   "tech": "horseback",
-   "attack": {
-    "choose": true,
-    "power": 2
-   },
-   "hp": 3,
-   "def": 1
-  },
-  {
-   "id": "knight",
-   "name": "기사",
-   "line": "cavalry",
-   "tier": 3,
-   "cost": 9,
-   "tech": "chivalry",
-   "attack": {
-    "choose": true,
-    "power": 2
-   },
-   "hp": 4,
-   "def": 2
-  },
-  {
-   "id": "cavalry",
-   "name": "기병대",
-   "line": "cavalry",
-   "tier": 4,
-   "cost": 10,
-   "tech": "military_science",
-   "attack": {
-    "choose": true,
-    "power": 3
-   },
-   "hp": 5,
-   "def": 2
-  },
-  {
-   "id": "tank",
-   "name": "탱크",
-   "line": "cavalry",
-   "tier": 5,
-   "cost": 12,
-   "tech": "ballistics",
-   "attack": {
-    "choose": true,
-    "power": 4
-   },
-   "hp": 5,
-   "def": 3
-  },
-  {
-   "id": "cannon",
-   "name": "대포",
-   "line": "siege",
-   "tier": 1,
-   "cost": 9,
-   "tech": "chemistry",
-   "hp": 4,
-   "def": 1,
-   "special": "destroysCity",
-   "variantDirs": [
-    "L",
-    "C",
-    "R"
-   ],
-   "power": 1
-  },
-  {
-   "id": "artillery",
-   "name": "야포",
-   "line": "siege",
-   "tier": 2,
-   "cost": 10,
-   "tech": "dynamite",
-   "hp": 6,
-   "def": 1,
-   "special": "destroysCity",
-   "variantDirs": [
-    "L",
-    "C",
-    "R"
-   ],
-   "power": 2
-  },
-  {
-   "id": "battleship",
-   "name": "전함",
-   "line": null,
-   "cost": 10,
-   "tech": "biology",
-   "hp": 8,
-   "def": 0,
-   "special": "coastalOnly",
-   "variantDirs": [
-    "L",
-    "C",
-    "R"
-   ],
-   "power": 4
-  },
-  {
-   "id": "bomber",
-   "name": "폭격기",
-   "line": null,
-   "cost": 14,
-   "tech": "combined_arms",
-   "marks": [
+  "_note": "규칙서 이미지 카드에서 읽음. marks: 카드 위쪽 전투력 마크(L=왼쪽, C=가운데, R=오른쪽)와 그 전투력. attack.choose: '카드를 1개 골라 전투력 N으로 공격'. variantDirs가 있는 카드는 전투력 power의 마크가 L·C·R 각각 한 방향인 카드가 따로 있고(사용자 확인), 생산할 때 방향이 무작위로 정해진다(사용자 확인). 공용 덱의 카드는 사실상 무제한이고 한 종류는 6장까지 보유할 수 있다.",
+  "cards": [
     {
-     "dir": "L",
-     "power": 4
+      "id": "warrior",
+      "name": "전사",
+      "line": "infantry",
+      "tier": 1,
+      "cost": 5,
+      "tech": "agriculture",
+      "hp": 3,
+      "def": 0,
+      "variantDirs": [
+        "L",
+        "C",
+        "R"
+      ],
+      "power": 1
     },
     {
-     "dir": "R",
-     "power": 4
-    }
-   ],
-   "hp": 1,
-   "def": 0,
-   "special": "airImmune"
-  },
-  {
-   "id": "fighter",
-   "name": "전투기",
-   "line": null,
-   "cost": 12,
-   "tech": "radar",
-   "marks": [
+      "id": "longswordsman",
+      "name": "장검사",
+      "line": "infantry",
+      "tier": 2,
+      "cost": 7,
+      "tech": "iron_working",
+      "hp": 4,
+      "def": 1,
+      "variantDirs": [
+        "L",
+        "C",
+        "R"
+      ],
+      "power": 1,
+      "requires": "iron"
+    },
     {
-     "dir": "C",
-     "power": 1
+      "id": "musketman",
+      "name": "머스킷병",
+      "line": "infantry",
+      "tier": 3,
+      "cost": 9,
+      "tech": "gunpowder",
+      "hp": 5,
+      "def": 1,
+      "variantDirs": [
+        "L",
+        "C",
+        "R"
+      ],
+      "power": 2
+    },
+    {
+      "id": "rifleman",
+      "name": "소총병",
+      "line": "infantry",
+      "tier": 4,
+      "cost": 12,
+      "tech": "rifling",
+      "hp": 5,
+      "def": 3,
+      "variantDirs": [
+        "L",
+        "C",
+        "R"
+      ],
+      "power": 2
+    },
+    {
+      "id": "infantry",
+      "name": "보병",
+      "line": "infantry",
+      "tier": 5,
+      "cost": 16,
+      "tech": "interchangeable_parts",
+      "hp": 6,
+      "def": 2,
+      "variantDirs": [
+        "L",
+        "C",
+        "R"
+      ],
+      "power": 4
+    },
+    {
+      "id": "archer",
+      "name": "궁수",
+      "line": "ranged",
+      "tier": 1,
+      "cost": 5,
+      "tech": "archery",
+      "hp": 2,
+      "def": 0,
+      "noCounter": true,
+      "variantDirs": [
+        "L",
+        "C",
+        "R"
+      ],
+      "power": 1
+    },
+    {
+      "id": "composite_bowman",
+      "name": "합성궁병",
+      "line": "ranged",
+      "tier": 2,
+      "cost": 6,
+      "tech": "construction",
+      "hp": 3,
+      "def": 0,
+      "noCounter": true,
+      "variantDirs": [
+        "L",
+        "C",
+        "R"
+      ],
+      "power": 2
+    },
+    {
+      "id": "crossbowman",
+      "name": "석궁병",
+      "line": "ranged",
+      "tier": 3,
+      "cost": 8,
+      "tech": "machinery",
+      "hp": 4,
+      "def": 1,
+      "noCounter": true,
+      "variantDirs": [
+        "L",
+        "C",
+        "R"
+      ],
+      "power": 2
+    },
+    {
+      "id": "gatling_gun",
+      "name": "게틀링기관총",
+      "line": "ranged",
+      "tier": 4,
+      "cost": 10,
+      "tech": "industrialization",
+      "hp": 4,
+      "def": 3,
+      "noCounter": true,
+      "variantDirs": [
+        "L",
+        "C",
+        "R"
+      ],
+      "power": 2,
+      "requires": "coal"
+    },
+    {
+      "id": "bazooka",
+      "name": "바주카",
+      "line": "ranged",
+      "tier": 5,
+      "cost": 12,
+      "tech": "interchangeable_parts",
+      "hp": 5,
+      "def": 2,
+      "noCounter": true,
+      "variantDirs": [
+        "L",
+        "C",
+        "R"
+      ],
+      "power": 3
+    },
+    {
+      "id": "spearman",
+      "name": "창병",
+      "line": "anti_cavalry",
+      "tier": 1,
+      "cost": 5,
+      "tech": "bronze_working",
+      "hp": 2,
+      "def": 1,
+      "variantDirs": [
+        "L",
+        "C",
+        "R"
+      ],
+      "power": 1
+    },
+    {
+      "id": "pikeman",
+      "name": "파이크병",
+      "line": "anti_cavalry",
+      "tier": 2,
+      "cost": 8,
+      "tech": "civil_service",
+      "hp": 3,
+      "def": 3,
+      "variantDirs": [
+        "L",
+        "C",
+        "R"
+      ],
+      "power": 1
+    },
+    {
+      "id": "anti_tank_gun",
+      "name": "대전차포",
+      "line": "anti_cavalry",
+      "tier": 3,
+      "cost": 15,
+      "tech": "ballistics",
+      "hp": 4,
+      "def": 5,
+      "special": "tanksMustTarget",
+      "variantDirs": [
+        "L",
+        "C",
+        "R"
+      ],
+      "power": 1
+    },
+    {
+      "id": "chariot",
+      "name": "전차",
+      "line": "cavalry",
+      "tier": 1,
+      "cost": 5,
+      "tech": "animal_husbandry",
+      "attack": {
+        "choose": true,
+        "power": 1
+      },
+      "hp": 1,
+      "def": 1
+    },
+    {
+      "id": "horseman",
+      "name": "기마병",
+      "line": "cavalry",
+      "tier": 2,
+      "cost": 7,
+      "tech": "horseback",
+      "attack": {
+        "choose": true,
+        "power": 2
+      },
+      "hp": 3,
+      "def": 1,
+      "requires": "horse"
+    },
+    {
+      "id": "knight",
+      "name": "기사",
+      "line": "cavalry",
+      "tier": 3,
+      "cost": 9,
+      "tech": "chivalry",
+      "attack": {
+        "choose": true,
+        "power": 2
+      },
+      "hp": 4,
+      "def": 2,
+      "requires": "horse"
+    },
+    {
+      "id": "cavalry",
+      "name": "기병대",
+      "line": "cavalry",
+      "tier": 4,
+      "cost": 10,
+      "tech": "military_science",
+      "attack": {
+        "choose": true,
+        "power": 3
+      },
+      "hp": 5,
+      "def": 2,
+      "requires": "horse"
+    },
+    {
+      "id": "tank",
+      "name": "탱크",
+      "line": "cavalry",
+      "tier": 5,
+      "cost": 12,
+      "tech": "ballistics",
+      "attack": {
+        "choose": true,
+        "power": 4
+      },
+      "hp": 5,
+      "def": 3,
+      "requires": "oil"
+    },
+    {
+      "id": "cannon",
+      "name": "대포",
+      "line": "siege",
+      "tier": 1,
+      "cost": 9,
+      "tech": "chemistry",
+      "hp": 4,
+      "def": 1,
+      "special": "destroysCity",
+      "variantDirs": [
+        "L",
+        "C",
+        "R"
+      ],
+      "power": 1
+    },
+    {
+      "id": "artillery",
+      "name": "야포",
+      "line": "siege",
+      "tier": 2,
+      "cost": 10,
+      "tech": "dynamite",
+      "hp": 6,
+      "def": 1,
+      "special": "destroysCity",
+      "variantDirs": [
+        "L",
+        "C",
+        "R"
+      ],
+      "power": 2
+    },
+    {
+      "id": "battleship",
+      "name": "전함",
+      "line": null,
+      "cost": 10,
+      "tech": "biology",
+      "hp": 8,
+      "def": 0,
+      "special": "coastalOnly",
+      "variantDirs": [
+        "L",
+        "C",
+        "R"
+      ],
+      "power": 4
+    },
+    {
+      "id": "bomber",
+      "name": "폭격기",
+      "line": null,
+      "cost": 14,
+      "tech": "combined_arms",
+      "marks": [
+        {
+          "dir": "L",
+          "power": 4
+        },
+        {
+          "dir": "R",
+          "power": 4
+        }
+      ],
+      "hp": 1,
+      "def": 0,
+      "special": "airImmune",
+      "requires": "oil"
+    },
+    {
+      "id": "fighter",
+      "name": "전투기",
+      "line": null,
+      "cost": 12,
+      "tech": "radar",
+      "marks": [
+        {
+          "dir": "C",
+          "power": 1
+        }
+      ],
+      "hp": 1,
+      "def": 1,
+      "special": "airImmune",
+      "requires": "oil"
+    },
+    {
+      "id": "aa_gun",
+      "name": "대공포",
+      "line": null,
+      "cost": 10,
+      "tech": "radar",
+      "hp": 4,
+      "def": 1,
+      "special": "bomberImmune"
+    },
+    {
+      "id": "atomic_bomb",
+      "name": "원자폭탄",
+      "line": null,
+      "cost": 15,
+      "tech": "atomic_theory",
+      "special": "atomicBomb",
+      "notBattle": true,
+      "note": "전투에 쓰이지 않음. 자신의 차례에 사용: 이 카드를 파괴하고, 자신의 위대한 장군 토큰이 올려진 적 타일을 파괴하고 토큰을 다시 가져온다. 도시별 첫 5타일은 파괴 불가.",
+      "requires": "uranium"
+    },
+    {
+      "id": "hwacha",
+      "name": "화차",
+      "line": null,
+      "cost": 9,
+      "tech": "gunpowder",
+      "uniqueOnly": true,
+      "variantDirs": [
+        "L",
+        "C",
+        "R"
+      ],
+      "power": 2,
+      "hp": 2,
+      "def": 3,
+      "noCounter": true
+    },
+    {
+      "id": "zeijoisen",
+      "name": "제고이센",
+      "line": null,
+      "cost": 9,
+      "tech": "compass",
+      "uniqueOnly": true,
+      "variantDirs": [
+        "L",
+        "C",
+        "R"
+      ],
+      "power": 3,
+      "hp": 6,
+      "def": 2,
+      "special": "coastalOnly"
     }
-   ],
-   "hp": 1,
-   "def": 1,
-   "special": "airImmune"
-  },
-  {
-   "id": "aa_gun",
-   "name": "대공포",
-   "line": null,
-   "cost": 10,
-   "tech": "radar",
-   "hp": 4,
-   "def": 1,
-   "special": "bomberImmune"
-  },
-  {
-   "id": "atomic_bomb",
-   "name": "원자폭탄",
-   "line": null,
-   "cost": 15,
-   "tech": "atomic_theory",
-   "special": "atomicBomb",
-   "notBattle": true,
-   "note": "전투에 쓰이지 않음. 자신의 차례에 사용: 이 카드를 파괴하고, 자신의 위대한 장군 토큰이 올려진 적 타일을 파괴하고 토큰을 다시 가져온다. 도시별 첫 5타일은 파괴 불가."
-  },
-  {
-   "id": "hwacha",
-   "name": "화차",
-   "line": null,
-   "cost": 9,
-   "tech": "gunpowder",
-   "uniqueOnly": true,
-   "variantDirs": [
-    "L",
-    "C",
-    "R"
-   ],
-   "power": 2,
-   "hp": 2,
-   "def": 3,
-   "noCounter": true
-  },
-  {
-   "id": "zeijoisen",
-   "name": "제고이센",
-   "line": null,
-   "cost": 9,
-   "tech": "compass",
-   "uniqueOnly": true,
-   "variantDirs": [
-    "L",
-    "C",
-    "R"
-   ],
-   "power": 3,
-   "hp": 6,
-   "def": 2,
-   "special": "coastalOnly"
-  }
- ]
+  ]
 }

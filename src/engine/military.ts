@@ -44,8 +44,14 @@ export function uniqueOf(p: Player, name: string): UniqueUnitDef | undefined {
 const first5 = (city: City) => city.tiles.filter((t) => t.role === 'city' || t.role === 'side')
 export const isCoastalCity = (city: City): boolean => first5(city).some((t) => t.card.terrains.includes('해안'))
 
+/** 같은 계열의 더 높은 단계 기술을 얻으면 낮은 단계 카드는 더 만들 수 없다 ("앞으로 ○○ 생산불가") */
+export function isObsolete(p: Player, def: MilitaryCardDef): boolean {
+  if (!def.line || !def.tier) return false
+  return MILITARY_CARDS.some((c) => c.line === def.line && c.tier! > def.tier! && p.techs.includes(c.tech))
+}
+
 /** 이 문명이 지금 만들 수 있는 카드 (기술 보유, 한 종류 6장 보유 한도). */
-export function producible(s: GameState, p: Player, defId: string, unique?: string): { def: MilitaryCardDef; uq?: UniqueUnitDef } | null {
+export function producible(s: GameState, p: Player, defId: string, unique?: string, city?: City): { def: MilitaryCardDef; uq?: UniqueUnitDef } | null {
   const uq = unique ? uniqueOf(p, unique) : undefined
   if (unique && !uq) return null
   const id = uq ? uq.base : defId
@@ -54,6 +60,8 @@ export function producible(s: GameState, p: Player, defId: string, unique?: stri
   if (def.uniqueOnly && !uq) return null // 화차·제고이센은 고유 유닛으로만 만든다
   const tech = uq?.tech ?? def.tech
   if (!p.techs.includes(tech)) return null
+  if (isObsolete(p, def)) return null
+  if (city && def.requires && !city.tiles.some((t) => t.card.resource === def.requires)) return null
   if (p.military.filter((c) => c.defId === id).length >= MAX_HOLD) return null
   if (uq && (s.uniqueSupply[uq.name]?.length ?? 0) === 0) return null // 고유 유닛 3장이 모두 존재함
   return { def, uq }
@@ -74,6 +82,12 @@ function newCard(s: GameState, defId: string, unique?: string): CardInst {
   return { uid: s.nextUid++, defId, dirs: dir ? [dir] : undefined }
 }
 
+/** 기술 효과 등으로 카드를 바로 받는다 (핵융합의 원자폭탄) */
+export function grantCard(s: GameState, p: Player, defId: string): void {
+  p.military.push(newCard(s, defId))
+  say(s, `${civById(p.civId).name} ${cardById(defId).name} 획득`)
+}
+
 export function produceCard(
   s: GameState,
   p: Player,
@@ -83,8 +97,8 @@ export function produceCard(
   if (!city) throw new RuleError('내 도시가 아닙니다')
   const turn = p.turn!
   if (turn.produced.includes(a.cityId)) throw new RuleError('도시마다 한 차례에 생산은 1개만 할 수 있습니다')
-  const ok = producible(s, p, a.defId, a.unique)
-  if (!ok) throw new RuleError('지금 만들 수 없는 카드입니다')
+  const ok = producible(s, p, a.defId, a.unique, city)
+  if (!ok) throw new RuleError('지금 만들 수 없는 카드입니다 (기술·자원·더 높은 단계 보유·보유 한도 확인)')
   const { def, uq } = ok
   if ((uq?.coastalOnly || def.special === 'coastalOnly') && !isCoastalCity(city)) {
     throw new RuleError('첫 5타일에 해안이 있는 도시에서만 만들 수 있습니다')

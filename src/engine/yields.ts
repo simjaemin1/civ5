@@ -88,8 +88,14 @@ export function computeYields(player: Player): TurnYields {
       science += y.science
       gold += y.gold
     }
+    // 로봇공학: 내 차례에 망치가 10 미만인 도시는 10이 되도록 추가로 받는다
+    if (ctx.techs.has('robotics')) hammer = Math.max(hammer, 10)
     return { cityId: city.id, food, hammer }
   })
+  // 천문학: 첫 5타일에 산이 있으면 과학 +5 (한 문명에 한 번으로 해석, open-questions 참고)
+  if (ctx.techs.has('astronomy') && player.cities.some((c) => c.tiles.some((t) => (t.role === 'city' || t.role === 'side') && t.card.terrains.includes('산')))) science += 5
+  // 경제학: 다음 차례부터 금 +4
+  if (ctx.techs.has('economics') && !ctx.fresh.has('economics')) gold += 4
   if (player.policy === 'rationalism') science += player.civId === 'korea' ? 6 : 4
   if (player.wonders.includes('colossus')) gold += 4
   // 공중정원: 완성 다음 차례부터 턴당 식량 +1 (첫 도시)

@@ -79,7 +79,7 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
                           const uq = e.unique ? uniqueOf(player, e.unique) : undefined
                           const cost = cardCost(player, def, uq)
                           const tech = uq?.tech ?? def.tech
-                          const ok = !!producible(game, player, def.id, e.unique)
+                          const ok = !!producible(game, player, def.id, e.unique, city)
                           const reason = !player.techs.includes(tech)
                             ? `기술 필요: ${TECHS.find((x) => x.id === tech)?.name}`
                             : !ok

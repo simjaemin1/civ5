@@ -145,7 +145,7 @@ describe('군사 카드 생산', () => {
 describe('군사 카드 공개 범위', () => {
   it('로그에는 무엇을 생산·승급했는지만 남고 공격 방향은 남지 않는다', () => {
     let s = found(startGame(['denmark'], [hand4()]))
-    s = mod(s, (c) => c.players[0].techs.push('agriculture', 'iron_working'))
+    s = mod(s, (c) => c.players[0].techs.push('agriculture'))
     s = play(s, { type: 'placeWorkers', placements: [] }, { type: 'skipResearch' })
     s = mod(s, (c) => {
       c.players[0].turn!.yields.cities[0].hammer = 5
@@ -153,6 +153,7 @@ describe('군사 카드 공개 범위', () => {
     })
     s = apply(s, { type: 'produce', cityId: 0, defId: 'warrior' })
     expect(s.log.at(-1)).toContain('전사')
+    s = mod(s, (c) => c.players[0].techs.push('iron_working')) // 철제기술을 얻으면 전사는 더 못 만들지만 승급은 된다
     s = apply(s, { type: 'upgrade', uid: s.players[0].military[0].uid })
     expect(s.log.at(-1)).toContain('장검사')
     expect(s.log.filter((l) => /생산|승급/.test(l)).join('\n')).not.toMatch(/왼쪽|가운데|오른쪽|\bL\b|\bC\b|\bR\b/)
@@ -228,9 +229,10 @@ describe('고유 유닛은 3장만 존재한다', () => {
     s = apply(s, { type: 'sacrificeCard', uid: me(s).military[0].uid })
     expect(s.uniqueSupply['전투 코끼리']).toHaveLength(3)
 
-    let t = spain(['gunpowder', 'rifling'])
+    let t = spain(['gunpowder'])
     t = produceUnique(t)
     expect(t.uniqueSupply['테르시오']).toHaveLength(2)
+    t = mod(t, (c) => c.players[0].techs.push('rifling'))
     t = mod(t, (c) => (c.players[0].turn!.yields.gold = 20))
     t = apply(t, { type: 'upgrade', uid: me(t).military[0].uid }) // 머스킷병 → 소총병
     expect(t.uniqueSupply['테르시오']).toHaveLength(3)

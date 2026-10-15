@@ -9,7 +9,7 @@ import { currentPlayer, drawTiles, gainCulture, say } from './core'
 import { choosePolicy } from './policies'
 import { invest, settleWonders } from './wonders'
 import {
-  anyProducible, claimFreeCard, gainGeneral, initUniqueSupply, produceCard, sacrificeCard, upgradeCard,
+  anyProducible, claimFreeCard, gainGeneral, grantCard, initUniqueSupply, produceCard, sacrificeCard, upgradeCard,
 } from './military'
 import { endScouting, freeWorkers, holdScouted, releaseHeld, scout } from './scouting'
 import {
@@ -442,6 +442,7 @@ function research(
     if (e.kind === 'culture') gainCulture(s, p, e.amount)
     else if (e.kind === 'general') gainGeneral(p, e.amount)
     else if (e.kind === 'policy') p.pendingPolicies++
+    else if (e.kind === 'freeCard') grantCard(s, p, e.defId)
     else if (e.kind === 'setPolicy') p.policy = e.policy
     else if (e.kind === 'secondCity') {
       if (p.cities.length === 1 && !p.pendingCity) p.pendingCity = drawTiles(s, 4) // 문화 4

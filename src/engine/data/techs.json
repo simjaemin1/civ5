@@ -370,7 +370,12 @@
    "prereqs": [
     "atomic_theory"
    ],
-   "effects": []
+   "effects": [
+    {
+     "kind": "freeCard",
+     "defId": "atomic_bomb"
+    }
+   ]
   },
   {
    "id": "mining",

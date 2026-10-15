@@ -74,6 +74,7 @@ export type TechEffect =
   | { kind: 'general'; amount: number }
   | { kind: 'policy' }
   | { kind: 'setPolicy'; policy: PolicyId }
+  | { kind: 'freeCard'; defId: string }
   | { kind: 'compass' }
   | { kind: 'secondCity' }
   | { kind: 'archaeology' }
@@ -113,6 +114,8 @@ export interface MilitaryCardDef {
   note?: string
   /** 고유 유닛으로만 만들 수 있는 카드 (화차, 제고이센) */
   uniqueOnly?: boolean
+  /** 이 자원 타일을 가진 도시에서만 만들 수 있다 */
+  requires?: string
 }
 
 export const CIVS = civsJson as unknown as CivDef[]

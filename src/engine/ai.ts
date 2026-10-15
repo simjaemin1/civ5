@@ -215,7 +215,7 @@ function produceCandidates(s: GameState, p: Player): Action[] {
     const wonderActions: Action[] = wonders.map((w) => ({ type: 'invest', cityId: city.id, wonderId: w.id, hammers: h }))
     const cardActions: Action[] = []
     for (const o of cardOptions(p)) {
-      if (o.def.notBattle || !producible(s, p, o.def.id, o.unique) || cardCost(p, o.def, o.unique ? uniqueOf(p, o.unique) : undefined) > h) continue
+      if (o.def.notBattle || !producible(s, p, o.def.id, o.unique, city) || cardCost(p, o.def, o.unique ? uniqueOf(p, o.unique) : undefined) > h) continue
       cardActions.push({ type: 'produce', cityId: city.id, defId: o.def.id, unique: o.unique })
     }
     // 군대가 3장 미만이면 군사 카드를 먼저, 그 뒤에는 불가사의에 망치를 모두 건다
