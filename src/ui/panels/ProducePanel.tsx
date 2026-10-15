@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { MILITARY_CARDS, cardById, cardCost, civById, investableWonders, minHammers, producible, uniqueOf, wonderCardById } from '../../engine'
+import { MILITARY_CARDS, cardById, cardCost, civById, investableWonders, minHammers, producible, uniqueOf, wonderCardById, TECHS } from '../../engine'
 import { cardText, conditionText, ICON, wonderEffectText } from '../format'
 import type { PanelProps } from './types'
 
@@ -67,33 +67,48 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
                     {wonders.length === 0 && <small className="muted">투자할 수 있는 불가사의가 없습니다 (기술·건설 조건 확인).</small>}
                   </div>
                 </details>
-                <details>
+                <details open>
                   <summary>군사 카드 생산 (방향이 있는 카드는 생산할 때 무작위로 정해지고, 고유 유닛은 3장만 존재합니다)</summary>
                   <div className="list">
                     {MILITARY_CARDS.flatMap((def) => {
                       const entries: { unique?: string }[] = [{}, ...civ.uniques.filter((u) => u.base === def.id).map((u) => ({ unique: u.name }))]
                       return entries
-                        .filter((e) => producible(game, player, def.id, e.unique))
+                        .filter((e) => (e.unique || !def.uniqueOnly) && player.techs.includes((e.unique ? uniqueOf(player, e.unique)?.tech : undefined) ?? def.tech))
                         .map((e) => {
                           const key = `${city.id}:${def.id}:${e.unique ?? ''}`
-                          const cost = cardCost(player, def, e.unique ? uniqueOf(player, e.unique) : undefined)
+                          const uq = e.unique ? uniqueOf(player, e.unique) : undefined
+                          const cost = cardCost(player, def, uq)
+                          const tech = uq?.tech ?? def.tech
+                          const ok = !!producible(game, player, def.id, e.unique)
+                          const reason = !player.techs.includes(tech)
+                            ? `기술 필요: ${TECHS.find((x) => x.id === tech)?.name}`
+                            : !ok
+                              ? '지금 만들 수 없음 (6장 보유 한도 또는 고유 유닛 3장 모두 존재)'
+                              : cost > h
+                                ? `망치 부족 (${h}/${cost})`
+                                : ''
                           return (
-                            <div key={key} className="row">
+                            <div key={key} className="row" style={ok ? undefined : { opacity: 0.55 }}>
                               <span>{cardText({ defId: def.id, unique: e.unique })}{e.unique ? ` — 고유 유닛, 남은 ${game.uniqueSupply[e.unique].length}/3장` : ''}</span>
                               <b>
                                 {ICON.hammer}
                                 {cost}
                               </b>
                               <button
-                                disabled={cost > h}
+                                disabled={!ok || cost > h}
+                                title={reason}
                                 onClick={() => dispatch({ type: 'produce', cityId: city.id, defId: def.id, unique: e.unique })}
                               >
                                 생산
                               </button>
+                              {reason && <small className="muted">{reason}</small>}
                             </div>
                           )
                         })
                     })}
+                    {!MILITARY_CARDS.some((d) => player.techs.includes(d.tech) && !d.uniqueOnly) && (
+                      <small className="muted">아직 만들 수 있는 군사 카드가 없습니다. 농업(전사)·궁술(궁수)·청동기(창병)·동물 길들이기(전차) 같은 기술을 먼저 연구하세요.</small>
+                    )}
                   </div>
                 </details>
               </>
