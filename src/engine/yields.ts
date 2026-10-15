@@ -81,9 +81,12 @@ export function computeYields(player: Player): TurnYields {
   const cities = player.cities.map((city: City, i) => {
     let food = i === 0 ? (ctx.civ.bonus.food ?? 0) : 0
     let hammer = i === 0 ? (ctx.civ.bonus.hammer ?? 0) : 0
-    for (const t of city.tiles) {
-      if (t.role !== 'city' && !city.placed.includes(t.card.id)) continue
-      const y = tileYield(t.card, ctx)
+    const cards = city.tiles
+      .filter((t) => t.role === 'city' || city.placed.includes(t.card.id) || city.generalPlaced?.includes(t.card.id))
+      .map((t) => t.card)
+    for (const e of city.enemyPlaced ?? []) cards.push(e.card) // 몽골: 내 장군이 올라간 상대 타일
+    for (const card of cards) {
+      const y = tileYield(card, ctx)
       food += y.food
       hammer += y.hammer
       science += y.science

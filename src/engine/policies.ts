@@ -4,12 +4,14 @@ import { POLICIES, civById } from './data'
 import type { PolicyId } from './data'
 import { gainCulture, say } from './core'
 import { happiness, totalWorkers } from './yields'
+import { gainGeneral } from './military'
 
 export function choosePolicy(
   s: GameState,
   p: Player,
   policy: PolicyId,
   discard: { cityId: number; count: number }[] = [],
+  dismiss?: { cityId: number; tileId: number },
 ): void {
   if (p.pendingPolicies <= 0) throw new RuleError('고를 수 있는 정책 선택권이 없습니다')
   p.pendingPolicies--
@@ -36,7 +38,7 @@ export function choosePolicy(
       gainCulture(s, p, 1)
       break
     case 'despotism':
-      p.generals += 1
+      gainGeneral(p, 1)
       break
     case 'regime': {
       turn.skipFoodSettle = true
@@ -45,9 +47,19 @@ export function choosePolicy(
       p.cities[0].workers += Math.min(3, room)
       break
     }
-    case 'diplomacy':
-      say(s, `${name} 외교: 상대 장군 파괴는 전쟁 단계에서 구현 예정`)
+    case 'diplomacy': {
+      // 내 원래 타일 위의 상대 위대한 장군 토큰 1개를 골라 파괴한다 (그 문명은 장군을 돌려받지 못함)
+      if (dismiss) {
+        const city = p.cities.find((c) => c.id === dismiss.cityId)
+        const tile = city?.tiles.find((t) => t.card.id === dismiss.tileId)
+        if (!tile || tile.occupiedBy === undefined || tile.occupiedBy === p.id) {
+          throw new RuleError('상대 장군이 올라간 내 타일을 골라야 합니다')
+        }
+        tile.occupiedBy = undefined
+        say(s, `${name} 외교: 상대 장군 토큰 파괴`)
+      }
       break
+    }
     case 'liberty':
     case 'rationalism':
     case 'equality':

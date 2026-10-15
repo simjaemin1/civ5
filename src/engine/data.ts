@@ -24,6 +24,16 @@ export interface CivDef {
   unique: string
   tileMods?: TileMod[]
   terrainOverride?: TileMod[]
+  uniques: UniqueUnitDef[]
+}
+/** 고유 유닛: 능력치는 자료가 없어 기초 카드와 같다고 본다 */
+export interface UniqueUnitDef {
+  name: string
+  base: string
+  tech?: string
+  extraCost?: number
+  lateTarget?: boolean
+  siege?: boolean
 }
 export interface ResourceDef {
   name: string
@@ -146,4 +156,10 @@ export const wonderCardById = (id: string): WonderCardDef => {
   const w = WONDER_CARDS.find((x) => x.id === id)
   if (!w) throw new Error(`unknown wonder ${id}`)
   return w
+}
+
+export const cardById = (id: string): MilitaryCardDef => {
+  const c = MILITARY_CARDS.find((x) => x.id === id)
+  if (!c) throw new Error(`unknown military card ${id}`)
+  return c
 }

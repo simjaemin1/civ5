@@ -3,6 +3,7 @@ import { RuleError } from './types'
 import { PROGRESS_NEEDED, WONDER_CARDS, civById, wonderCardById } from './data'
 import type { WonderCardDef } from './data'
 import { gainCulture, say } from './core'
+import { gainGeneral } from './military'
 
 const first5 = (city: City) => city.tiles.filter((t) => t.role === 'city' || t.role === 'side')
 
@@ -60,7 +61,7 @@ export function invest(s: GameState, p: Player, cityId: number, wonderId: string
 
 export function applyWonderEffects(s: GameState, p: Player, w: WonderCardDef): void {
   for (const e of w.effects) {
-    if (e.kind === 'general') p.generals += e.amount
+    if (e.kind === 'general') gainGeneral(p, e.amount)
     else if (e.kind === 'setPolicy') p.policy = e.policy
     else if (e.kind === 'culture') gainCulture(s, p, e.amount)
     else if (e.kind === 'choosePolicy') p.pendingPolicies++

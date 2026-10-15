@@ -1,4 +1,4 @@
-import type { Action, City, GameState, Player, Side, TileCard } from './types'
+import type { Action, City, GameState, Placement, Player, Side, TileCard } from './types'
 import { RuleError, SIDES } from './types'
 import { TECHS, civById, techById } from './data'
 import type { TechDef } from './data'
@@ -8,6 +8,14 @@ import { makePlaceholderDeck } from './placeholderDeck'
 import { currentPlayer, drawTiles, gainCulture, say } from './core'
 import { choosePolicy } from './policies'
 import { invest, settleWonders } from './wonders'
+import {
+  anyProducible, claimFreeCard, gainGeneral, initCardPool, produceCard, sacrificeCard, upgradeCard,
+} from './military'
+import { endScouting, freeWorkers, holdScouted, releaseHeld, scout } from './scouting'
+import {
+  arrangeBattle, checkCultureDefeats, chooseTargets, declarationTargets, declareWar, findTile,
+  startNextBattle, detonateAtomicBomb, activateGreatWall,
+} from './war'
 
 export { currentPlayer, gainCulture }
 
@@ -36,6 +44,15 @@ export function createGame(opts: CreateOptions): GameState {
       pendingPolicies: 0,
       pendingCity: null,
       wonders: [],
+      military: [],
+      generalWorkers: 0,
+      busyWorkers: 0,
+      scouting: false,
+      scouted: null,
+      held: null,
+      eliminated: false,
+      greatWallUsed: false,
+      pendingFreeCards: 0,
     })),
     order: [],
     turnIdx: 0,
@@ -44,6 +61,12 @@ export function createGame(opts: CreateOptions): GameState {
     wonderProgress: {},
     wonderOwners: {},
     investments: [],
+    cardPool: initCardPool(),
+    nextUid: 1,
+    declarations: [],
+    battle: null,
+    eldoradoFound: false,
+    winner: null,
     log: [],
   }
   state.order = state.players
@@ -59,6 +82,7 @@ function beginTurn(s: GameState): void {
   const p = currentPlayer(s)
   p.turn = null
   p.freshTechs = []
+  p.generalWorkers = 0
   if (p.cities.length === 0) {
     s.phase = 'setup'
     if (p.hand.length === 0) {
@@ -67,19 +91,51 @@ function beginTurn(s: GameState): void {
     }
   } else {
     s.phase = 'place'
-    p.cities.forEach((c) => (c.placed = []))
+    p.cities.forEach((c) => {
+      c.placed = []
+      c.enemyPlaced = []
+      c.generalPlaced = []
+    })
   }
 }
 
+/** 탈락한 문명은 건너뛴다. */
+function skipEliminated(s: GameState): void {
+  while (s.turnIdx < s.order.length - 1 && s.players[s.order[s.turnIdx]].eliminated) s.turnIdx++
+}
+
 function endTurn(s: GameState): void {
-  s.turnIdx++
-  if (s.turnIdx >= s.order.length) {
-    // 정산: 불가사의 진척도 → 전투(이후 단계에서 구현)
+  endScouting(s, currentPlayer(s))
+  if (s.turnIdx + 1 >= s.order.length) {
+    // 정산: 불가사의 진척도 → 전투
     settleWonders(s)
-    s.round++
-    s.turnIdx = 0
-    s.roundTechPicks = []
+    continueRound(s)
+    return
   }
+  s.turnIdx++
+  skipEliminated(s)
+  beginTurn(s)
+}
+
+/** 라운드 정산 중: 선전포고가 남아 있으면 다음 전투를 시작하고, 없으면 라운드를 끝낸다. */
+function continueRound(s: GameState): void {
+  while (true) {
+    if (s.winner) {
+      s.phase = 'over'
+      return
+    }
+    if (s.battle) return // 카드 배치·대상 선택을 기다림
+    if (!startNextBattle(s)) break
+  }
+  checkCultureDefeats(s)
+  if (s.winner) {
+    s.phase = 'over'
+    return
+  }
+  s.round++
+  s.turnIdx = 0
+  s.roundTechPicks = []
+  skipEliminated(s)
   beginTurn(s)
 }
 
@@ -98,11 +154,24 @@ export function researchableTechs(s: GameState): TechDef[] {
 }
 
 export function apply(prev: GameState, action: Action): GameState {
+  if (prev.phase === 'over') throw new RuleError('게임이 끝났습니다')
   const s = structuredClone(prev)
   const p = currentPlayer(s)
   switch (action.type) {
     case 'wasteland': return wasteland(s, p, action.discardTileId)
     case 'buildCity': return buildCity(s, p, action)
+    case 'scout':
+      expectPhase(s, 'place')
+      scout(s, p)
+      return s
+    case 'holdScouted':
+      expectPhase(s, 'place', 'research', 'produce')
+      holdScouted(s, p)
+      return s
+    case 'releaseHeld':
+      expectPhase(s, 'place', 'research', 'produce')
+      releaseHeld(s, p)
+      return s
     case 'placeWorkers': return placeWorkers(s, p, action.placements)
     case 'research': return research(s, p, action.techId, action.foodToScience ?? 0, action.hammerToScience ?? 0)
     case 'skipResearch':
@@ -111,19 +180,71 @@ export function apply(prev: GameState, action: Action): GameState {
       return s
     case 'choosePolicy':
       expectPhase(s, 'research', 'produce')
-      choosePolicy(s, p, action.policy, action.discard)
+      choosePolicy(s, p, action.policy, action.discard, action.dismiss)
       return s
     case 'buildSecondCity': return buildSecondCity(s, p, action)
     case 'invest':
       expectPhase(s, 'produce')
       invest(s, p, action.cityId, action.wonderId, action.hammers)
       return s
+    case 'produce':
+      expectPhase(s, 'produce')
+      produceCard(s, p, action)
+      return s
+    case 'upgrade':
+      expectPhase(s, 'produce')
+      upgradeCard(s, p, action)
+      return s
+    case 'sacrificeCard':
+      expectPhase(s, 'research', 'produce')
+      sacrificeCard(s, p, action.uid)
+      return s
+    case 'claimFreeCard':
+      expectPhase(s, 'research', 'produce')
+      claimFreeCard(s, p, action)
+      return s
+    case 'useAtomicBomb':
+      expectPhase(s, 'produce')
+      detonateAtomicBomb(s, p, action)
+      return s
+    case 'useGreatWall':
+      expectPhase(s, 'produce')
+      activateGreatWall(s, p)
+      return s
     case 'endProduction':
       expectPhase(s, 'produce')
       if (p.pendingPolicies > 0) throw new RuleError('정책을 먼저 골라야 합니다')
       if (p.pendingCity) throw new RuleError('두 번째 도시를 먼저 세워야 합니다')
+      if (p.pendingFreeCards > 0) {
+        if (anyProducible(s, p)) throw new RuleError('무료 군사 카드를 먼저 골라야 합니다')
+        p.pendingFreeCards = 0
+      }
       foodSettlement(s, p)
+      // 선전포고(내정 6단계): 할 수 있는 선전포고가 있으면 선택하게 하고, 없으면 바로 차례를 끝낸다
+      if (declarationTargets(s, p).length > 0) {
+        s.phase = 'declare'
+        return s
+      }
       endTurn(s)
+      return s
+    case 'declareWar':
+      expectPhase(s, 'declare')
+      declareWar(s, p, action)
+      endTurn(s)
+      return s
+    case 'endTurn':
+      expectPhase(s, 'declare')
+      endTurn(s)
+      return s
+    case 'arrangeBattle':
+      expectPhase(s, 'battle')
+      arrangeBattle(s, action.playerId, action.slots)
+      if (!s.battle) continueRound(s)
+      return s
+    case 'chooseTargets':
+      expectPhase(s, 'battle')
+      chooseTargets(s, action.playerId, action.picks)
+      if (!s.battle) continueRound(s)
       return s
   }
 }
@@ -189,6 +310,7 @@ function buildCity(
   const city = foundCity(p.hand, a, 0, 1)
   p.cities.push(city)
   p.hand = []
+  if (p.civId === 'china') p.generals += 1 // 중국: 위대한 장군 1개로 시작
   say(s, `${civById(p.civId).name} 도시 건설 (타일 ${city.tiles.length}장)`)
   s.phase = 'place'
   return s
@@ -213,25 +335,58 @@ function buildSecondCity(
   return s
 }
 
-function placeWorkers(
-  s: GameState,
-  p: Player,
-  placements: { cityId: number; tileId: number }[],
-): GameState {
+function placeWorkers(s: GameState, p: Player, placements: Placement[]): GameState {
   expectPhase(s, 'place')
   const seen = new Set<number>()
-  for (const city of p.cities) city.placed = []
-  for (const { cityId, tileId } of placements) {
-    const city = p.cities.find((c) => c.id === cityId)
-    const tile = city?.tiles.find((t) => t.card.id === tileId)
-    if (!city || !tile) throw new RuleError('내 도시의 타일이 아닙니다')
-    if (tile.role === 'city') throw new RuleError('도시 타일에는 일꾼을 올릴 수 없습니다')
-    if (seen.has(tileId)) throw new RuleError('한 타일에는 일꾼 1개만 올릴 수 있습니다')
-    seen.add(tileId)
-    city.placed.push(tileId)
-    if (city.placed.length > city.workers) throw new RuleError('일꾼이 모자랍니다')
+  for (const city of p.cities) {
+    city.placed = []
+    city.enemyPlaced = []
+    city.generalPlaced = []
   }
-  p.turn = { yields: computeYields(p), foodToScience: 0, hammerToScience: 0, researched: false, produced: [], skipFoodSettle: false }
+  p.generalWorkers = 0
+  for (const pl of placements) {
+    const city = p.cities.find((c) => c.id === pl.cityId)
+    if (!city) throw new RuleError('내 도시가 아닙니다')
+    if (seen.has(pl.tileId)) throw new RuleError('한 타일에는 일꾼 1개만 올릴 수 있습니다')
+    seen.add(pl.tileId)
+    if (pl.enemy) {
+      // 몽골: 내 장군이 올라간 상대 타일에 일꾼을 올려 산출한다
+      if (p.civId !== 'mongolia') throw new RuleError('몽골만 상대 타일에 일꾼을 올릴 수 있습니다')
+      const owner = s.players[pl.enemy.playerId]
+      const found = owner && findTile(owner, pl.enemy.cityId, pl.tileId)
+      if (!found || found.tile.occupiedBy !== p.id) throw new RuleError('내 장군이 올라간 상대 타일이어야 합니다')
+      if (found.tile.role === 'city') throw new RuleError('도시 타일에는 일꾼을 올릴 수 없습니다')
+      city.enemyPlaced!.push({ playerId: owner.id, cityId: pl.enemy.cityId, tileId: pl.tileId, card: found.tile.card })
+      continue
+    }
+    const tile = city.tiles.find((t) => t.card.id === pl.tileId)
+    if (!tile) throw new RuleError('내 도시의 타일이 아닙니다')
+    if (tile.role === 'city') throw new RuleError('도시 타일에는 일꾼을 올릴 수 없습니다')
+    if (tile.occupiedBy !== undefined && tile.occupiedBy !== p.id) throw new RuleError('상대가 점령한 타일에는 일꾼을 올릴 수 없습니다')
+    if (pl.general) {
+      // 스웨덴: 배치하지 않은 위대한 장군을 일꾼처럼 타일에 올려 사용
+      if (p.civId !== 'sweden') throw new RuleError('스웨덴만 장군을 일꾼처럼 쓸 수 있습니다')
+      p.generalWorkers++
+      if (p.generalWorkers > p.generals) throw new RuleError('위대한 장군이 모자랍니다')
+      city.generalPlaced!.push(pl.tileId)
+    } else {
+      city.placed.push(pl.tileId)
+    }
+  }
+  for (const city of p.cities) {
+    if (city.placed.length + (city.enemyPlaced?.length ?? 0) > city.workers) throw new RuleError('일꾼이 모자랍니다')
+  }
+  if (freeWorkers(p) < 0) throw new RuleError('정찰·선전포고·맡아둔 타일에 쓰는 일꾼과 합쳐 일꾼이 모자랍니다')
+  p.turn = {
+    yields: computeYields(p),
+    foodToScience: 0,
+    hammerToScience: 0,
+    researched: false,
+    produced: [],
+    upgraded: false,
+    extraFood: 0,
+    skipFoodSettle: false,
+  }
   s.phase = 'research'
   return s
 }
@@ -239,6 +394,7 @@ function placeWorkers(
 /** 산출을 다시 계산하고, 이미 과학으로 바꾼 망치를 도시 순서대로 뺀다. */
 function recomputeYields(p: Player) {
   const y = computeYields(p)
+  if (y.cities.length) y.cities[0].food += p.turn!.extraFood
   let left = p.turn!.hammerToScience
   for (const c of y.cities) {
     const take = Math.min(left, c.hammer)
@@ -281,7 +437,7 @@ function research(
 
   for (const e of tech.effects) {
     if (e.kind === 'culture') gainCulture(s, p, e.amount)
-    else if (e.kind === 'general') p.generals += e.amount
+    else if (e.kind === 'general') gainGeneral(p, e.amount)
     else if (e.kind === 'policy') p.pendingPolicies++
     else if (e.kind === 'secondCity') {
       if (p.cities.length === 1 && !p.pendingCity) p.pendingCity = drawTiles(s, 4) // 문화 4
@@ -290,7 +446,19 @@ function research(
       const sites = p.cities.reduce((n, c) => n + c.tiles.filter((t) => t.card.historic).length, 0)
       if (sites > 0) gainCulture(s, p, sites)
     }
-    // compass, foodToScience(조건 확인용) 등은 이후 단계에서 처리
+    // compass, foodToScience(조건 확인용) 등은 연구 효과로 따로 처리할 것이 없다
+  }
+  if (tech.id === 'machinery' && p.civId === 'brazil') {
+    // 브라질: 기계를 얻을 때 영토의 정글 1장당 문화 1 (1회)
+    const jungles = p.cities.reduce((n, c) => n + c.tiles.filter((t) => t.card.terrains.includes('정글')).length, 0)
+    if (jungles > 0) gainCulture(s, p, jungles)
+  }
+  if (tech.id === 'apollo') {
+    // 과학 승리: 아폴로 프로젝트를 가장 먼저 연구하면 바로 이긴다
+    s.winner = { playerId: p.id, type: 'science' }
+    s.phase = 'over'
+    say(s, `${civById(p.civId).name} 과학 승리`)
+    return s
   }
   // 기술 효과는 즉시 적용 ("다음 차례부터"만 제외): 산출을 다시 계산한다
   turn.yields = recomputeYields(p)

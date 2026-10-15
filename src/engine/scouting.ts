@@ -1,0 +1,55 @@
+import type { GameState, Player } from './types'
+import { RuleError } from './types'
+import { WONDERS, civById } from './data'
+import { gainCulture, say } from './core'
+import { shuffle } from './rng'
+import { totalWorkers } from './yields'
+
+/** 선전포고·정찰 등에 쓸 수 있는, 타일에 올리지 않은 일꾼 수 */
+export function freeWorkers(p: Player): number {
+  const placed = p.cities.reduce((n, c) => n + c.placed.length + (c.enemyPlaced?.length ?? 0), 0)
+  const scouting = p.held ? 1 : p.scouting ? 1 : 0
+  return totalWorkers(p) - placed - scouting - p.busyWorkers
+}
+
+/** 정찰: 일꾼 1개로 타일 덱 맨 위 카드 1장을 본다. 엘도라도를 처음 발견하면 문화 1. */
+export function scout(s: GameState, p: Player): void {
+  if (p.scouting || p.held) throw new RuleError('이미 정찰 중이거나 타일을 맡아두고 있습니다')
+  if (freeWorkers(p) < 1) throw new RuleError('정찰에 쓸 일꾼이 없습니다')
+  if (s.deck.length === 0) throw new RuleError('타일 덱이 비었습니다')
+  p.scouted = s.deck.shift()!
+  p.scouting = true
+  say(s, `${civById(p.civId).name} 정찰`)
+  const w = p.scouted.wonder ? WONDERS[p.scouted.wonder] : undefined
+  if (w?.cultureOnDiscover && !s.eldoradoFound) {
+    s.eldoradoFound = true
+    gainCulture(s, p, w.cultureOnDiscover)
+  }
+}
+
+/** 나침반: 정찰한 카드를 돌려넣지 않고 맡아둔다 (최대 1장, 일꾼 1개가 그 위에 남는다). */
+export function holdScouted(s: GameState, p: Player): void {
+  if (!p.techs.includes('compass')) throw new RuleError('나침반을 연구해야 합니다')
+  if (!p.scouted) throw new RuleError('맡아둘 정찰한 카드가 없습니다')
+  p.held = p.scouted
+  p.scouted = null
+  say(s, `${civById(p.civId).name} 타일 맡아두기`)
+}
+
+export function releaseHeld(s: GameState, p: Player): void {
+  if (!p.held) throw new RuleError('맡아둔 타일이 없습니다')
+  s.deck.push(p.held)
+  shuffle(s, s.deck)
+  p.held = null
+  p.scouting = false // 일꾼이 돌아온다
+}
+
+/** 차례가 끝날 때 본 카드를 덱에 돌려넣고 섞는다 */
+export function endScouting(s: GameState, p: Player): void {
+  if (p.scouted) {
+    s.deck.push(p.scouted)
+    shuffle(s, s.deck)
+    p.scouted = null
+  }
+  p.scouting = false
+}
