@@ -1,6 +1,6 @@
 import type { Action, GameState, Player, Side, TileCard } from './types'
 import { RuleError, SIDES } from './types'
-import { MILITARY_CARDS, cardById, civById } from './data'
+import { MILITARY_CARDS, TECHS, cardById, civById } from './data'
 import { cardStats } from './cardstats'
 import type { TechDef } from './data'
 import { apply, researchableTechs } from './game'
@@ -28,7 +28,10 @@ export function actorOf(s: GameState): number {
 }
 
 function tileScore(p: Player, card: TileCard): number {
-  return weight(tileYield(card, ctxOf(p)))
+  const y = tileYield(card, ctxOf(p))
+  // 아폴로 질주: 식량이 곧 과학이므로 식량과 과학을 크게 친다
+  if (rushingApollo(p)) return y.food * 3 + y.science * 3 + y.hammer * 0.5 + y.gold * 0.2
+  return weight(y)
 }
 
 function foundAction(p: Player, hand: TileCard[]): Action {
@@ -57,8 +60,24 @@ function placements(p: Player, reserveFree: number): { cityId: number; tileId: n
   return out
 }
 
-function techPriority(t: TechDef): number {
-  let v = t.cost
+/** 아폴로 프로젝트까지 아직 연구하지 못한 선행 기술(아폴로 포함) 목록 */
+function apolloMissing(p: Player): Set<string> {
+  const missing = new Set<string>()
+  const visit = (id: string) => {
+    if (p.techs.includes(id) || missing.has(id)) return
+    missing.add(id)
+    for (const pre of TECHS.find((t) => t.id === id)?.prereqs ?? []) visit(pre)
+  }
+  visit('apollo')
+  return missing
+}
+
+/** 극후반: 아폴로까지 남은 기술이 이 정도면 과학 승리를 향해 달린다 (자유 정책 + 식량 전부를 과학으로) */
+const APOLLO_RUSH = 8
+const rushingApollo = (p: Player): boolean => apolloMissing(p).size <= APOLLO_RUSH
+
+function techPriority(t: TechDef, rush?: Set<string>): number {
+  let v = t.cost + (rush?.has(t.id) ? 500 : 0)
   for (const e of t.effects) {
     if (e.kind === 'foodToScience') v += 5
     else if (e.kind === 'secondCity') v += 8
@@ -76,13 +95,15 @@ function researchCandidates(s: GameState, p: Player): Action[] {
   const food = turn.yields.cities.reduce((n, c) => n + c.food, 0)
   const hammers = turn.yields.cities.reduce((n, c) => n + c.hammer, 0)
   const out: Action[] = []
-  const techs = researchableTechs(s).sort((a, b) => techPriority(b) - techPriority(a))
+  const rush = rushingApollo(p) ? apolloMissing(p) : undefined
+  const techs = researchableTechs(s).sort((a, b) => techPriority(b, rush) - techPriority(a, rush))
   for (const t of techs) {
     let need = t.cost - turn.yields.science
     let foodConv = 0
     let hammerConv = 0
     if (need > 0 && p.techs.includes('writing')) {
-      foodConv = Math.min(need, Math.max(0, food - totalWorkers(p)))
+// 자유 정책에서는 일꾼을 굶겨도 잃지 않으므로 식량을 전부 과학으로 돌릴 수 있다
+      foodConv = Math.min(need, Math.max(0, p.policy === 'liberty' ? food : food - totalWorkers(p)))
       need -= foodConv
     }
     if (need > 0 && p.techs.includes('scientific_theory')) {
@@ -107,7 +128,8 @@ function cardOptions(p: Player): { def: (typeof MILITARY_CARDS)[number]; unique?
 function pendingCandidates(s: GameState, p: Player): Action[] {
   const out: Action[] = []
   if (p.pendingCity) out.push(foundSecond(p.pendingCity))
-  for (const policy of POLICY_PREFERENCE) {
+  const prefs = rushingApollo(p) ? (['liberty', ...POLICY_PREFERENCE] as const) : POLICY_PREFERENCE
+  for (const policy of prefs) {
     if (p.pendingPolicies > 0) out.push({ type: 'choosePolicy', policy })
   }
   if (p.pendingFreeCards > 0) {
