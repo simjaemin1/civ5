@@ -1,28 +1,382 @@
 {
-  "iron":{"name":"철","kind":"strategic","printed":{"hammer":1}},
-  "stone":{"name":"석재","kind":"strategic","printed":{"hammer":1}},
-  "horse":{"name":"말","kind":"strategic","printed":{"hammer":1}},
-  "fish":{"name":"물고기","kind":"bonus","printed":{"food":1}},
-  "wheat":{"name":"밀","kind":"bonus","printed":{},"boosts":[{"tech":"agriculture","yield":{"food":1},"nextTurn":true}]},
-  "banana":{"name":"바나나","kind":"bonus","printed":{},"boosts":[{"tech":"agriculture","yield":{"food":1},"nextTurn":true}]},
-  "deer":{"name":"사슴","kind":"bonus","printed":{},"boosts":[{"tech":"agriculture","yield":{"food":1},"nextTurn":true}]},
-  "cattle":{"name":"소","kind":"bonus","printed":{},"boosts":[{"tech":"animal_husbandry","yield":{"hammer":1}}]},
-  "sheep":{"name":"양","kind":"bonus","printed":{},"boosts":[{"tech":"animal_husbandry","yield":{"hammer":1}}]},
-  "coal":{"name":"석탄","kind":"strategic","printed":{},"boosts":[{"tech":"industrialization","yield":{"hammer":2}}]},
-  "oil":{"name":"석유","kind":"strategic","printed":{},"boosts":[{"tech":"biology","yield":{"hammer":4}}]},
-  "aluminum":{"name":"알루미늄","kind":"strategic","printed":{},"boosts":[{"tech":"electricity","yield":{"food":3},"nextTurn":true}]},
-  "uranium":{"name":"우라늄","kind":"strategic","printed":{},"boosts":[{"tech":"atomic_theory","yield":{"hammer":4}}]},
-  "gold":{"name":"황금","kind":"luxury","printed":{"gold":3},"luxuryTech":"mining"},
-  "salt":{"name":"소금","kind":"luxury","printed":{"gold":3,"hammer":1},"luxuryTech":"mining"},
-  "gems":{"name":"보석","kind":"luxury","printed":{"gold":3},"luxuryTech":"mining"},
-  "pearls":{"name":"진주","kind":"luxury","printed":{"gold":3},"luxuryTech":"sailing"},
-  "crab":{"name":"게","kind":"luxury","printed":{"gold":3},"luxuryTech":"sailing"},
-  "whale":{"name":"고래","kind":"luxury","printed":{"gold":3,"food":1},"luxuryTech":"sailing"},
-  "incense":{"name":"향","kind":"luxury","printed":{"gold":3},"luxuryTech":"calendar"},
-  "cocoa":{"name":"코코아","kind":"luxury","printed":{"gold":3},"luxuryTech":"calendar"},
-  "sugar":{"name":"설탕","kind":"luxury","printed":{"gold":3},"luxuryTech":"calendar"},
-  "ivory":{"name":"상아","kind":"luxury","printed":{"gold":3},"luxuryTech":"trapping"},
-  "furs":{"name":"모피","kind":"luxury","printed":{"gold":3},"luxuryTech":"trapping"},
-  "marble":{"name":"대리석","kind":"luxury","printed":{"gold":3,"hammer":1},"luxuryTech":"masonry"},
-  "copper":{"name":"구리","kind":"luxury","printed":{"gold":3},"luxuryTech":"bronze_working"}
+ "iron": {
+  "name": "철",
+  "kind": "strategic",
+  "printed": {
+   "hammer": 1
+  },
+  "terrains": [
+   "언덕",
+   "평지",
+   "사막",
+   "툰드라",
+   "설원"
+  ]
+ },
+ "stone": {
+  "name": "석재",
+  "kind": "strategic",
+  "printed": {
+   "hammer": 1
+  },
+  "terrains": [
+   "평지",
+   "언덕",
+   "사막",
+   "툰드라"
+  ]
+ },
+ "horse": {
+  "name": "말",
+  "kind": "strategic",
+  "printed": {
+   "hammer": 1
+  },
+  "terrains": [
+   "평지",
+   "툰드라",
+   "사막"
+  ]
+ },
+ "fish": {
+  "name": "물고기",
+  "kind": "bonus",
+  "printed": {
+   "food": 1
+  },
+  "terrains": [
+   "해안",
+   "호수"
+  ]
+ },
+ "wheat": {
+  "name": "밀",
+  "kind": "bonus",
+  "printed": {},
+  "boosts": [
+   {
+    "tech": "agriculture",
+    "yield": {
+     "food": 1
+    },
+    "nextTurn": true
+   }
+  ],
+  "terrains": [
+   "평지",
+   "사막"
+  ]
+ },
+ "banana": {
+  "name": "바나나",
+  "kind": "bonus",
+  "printed": {},
+  "boosts": [
+   {
+    "tech": "agriculture",
+    "yield": {
+     "food": 1
+    },
+    "nextTurn": true
+   }
+  ],
+  "terrains": [
+   "정글"
+  ]
+ },
+ "deer": {
+  "name": "사슴",
+  "kind": "bonus",
+  "printed": {},
+  "boosts": [
+   {
+    "tech": "agriculture",
+    "yield": {
+     "food": 1
+    },
+    "nextTurn": true
+   }
+  ],
+  "terrains": [
+   "숲",
+   "툰드라"
+  ]
+ },
+ "cattle": {
+  "name": "소",
+  "kind": "bonus",
+  "printed": {},
+  "boosts": [
+   {
+    "tech": "animal_husbandry",
+    "yield": {
+     "hammer": 1
+    }
+   }
+  ],
+  "terrains": [
+   "평지"
+  ]
+ },
+ "sheep": {
+  "name": "양",
+  "kind": "bonus",
+  "printed": {},
+  "boosts": [
+   {
+    "tech": "animal_husbandry",
+    "yield": {
+     "hammer": 1
+    }
+   }
+  ],
+  "terrains": [
+   "언덕",
+   "평지"
+  ]
+ },
+ "coal": {
+  "name": "석탄",
+  "kind": "strategic",
+  "printed": {},
+  "boosts": [
+   {
+    "tech": "industrialization",
+    "yield": {
+     "hammer": 2
+    }
+   }
+  ],
+  "terrains": [
+   "언덕",
+   "평지"
+  ]
+ },
+ "oil": {
+  "name": "석유",
+  "kind": "strategic",
+  "printed": {},
+  "boosts": [
+   {
+    "tech": "biology",
+    "yield": {
+     "hammer": 4
+    }
+   }
+  ],
+  "terrains": [
+   "사막",
+   "툰드라",
+   "습지",
+   "해안",
+   "설원"
+  ]
+ },
+ "aluminum": {
+  "name": "알루미늄",
+  "kind": "strategic",
+  "printed": {},
+  "boosts": [
+   {
+    "tech": "electricity",
+    "yield": {
+     "food": 3
+    },
+    "nextTurn": true
+   }
+  ],
+  "terrains": [
+   "평지",
+   "언덕",
+   "사막",
+   "툰드라",
+   "설원"
+  ]
+ },
+ "uranium": {
+  "name": "우라늄",
+  "kind": "strategic",
+  "printed": {},
+  "boosts": [
+   {
+    "tech": "atomic_theory",
+    "yield": {
+     "hammer": 4
+    }
+   }
+  ],
+  "terrains": [
+   "평지",
+   "언덕",
+   "사막",
+   "툰드라",
+   "숲",
+   "설원"
+  ]
+ },
+ "gold": {
+  "name": "황금",
+  "kind": "luxury",
+  "printed": {
+   "gold": 3
+  },
+  "luxuryTech": "mining",
+  "terrains": [
+   "사막",
+   "평지",
+   "언덕",
+   "툰드라"
+  ]
+ },
+ "salt": {
+  "name": "소금",
+  "kind": "luxury",
+  "printed": {
+   "gold": 3,
+   "hammer": 1
+  },
+  "luxuryTech": "mining",
+  "terrains": [
+   "사막",
+   "평지",
+   "툰드라"
+  ]
+ },
+ "gems": {
+  "name": "보석",
+  "kind": "luxury",
+  "printed": {
+   "gold": 3
+  },
+  "luxuryTech": "mining",
+  "terrains": [
+   "정글",
+   "언덕",
+   "평지"
+  ]
+ },
+ "pearls": {
+  "name": "진주",
+  "kind": "luxury",
+  "printed": {
+   "gold": 3
+  },
+  "luxuryTech": "sailing",
+  "terrains": [
+   "해안"
+  ]
+ },
+ "crab": {
+  "name": "게",
+  "kind": "luxury",
+  "printed": {
+   "gold": 3
+  },
+  "luxuryTech": "sailing",
+  "terrains": [
+   "해안"
+  ]
+ },
+ "whale": {
+  "name": "고래",
+  "kind": "luxury",
+  "printed": {
+   "gold": 3,
+   "food": 1
+  },
+  "luxuryTech": "sailing",
+  "terrains": [
+   "해안"
+  ]
+ },
+ "incense": {
+  "name": "향",
+  "kind": "luxury",
+  "printed": {
+   "gold": 3
+  },
+  "luxuryTech": "calendar",
+  "terrains": [
+   "사막",
+   "평지"
+  ]
+ },
+ "cocoa": {
+  "name": "코코아",
+  "kind": "luxury",
+  "printed": {
+   "gold": 3
+  },
+  "luxuryTech": "calendar",
+  "terrains": [
+   "정글"
+  ]
+ },
+ "sugar": {
+  "name": "설탕",
+  "kind": "luxury",
+  "printed": {
+   "gold": 3
+  },
+  "luxuryTech": "calendar",
+  "terrains": [
+   "습지",
+   "오아시스"
+  ]
+ },
+ "ivory": {
+  "name": "상아",
+  "kind": "luxury",
+  "printed": {
+   "gold": 3
+  },
+  "luxuryTech": "trapping",
+  "terrains": [
+   "평지",
+   "사막",
+   "툰드라"
+  ]
+ },
+ "furs": {
+  "name": "모피",
+  "kind": "luxury",
+  "printed": {
+   "gold": 3
+  },
+  "luxuryTech": "trapping",
+  "terrains": [
+   "숲",
+   "툰드라",
+   "설원"
+  ]
+ },
+ "marble": {
+  "name": "대리석",
+  "kind": "luxury",
+  "printed": {
+   "gold": 3,
+   "hammer": 1
+  },
+  "luxuryTech": "masonry",
+  "terrains": [
+   "평지",
+   "사막",
+   "툰드라",
+   "언덕"
+  ]
+ },
+ "copper": {
+  "name": "구리",
+  "kind": "luxury",
+  "printed": {
+   "gold": 3
+  },
+  "luxuryTech": "bronze_working",
+  "terrains": [
+   "언덕",
+   "평지",
+   "사막",
+   "툰드라"
+  ]
+ }
 }

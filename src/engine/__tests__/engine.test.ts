@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { apply, createGame, currentPlayer, culture, happiness, primaryTerrain, researchableTechs, tileYield, ctxOf, RuleError, TECHS, COLUMN_COSTS, MILITARY_CARDS, techById } from '..'
+import { apply, createGame, currentPlayer, culture, happiness, primaryTerrain, researchableTechs, tileYield, ctxOf, RuleError, TECHS, COLUMN_COSTS, MILITARY_CARDS, techById, RESOURCES, makePlaceholderDeck } from '..'
 import type { GameState } from '..'
 import { found, me, play, startGame, tile } from './helpers'
 
@@ -277,6 +277,28 @@ describe('기술 연구', () => {
     expect(researchableTechs(s).map((t) => t.id)).not.toContain('civil_service')
     s.players[0].techs.push('machinery') // 비용 4
     expect(researchableTechs(s).map((t) => t.id)).toContain('civil_service')
+  })
+})
+
+describe('임시 타일 덱', () => {
+  it('자원은 항상 그 지형에 맞게 붙는다 (습지의 사치자원은 설탕뿐)', () => {
+    let swampLuxury = 0
+    for (let seed = 1; seed <= 30; seed++) {
+      for (const card of makePlaceholderDeck(seed)) {
+        if (!card.resource) continue
+        const res = RESOURCES[card.resource]
+        expect(res.terrains, `${card.terrains.join(',')}에 ${res.name}`).toContain(primaryTerrain(card.terrains))
+        if (card.terrains.includes('습지') && res.kind === 'luxury') {
+          expect(card.resource).toBe('sugar')
+          swampLuxury++
+        }
+      }
+    }
+    expect(swampLuxury).toBeGreaterThan(0) // 습지에 설탕이 실제로 나온다
+  })
+
+  it('모든 자원에 지형이 하나 이상 지정돼 있다', () => {
+    for (const [id, res] of Object.entries(RESOURCES)) expect(res.terrains.length, id).toBeGreaterThan(0)
   })
 })
 

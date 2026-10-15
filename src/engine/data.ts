@@ -40,6 +40,8 @@ export interface ResourceDef {
   kind: 'bonus' | 'strategic' | 'luxury'
   printed: PartialYield
   luxuryTech?: string
+  /** 임시 타일 덱이 이 자원을 붙일 수 있는 지형 (실제 카드 목록이 생기면 필요 없어짐) */
+  terrains: string[]
   boosts?: { tech: string; yield: PartialYield; nextTurn?: boolean }[]
 }
 export interface WonderDef {
