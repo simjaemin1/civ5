@@ -51,7 +51,7 @@
    {
     "name": "팬저",
     "base": "tank",
-    "cost": 12,
+    "cost": 8,
     "hp": 5,
     "def": 3,
     "choose": 5,
@@ -72,7 +72,7 @@
    {
     "name": "총사대",
     "base": "musketman",
-    "cost": 9,
+    "cost": 6,
     "hp": 5,
     "def": 2,
     "power": 2,
@@ -105,7 +105,7 @@
    {
     "name": "연노병",
     "base": "crossbowman",
-    "cost": 8,
+    "cost": 6,
     "hp": 4,
     "def": 2,
     "power": 1,
@@ -143,7 +143,7 @@
    {
     "name": "장궁병",
     "base": "crossbowman",
-    "cost": 8,
+    "cost": 6,
     "hp": 4,
     "def": 2,
     "power": 2,
@@ -186,7 +186,7 @@
    {
     "name": "코사크",
     "base": "cavalry",
-    "cost": 10,
+    "cost": 7,
     "hp": 5,
     "def": 2,
     "choose": 3,
@@ -208,7 +208,7 @@
    {
     "name": "전투 코끼리",
     "base": "chariot",
-    "cost": 5,
+    "cost": 3,
     "hp": 3,
     "def": 2,
     "choose": 1,
@@ -290,7 +290,7 @@
    {
     "name": "낙타궁수",
     "base": "knight",
-    "cost": 9,
+    "cost": 6,
     "hp": 3,
     "def": 2,
     "choose": 2,
@@ -314,7 +314,7 @@
    {
     "name": "불멸자",
     "base": "spearman",
-    "cost": 5,
+    "cost": 3,
     "hp": 5,
     "def": 1,
     "power": 1,
@@ -349,7 +349,7 @@
    {
     "name": "테르시오",
     "base": "musketman",
-    "cost": 10,
+    "cost": 7,
     "hp": 5,
     "def": 5,
     "power": 3,
@@ -382,7 +382,7 @@
    {
     "name": "장갑보병",
     "base": "spearman",
-    "cost": 5,
+    "cost": 3,
     "hp": 3,
     "def": 2,
     "power": 2,
@@ -401,7 +401,7 @@
    {
     "name": "헤타이로이",
     "base": "horseman",
-    "cost": 7,
+    "cost": 5,
     "hp": 4,
     "def": 2,
     "choose": 2,
@@ -432,7 +432,7 @@
    {
     "name": "사무라이",
     "base": "longswordsman",
-    "cost": 7,
+    "cost": 5,
     "hp": 4,
     "def": 1,
     "power": 2,
@@ -467,7 +467,7 @@
    {
     "name": "전투 전차",
     "base": "chariot",
-    "cost": 5,
+    "cost": 3,
     "hp": 4,
     "def": 0,
     "choose": 1,
@@ -500,7 +500,7 @@
    {
     "name": "투석병사",
     "base": "archer",
-    "cost": 5,
+    "cost": 3,
     "hp": 2,
     "def": 0,
     "power": 1,
@@ -536,7 +536,7 @@
    {
     "name": "예니체리",
     "base": "musketman",
-    "cost": 9,
+    "cost": 6,
     "hp": 5,
     "def": 1,
     "power": 2,
@@ -569,7 +569,7 @@
    {
     "name": "캐롤리언",
     "base": "rifleman",
-    "cost": 12,
+    "cost": 8,
     "hp": 5,
     "def": 2,
     "power": 3,
@@ -612,7 +612,7 @@
    {
     "name": "재규어",
     "base": "warrior",
-    "cost": 5,
+    "cost": 3,
     "hp": 4,
     "def": 0,
     "power": 1,
@@ -645,7 +645,7 @@
    {
     "name": "프라싱야",
     "base": "infantry",
-    "cost": 16,
+    "cost": 10,
     "hp": 6,
     "def": 3,
     "power": 4,
@@ -686,7 +686,7 @@
    {
     "name": "모호크족 전사",
     "base": "warrior",
-    "cost": 5,
+    "cost": 3,
     "hp": 3,
     "def": 2,
     "power": 1,
@@ -721,7 +721,7 @@
    {
     "name": "광전사",
     "base": "longswordsman",
-    "cost": 7,
+    "cost": 5,
     "hp": 4,
     "def": 2,
     "power": 2,
@@ -740,7 +740,7 @@
    {
     "name": "스키 보병",
     "base": "rifleman",
-    "cost": 12,
+    "cost": 8,
     "hp": 5,
     "def": 3,
     "power": 2,
@@ -773,7 +773,7 @@
    {
     "name": "임피",
     "base": "pikeman",
-    "cost": 8,
+    "cost": 4,
     "hp": 3,
     "def": 3,
     "power": 2,
@@ -806,7 +806,7 @@
    {
     "name": "공성추",
     "base": "spearman",
-    "cost": 5,
+    "cost": 3,
     "hp": 2,
     "def": 1,
     "siege": true,
@@ -815,7 +815,7 @@
    {
     "name": "궁기병",
     "base": "chariot",
-    "cost": 5,
+    "cost": 3,
     "hp": 3,
     "def": 0,
     "choose": 2,
@@ -837,7 +837,7 @@
    {
     "name": "케식텐",
     "base": "knight",
-    "cost": 9,
+    "cost": 6,
     "hp": 4,
     "def": 0,
     "choose": 2,

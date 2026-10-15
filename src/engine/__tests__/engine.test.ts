@@ -351,7 +351,7 @@ describe('데이터 무결성', () => {
     const ids = new Set(TECHS.map((t) => t.id))
     for (const c of MILITARY_CARDS) expect(ids.has(c.tech), `${c.id} -> ${c.tech}`).toBe(true)
     const cost = (id: string) => MILITARY_CARDS.find((c) => c.id === id)!.cost
-    expect([cost('warrior'), cost('infantry'), cost('anti_tank_gun'), cost('bomber'), cost('atomic_bomb')]).toEqual([5, 16, 15, 14, 15])
+    expect([cost('warrior'), cost('infantry'), cost('anti_tank_gun'), cost('bomber'), cost('atomic_bomb')]).toEqual([3, 10, 9, 9, 11])
     // 일반 카드 25종 + 고유 유닛 전용 카드(화차, 제고이센) 2종
     expect(MILITARY_CARDS.filter((c) => !c.uniqueOnly)).toHaveLength(25)
     expect(MILITARY_CARDS.filter((c) => c.uniqueOnly).map((c) => c.id).sort()).toEqual(['hwacha', 'zeijoisen'])

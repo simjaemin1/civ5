@@ -96,7 +96,7 @@ describe('군사 카드 생산', () => {
 
   it('기술이 없거나 망치가 모자라면 만들 수 없다', () => {
     expect(() => apply(withHammers(at(), 9), { type: 'produce', cityId: 0, defId: 'warrior' })).toThrow(RuleError)
-    expect(() => apply(withHammers(at('denmark', ['agriculture']), 4), { type: 'produce', cityId: 0, defId: 'warrior' })).toThrow(RuleError)
+    expect(() => apply(withHammers(at('denmark', ['agriculture']), 2), { type: 'produce', cityId: 0, defId: 'warrior' })).toThrow(RuleError)
   })
 
   it('도시마다 한 차례에 생산은 1개 (불가사의 투자와 합쳐서)', () => {
@@ -135,10 +135,10 @@ describe('군사 카드 생산', () => {
     let s = found(s0)
     s = mod(s, (c) => c.players[0].techs.push('gunpowder'))
     s = play(s, { type: 'placeWorkers', placements: [] }, { type: 'skipResearch' })
-    expect(() => apply(withHammers(s, 9), { type: 'produce', cityId: 0, defId: 'musketman', unique: '테르시오' })).toThrow(RuleError)
-    const ok = apply(withHammers(s, 10), { type: 'produce', cityId: 0, defId: 'musketman', unique: '테르시오' })
+    expect(() => apply(withHammers(s, 6), { type: 'produce', cityId: 0, defId: 'musketman', unique: '테르시오' })).toThrow(RuleError)
+    const ok = apply(withHammers(s, 7), { type: 'produce', cityId: 0, defId: 'musketman', unique: '테르시오' })
     expect(me(ok).military[0]).toMatchObject({ defId: 'musketman', unique: '테르시오' })
-    expect(() => apply(withHammers(s, 10), { type: 'produce', cityId: 0, defId: 'musketman', unique: '불멸자' })).toThrow(RuleError)
+    expect(() => apply(withHammers(s, 7), { type: 'produce', cityId: 0, defId: 'musketman', unique: '불멸자' })).toThrow(RuleError)
   })
 })
 
@@ -295,7 +295,7 @@ describe('금으로 승급', () => {
     expect(() => apply(setup(), { type: 'upgrade', uid: 999 })).toThrow(RuleError)
     s = apply(s, { type: 'upgrade', uid })
     expect(['L', 'C', 'R']).toContain(me(s).military.find((c) => c.defId === 'longswordsman')!.dirs![0]) // 새 카드의 방향은 무작위
-    expect(me(s).turn!.yields.gold).toBe(3) // 10 - 7
+    expect(me(s).turn!.yields.gold).toBe(5) // 10 - 5
     const other = me(s).military.find((c) => c.defId === 'warrior')!.uid
     expect(() => apply(s, { type: 'upgrade', uid: other })).toThrow(RuleError) // 한 차례에 한 장
   })
@@ -305,7 +305,7 @@ describe('금으로 승급', () => {
     let uid = 0
     s = mod(s, (c) => {
       uid = give(c, 0, 'warrior', 'L')
-      c.players[0].turn!.yields.gold = 6
+      c.players[0].turn!.yields.gold = 4
     })
     expect(() => apply(s, { type: 'upgrade', uid })).toThrow(RuleError)
     const noTech = mod(s, (c) => {

@@ -73,7 +73,7 @@ describe('바뀐 룰: 승급과 장군', () => {
     s = mod(s, (c) => (c.players[0].turn!.yields.gold = 15))
     s = apply(s, { type: 'upgrade', uid: 900, toDefId: 'anti_tank_gun' })
     expect(me(s).military.map((c) => c.defId)).toEqual(['anti_tank_gun'])
-    expect(me(s).turn!.yields.gold).toBe(0)
+    expect(me(s).turn!.yields.gold).toBe(6) // 15 - 9
   })
 
   it('점령한 장군은 차례에 1개까지 불러들일 수 있다', () => {
