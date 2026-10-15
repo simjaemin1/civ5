@@ -28,7 +28,7 @@ export function TileView({ card, player, badge, selected, disabled, onClick, hin
   return (
     <button
       type="button"
-      className={`tile${selected ? ' selected' : ''}${badge?.city ? ' city' : ''}`}
+      className={`tile${selected ? ' selected' : ''}${badge?.city ? ' city' : ''}${onClick ? '' : ' ro'}`}
       style={{ background: TERRAIN_COLOR[primary] }}
       disabled={disabled || !onClick}
       onClick={onClick}

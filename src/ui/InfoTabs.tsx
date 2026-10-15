@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { GameState } from '../engine'
+import type { GameState, Player } from '../engine'
 import { MILITARY_CARDS, PROGRESS_NEEDED, TECHS, WONDER_CARDS, civById, culture, happiness, totalWorkers, tourism } from '../engine'
 import { conditionText, ICON, policyName, wonderEffectText } from './format'
 
@@ -48,6 +48,33 @@ export function PlayersTable({ game, seats, actor }: { game: GameState; seats: {
   )
 }
 
+/** 기술 트리: 열(과학 비용)별로 보여 주고, 해당 문명이 가진 기술을 표시한다. */
+export function TechTree({ player }: { player: Player }) {
+  return (
+    <div className="techgrid">
+      {Array.from({ length: 10 }, (_, i) => i + 1).map((col) => (
+        <div key={col} className="techcol">
+          <h5>
+            {ICON.science}
+            {TECHS.find((t) => t.column === col)?.cost}
+          </h5>
+          {TECHS.filter((t) => t.column === col).map((t) => {
+            const owned = player.techs.includes(t.id)
+            const pre = t.prereqs?.map((id) => TECHS.find((x) => x.id === id)?.name).join(', ')
+            return (
+              <div key={t.id} className={`tech${owned ? ' owned' : ''}`} title={pre ? `선행: ${pre}` : '연결선 없음: 같은 비용의 다른 기술이 있어야 함'}>
+                {owned ? '✓ ' : ''}
+                {t.name}
+                <small>{pre ? ` ← ${pre}` : t.cost > 0 ? ' (선 없음)' : ''}</small>
+              </div>
+            )
+          })}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 type Tab = 'tech' | 'wonder' | 'card' | 'log'
 
 export function InfoTabs({ game, viewer }: { game: GameState; viewer: number }) {
@@ -69,29 +96,7 @@ export function InfoTabs({ game, viewer }: { game: GameState; viewer: number }) 
           </button>
         ))}
       </div>
-      {tab === 'tech' && (
-        <div className="techgrid">
-          {Array.from({ length: 10 }, (_, i) => i + 1).map((col) => (
-            <div key={col} className="techcol">
-              <h5>
-                {ICON.science}
-                {TECHS.find((t) => t.column === col)?.cost}
-              </h5>
-              {TECHS.filter((t) => t.column === col).map((t) => {
-                const owned = me.techs.includes(t.id)
-                const pre = t.prereqs?.map((id) => TECHS.find((x) => x.id === id)?.name).join(', ')
-                return (
-                  <div key={t.id} className={`tech${owned ? ' owned' : ''}`} title={pre ? `선행: ${pre}` : '연결선 없음: 같은 비용의 다른 기술이 있어야 함'}>
-                    {owned ? '✓ ' : ''}
-                    {t.name}
-                    <small>{pre ? ` ← ${pre}` : t.cost > 0 ? ' (선 없음)' : ''}</small>
-                  </div>
-                )
-              })}
-            </div>
-          ))}
-        </div>
-      )}
+      {tab === 'tech' && <TechTree player={me} />}
       {tab === 'wonder' && (
         <div className="scroll">
         <table className="table">

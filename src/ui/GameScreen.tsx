@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type { Action, GameState } from '../engine'
 import { RuleError, actorOf, aiStep, apply, civById, culture, happiness, totalWorkers, tourism } from '../engine'
 import { Board } from './Board'
+import { CivInspector } from './CivInspector'
 import { InfoTabs, PlayersTable } from './InfoTabs'
 import type { Seat } from './SetupScreen'
 import { ICON } from './format'
@@ -36,14 +37,12 @@ export function GameScreen({ initial, seats, onExit }: Props) {
   const [error, setError] = useState('')
   const [speed, setSpeed] = useState(300)
   const [revealed, setRevealed] = useState('')
-  const [viewId, setViewId] = useState<number | null>(null)
 
   const actor = actorOf(game)
   const actorSeat = seats[actor]
   const humans = seats.filter((s) => !s.ai).length
   const over = game.phase === 'over'
   const player = game.players[actor]
-  const viewer = viewId !== null ? game.players[viewId] : player
 
   // 비공개 정보(손에 든 타일, 군사 카드)가 있으므로 사람 자리가 바뀌면 가림막을 보여 준다
   const curtainKey = `${actor}:${game.round}:${game.battle ? `${game.battle.decl.attackerId}-${game.battle.decl.defenderId}-${game.battle.step}` : game.phase === 'battle' ? 'b' : 't'}`
@@ -56,7 +55,6 @@ export function GameScreen({ initial, seats, onExit }: Props) {
         const next = apply(game, a)
         setHistory((h) => [...h.slice(-99), game])
         setGame(next)
-        setViewId(null)
       } catch (e) {
         setError(e instanceof RuleError ? e.message : String(e))
       }
@@ -90,7 +88,6 @@ export function GameScreen({ initial, seats, onExit }: Props) {
   }, [game, seats])
 
   const yields = player.turn?.yields
-  const readOnly = viewId !== null && viewId !== actor
 
   let main: React.ReactNode
   if (over) {
@@ -192,28 +189,11 @@ export function GameScreen({ initial, seats, onExit }: Props) {
         )}
       </div>
       {main}
-      {showBoard && (
-        <>
-          <div className="row">
-            <label>
-              판 보기:{' '}
-              <select value={viewId ?? player.id} onChange={(e) => setViewId(Number(e.target.value))}>
-                {game.players.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {civById(p.civId).name}
-                    {p.id === actor ? ' (현재)' : ''}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {readOnly && <span className="muted">다른 문명의 판은 보기만 가능합니다.</span>}
-          </div>
-          <Board game={game} player={viewer} />
-        </>
-      )}
+      {showBoard && <Board game={game} player={player} />}
       {actorSeat.ai && !over && <Board game={game} player={player} />}
       <PlayersTable game={game} seats={seats} actor={actor} />
-      <InfoTabs game={game} viewer={curtain ? player.id : viewId ?? player.id} />
+      <CivInspector game={game} seats={seats} actor={actor} />
+      <InfoTabs game={game} viewer={player.id} />
     </div>
   )
 }
