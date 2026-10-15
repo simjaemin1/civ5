@@ -97,3 +97,15 @@ describe('바뀐 룰: 승급과 장군', () => {
     expect(() => apply(s, { ...a, tileId: s.players[1].cities[0].tiles[2].card.id })).toThrow(RuleError)
   })
 })
+
+describe('공중정원', () => {
+  it('완성하면 기본 식량 산출량이 1 늘어난다 (다른 산출은 그대로)', () => {
+    const base = computeYields(me(solo()))
+    const g = mod(solo(), (c) => c.players[0].wonders.push('hanging_gardens'))
+    const y = computeYields(me(g))
+    expect(y.cities[0].food).toBe(base.cities[0].food + 1)
+    expect(y.cities[0].hammer).toBe(base.cities[0].hammer)
+    expect(y.science).toBe(base.science)
+    expect(y.gold).toBe(base.gold)
+  })
+})
