@@ -34,7 +34,7 @@ export function ctxOf(player: Player): YieldCtx {
     civ: civById(player.civId),
     techs: new Set(player.techs),
     fresh: new Set(player.freshTechs),
-    desertBonus: player.wonders.includes('chichen_itza'),
+    desertBonus: player.wonders.includes('petra'),
   }
 }
 
@@ -63,13 +63,8 @@ export function tileYield(card: TileCard, ctx: YieldCtx): Yield {
     if (hit) y = addYield(y, m.yield)
   }
   if (ctx.desertBonus && card.terrains.includes('사막')) {
-    // 해석 임시: 사막 타일이 이미 내는 각 산출에 +1 (open-questions 참고)
-    y = {
-      food: y.food > 0 ? y.food + 1 : 0,
-      hammer: y.hammer > 0 ? y.hammer + 1 : 0,
-      science: y.science > 0 ? y.science + 1 : 0,
-      gold: y.gold > 0 ? y.gold + 1 : 0,
-    }
+    // 페트라: 영토의 모든 사막 타일 식량 +1
+    y = { ...y, food: y.food + 1 }
   }
   return y
 }
@@ -97,7 +92,7 @@ export function computeYields(player: Player): TurnYields {
   })
   if (player.policy === 'rationalism') science += player.civId === 'korea' ? 6 : 4
   if (player.wonders.includes('colossus')) gold += 4
-  // 공중정원: "카드에 적힌 턴당 산출 +1" 해석이 불분명해 첫 도시 식량 +1로 임시 처리
+  // 공중정원: 완성 다음 차례부터 턴당 식량 +1 (첫 도시)
   if (player.wonders.includes('hanging_gardens') && cities.length) cities[0].food += 1
   return { cities, science, gold }
 }

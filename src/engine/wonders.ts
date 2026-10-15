@@ -1,6 +1,6 @@
 import type { City, GameState, Player } from './types'
 import { RuleError } from './types'
-import { PROGRESS_NEEDED, WONDER_CARDS, civById, wonderCardById } from './data'
+import { WONDER_CARDS, civById, wonderCardById } from './data'
 import type { WonderCardDef } from './data'
 import { gainCulture, say } from './core'
 import { gainGeneral } from './military'
@@ -17,8 +17,8 @@ export function conditionMet(p: Player, city: City, w: WonderCardDef): boolean {
       return first5(city).some((t) => t.card.terrains.includes('해안'))
     case 'desertFirst5':
       return first5(city).some((t) => t.card.terrains.includes('사막'))
-    case 'mountainInTerritory':
-      return p.cities.some((ci) => ci.tiles.some((t) => t.card.terrains.includes('산')))
+    case 'mountainInCity':
+      return city.tiles.some((t) => t.card.terrains.includes('산'))
     case 'policy':
       return p.policy === c.policy
   }
@@ -88,8 +88,8 @@ export function settleWonders(s: GameState): void {
     const pid = leaders[0].playerId
     const prog = (s.wonderProgress[wonderId] ??= {})
     prog[pid] = (prog[pid] ?? 0) + 1
-    say(s, `${name}: ${civById(s.players[pid].civId).name} 진척도 ${prog[pid]}/${PROGRESS_NEEDED}`)
-    if (prog[pid] >= PROGRESS_NEEDED && s.wonderOwners[wonderId] === undefined) {
+    say(s, `${name}: ${civById(s.players[pid].civId).name} 진척도 ${prog[pid]}/${wonderCardById(wonderId).progressNeeded}`)
+    if (prog[pid] >= wonderCardById(wonderId).progressNeeded && s.wonderOwners[wonderId] === undefined) {
       const owner = s.players[pid]
       s.wonderOwners[wonderId] = pid
       owner.wonders.push(wonderId)

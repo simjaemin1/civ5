@@ -163,19 +163,18 @@ export type WonderCondition =
   | { kind: 'stoneInCity' }
   | { kind: 'coastFirst5' }
   | { kind: 'desertFirst5' }
-  | { kind: 'mountainInTerritory' }
+  | { kind: 'mountainInCity' }
   | { kind: 'policy'; policy: PolicyId }
 export interface WonderCardDef {
   id: string
   name: string
   tech: string
   minHammers: number
+  progressNeeded: number
   condition?: WonderCondition
   effects: WonderEffect[]
 }
 export const WONDER_CARDS = wonderCardsJson.wonders as WonderCardDef[]
-/** 카드 오른쪽 원 개수 자료가 없어 모든 불가사의에 임시값을 쓴다 */
-export const PROGRESS_NEEDED = wonderCardsJson.progressNeededDefault
 export const wonderCardById = (id: string): WonderCardDef => {
   const w = WONDER_CARDS.find((x) => x.id === id)
   if (!w) throw new Error(`unknown wonder ${id}`)

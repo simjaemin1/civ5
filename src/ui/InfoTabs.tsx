@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { GameState, Player } from '../engine'
-import { CIVS, MILITARY_CARDS, PROGRESS_NEEDED, TECHS, WONDER_CARDS, civById, culture, happiness, totalWorkers, tourism } from '../engine'
+import { CIVS, MILITARY_CARDS, TECHS, WONDER_CARDS, civById, culture, happiness, totalWorkers, tourism } from '../engine'
 import { cardText, conditionText, ICON, policyName, wonderEffectText } from './format'
 
 export function PlayersTable({ game, seats, actor }: { game: GameState; seats: { ai: boolean }[]; actor: number }) {
@@ -108,7 +108,7 @@ export function InfoTabs({ game, viewer }: { game: GameState; viewer: number }) 
               <th>최소 망치</th>
               <th>조건</th>
               <th>효과</th>
-              <th>상태 (필요 진척도 {PROGRESS_NEEDED})</th>
+              <th>진척도 (필요)</th>
             </tr>
           </thead>
           <tbody>
@@ -125,7 +125,7 @@ export function InfoTabs({ game, viewer }: { game: GameState; viewer: number }) 
                   <td>
                     {owner !== undefined
                       ? `🏛 ${civById(game.players[owner].civId).name}`
-                      : game.players.map((p) => `${civById(p.civId).name} ${prog[p.id] ?? 0}`).join(' / ')}
+                      : `(필요 ${w.progressNeeded}) ` + game.players.map((p) => `${civById(p.civId).name} ${prog[p.id] ?? 0}`).join(' / ')}
                   </td>
                 </tr>
               )

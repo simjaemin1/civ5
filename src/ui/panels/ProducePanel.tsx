@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { MILITARY_CARDS, PROGRESS_NEEDED, cardById, cardCost, civById, investableWonders, minHammers, producible, uniqueOf, wonderCardById } from '../../engine'
+import { MILITARY_CARDS, cardById, cardCost, civById, investableWonders, minHammers, producible, uniqueOf, wonderCardById } from '../../engine'
 import { cardText, conditionText, ICON, wonderEffectText } from '../format'
 import type { PanelProps } from './types'
 
@@ -48,7 +48,7 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
                           <b>{w.name}</b>
                           <small>
                             최소 {minHammers(player, w)} · 조건: {conditionText(w.condition)} · {w.effects.map(wonderEffectText).join(', ')} · 진척도{' '}
-                            {game.players.map((p) => `${civById(p.civId).name} ${prog[p.id] ?? 0}`).join(' / ')} (필요 {PROGRESS_NEEDED})
+                            {game.players.map((p) => `${civById(p.civId).name} ${prog[p.id] ?? 0}`).join(' / ')} (필요 {w.progressNeeded})
                           </small>
                           <input
                             type="number"

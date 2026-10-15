@@ -31,10 +31,10 @@ export function wonderEffectText(e: WonderEffect): string {
     case 'militaryCostMinus': return `군사 카드 생산 비용 -${e.amount}`
     case 'happiness': return `행복 +${e.amount}`
     case 'goldPerTurn': return `턴당 금 +${e.amount}`
-    case 'gardens': return '카드에 적힌 턴당 산출 +1 (임시: 식량 +1)'
+    case 'gardens': return '턴당 식량 +1 (다음 차례부터)'
     case 'coastalAttackPlus': return `해안 전투 공격 전투력 +${e.amount}`
     case 'setPolicy': return `정책이 ${POLICIES[e.policy].name}(으)로 바뀜`
-    case 'desertBonus': return '사막 타일 산출 +1'
+    case 'desertBonus': return '영토의 모든 사막 타일 식량 +1'
     case 'greatWall': return '게임 중 1번, 내 영토의 상대 장군을 모두 돌려보냄'
     case 'culture': return `문화 +${e.amount}`
     case 'tourism': return `턴당 관광 +${e.amount}`
@@ -49,7 +49,7 @@ export function conditionText(c: WonderCondition | undefined): string {
     case 'stoneInCity': return '석재 타일이 있는 도시'
     case 'coastFirst5': return '첫 5타일에 해안'
     case 'desertFirst5': return '첫 5타일에 사막'
-    case 'mountainInTerritory': return '영토에 산'
+    case 'mountainInCity': return '도시 영토에 산'
     case 'policy': return `정책이 ${POLICIES[c.policy].name}일 때`
   }
 }

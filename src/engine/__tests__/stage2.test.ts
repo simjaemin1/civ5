@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { apply, culture, happiness, tourism, computeYields, RuleError, WONDER_CARDS, PROGRESS_NEEDED, TECHS } from '..'
+import { apply, culture, happiness, tourism, computeYields, RuleError, WONDER_CARDS, TECHS } from '..'
 import type { GameState, TileCard } from '..'
 import { found, me, play, startGame, tile } from './helpers'
 
@@ -257,7 +257,7 @@ describe('불가사의', () => {
     let s = twoPlayerRound([3, 5])
     const [, second] = s.order
     // 진척도를 한 칸 남기고 한 번 더 이긴다
-    s = mod(s, (c) => (c.wonderProgress.statue_of_zeus![second] = PROGRESS_NEEDED - 1))
+    s = mod(s, (c) => (c.wonderProgress.statue_of_zeus![second] = WONDER_CARDS.find((w) => w.id === 'statue_of_zeus')!.progressNeeded - 1))
     // 다음 라운드: 첫 번째 문명은 투자하지 않고, 두 번째만 투자
     const [firstId] = s.order
     s = toProduce(s) // 첫 번째 문명 (place → research → produce)
@@ -278,16 +278,16 @@ describe('불가사의 완성 효과', () => {
   const owning = (civ: string, wonders: string[]) =>
     mod(solo(civ), (c) => (c.players[0].wonders = wonders))
 
-  it('행복: 마우솔레움 +1, 페트라 +2, 에펠탑 +1', () => {
+  it('행복: 마우솔레움 +1, 치첸이사 +2, 에펠탑 +1', () => {
     const base = happiness(me(solo('denmark')))
     expect(happiness(me(owning('denmark', ['mausoleum'])))).toBe(base + 1)
-    expect(happiness(me(owning('denmark', ['petra'])))).toBe(base + 2)
-    expect(happiness(me(owning('denmark', ['mausoleum', 'petra', 'eiffel_tower'])))).toBe(base + 4)
+    expect(happiness(me(owning('denmark', ['chichen_itza'])))).toBe(base + 2)
+    expect(happiness(me(owning('denmark', ['mausoleum', 'chichen_itza', 'eiffel_tower'])))).toBe(base + 4)
   })
 
   it('페르시아는 불가사의 행복 2배', () => {
     const base = happiness(me(solo('persia')))
-    expect(happiness(me(owning('persia', ['petra'])))).toBe(base + 4)
+    expect(happiness(me(owning('persia', ['chichen_itza'])))).toBe(base + 4)
   })
 
   it('거신상: 턴당 금 +4', () => {
@@ -300,10 +300,10 @@ describe('불가사의 완성 효과', () => {
     expect(tourism(me(owning('france', ['louvre', 'eiffel_tower'])))).toBe(12)
   })
 
-  it('치첸이사: 사막 타일 산출 +1', () => {
+  it('페트라: 사막 타일 식량 +1', () => {
     const desert = tile(['사막'])
     const s = solo('denmark', [tile(['평지']), desert, tile(['언덕']), tile(['해안'])])
-    const withIt = mod(s, (c) => c.players[0].wonders.push('chichen_itza'))
+    const withIt = mod(s, (c) => c.players[0].wonders.push('petra'))
     const place = [{ cityId: 0, tileId: desert.id }]
     const food = (st: GameState) => apply(st, { type: 'placeWorkers', placements: place }).players[0].turn!.yields.cities[0].food
     expect(food(withIt)).toBe(food(s) + 1)
