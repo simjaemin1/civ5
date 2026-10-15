@@ -98,7 +98,7 @@ export function computeYields(player: Player): TurnYields {
   if (ctx.techs.has('economics') && !ctx.fresh.has('economics')) gold += 4
   if (player.policy === 'rationalism') science += player.civId === 'korea' ? 5 : 3
   if (player.wonders.includes('colossus')) gold += 4
-  // 공중정원: 다음 차례부터 기본 식량 산출량 +1 (문명 카드 보너스처럼 첫 도시에 더한다)
+  // 공중정원: 다음 차례부터 첫 도시 식량 +1
   if (player.wonders.includes('hanging_gardens') && cities.length) cities[0].food += 1
   return { cities, science, gold }
 }

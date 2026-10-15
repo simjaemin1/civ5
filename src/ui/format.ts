@@ -31,7 +31,7 @@ export function wonderEffectText(e: WonderEffect): string {
     case 'militaryCostMinus': return `군사 카드 생산 비용 -${e.amount}`
     case 'happiness': return `행복 +${e.amount}`
     case 'goldPerTurn': return `턴당 금 +${e.amount}`
-    case 'gardens': return '다음 차례부터 기본 식량 산출량 +1'
+    case 'gardens': return '다음 차례부터 첫 도시 식량 +1'
     case 'coastalAttackPlus': return `해안 전투 공격 전투력 +${e.amount}`
     case 'setPolicy': return `정책이 ${POLICIES[e.policy].name}(으)로 바뀜`
     case 'desertBonus': return '영토의 모든 사막 타일 식량 +1'
