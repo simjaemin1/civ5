@@ -404,7 +404,7 @@
       "id": "hwacha",
       "name": "화차",
       "line": null,
-      "cost": 9,
+      "cost": 6,
       "tech": "gunpowder",
       "uniqueOnly": true,
       "variantDirs": [
@@ -421,7 +421,7 @@
       "id": "zeijoisen",
       "name": "제고이센",
       "line": null,
-      "cost": 9,
+      "cost": 6,
       "tech": "compass",
       "uniqueOnly": true,
       "variantDirs": [

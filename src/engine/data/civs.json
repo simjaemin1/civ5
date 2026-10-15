@@ -14,7 +14,7 @@
    {
     "name": "화차",
     "base": "hwacha",
-    "cost": 9,
+    "cost": 6,
     "hp": 2,
     "def": 3,
     "power": 2,
@@ -240,7 +240,7 @@
    {
     "name": "제고이센",
     "base": "zeijoisen",
-    "cost": 9,
+    "cost": 6,
     "hp": 6,
     "def": 2,
     "power": 3,
