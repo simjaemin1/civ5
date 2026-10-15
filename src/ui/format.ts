@@ -1,5 +1,5 @@
 import type { Dir, PolicyId, WonderCondition, WonderEffect } from '../engine'
-import { POLICIES, cardById, cardStats } from '../engine'
+import { POLICIES, WONDERS, cardById, cardStats } from '../engine'
 import type { PartialYield, Terrain, TileCard, Yield } from '../engine'
 
 export const ICON = { food: '🍎', hammer: '🔨', science: '🧪', gold: '🪙' } as const
@@ -22,7 +22,7 @@ export const SIDE_LABEL = { N: '위', E: '오른쪽', S: '아래', W: '왼쪽' }
 export const policyName = (p: PolicyId | null): string => (p ? POLICIES[p].name : '없음')
 
 export function tileTitle(card: TileCard): string {
-  return card.terrains.join('·')
+  return card.terrains.length ? card.terrains.join('·') : card.wonder ? WONDERS[card.wonder].name : '?'
 }
 
 export function wonderEffectText(e: WonderEffect): string {

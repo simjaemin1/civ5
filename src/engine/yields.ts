@@ -16,6 +16,7 @@ export function addYield(a: Yield, b: PartialYield): Yield {
 /** 지형 우선순위: 정글·숲 → 설원 → 언덕 → 나머지 (같은 순위면 먼저 적힌 지형). */
 export function primaryTerrain(terrains: Terrain[]): Terrain {
   const rank = (t: Terrain) => (t === '정글' || t === '숲' ? 0 : t === '설원' ? 1 : t === '언덕' ? 2 : 3)
+  if (terrains.length === 0) return '산' // 지형이 적히지 않은 자연경관: 산출은 카드 값을 쓰므로 지형 효과는 없다
   return terrains.reduce((best, t) => (rank(t) < rank(best) ? t : best))
 }
 

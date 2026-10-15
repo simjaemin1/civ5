@@ -1,0 +1,1508 @@
+{
+ "_note": "규칙서 타일 카드 이미지에서 옮김 (사용자가 보낸 160장 전체). 카드 하단에 인쇄된 산출(printed)은 엔진 계산과 대조해 검증한다. 자연경관 중 엘도라도·올드 페이스풀·솔로몬 왕의 광산은 카드에 지형이 적혀 있지 않아 지형 없음으로 둔다.",
+ "total": 160,
+ "cards": [
+  {
+   "terrains": [
+    "정글"
+   ],
+   "printed": {
+    "food": 2
+   }
+  },
+  {
+   "terrains": [
+    "습지"
+   ],
+   "printed": {
+    "food": 1
+   }
+  },
+  {
+   "terrains": [
+    "정글"
+   ],
+   "printed": {
+    "food": 2
+   }
+  },
+  {
+   "terrains": [
+    "툰드라"
+   ],
+   "printed": {
+    "food": 1
+   }
+  },
+  {
+   "terrains": [
+    "정글"
+   ],
+   "printed": {
+    "food": 2
+   }
+  },
+  {
+   "terrains": [
+    "숲"
+   ],
+   "printed": {
+    "food": 1,
+    "hammer": 1
+   }
+  },
+  {
+   "terrains": [
+    "사막"
+   ],
+   "printed": {
+    "food": 1
+   }
+  },
+  {
+   "terrains": [
+    "사막"
+   ],
+   "printed": {
+    "food": 1
+   }
+  },
+  {
+   "terrains": [
+    "평지"
+   ],
+   "printed": {
+    "food": 2
+   }
+  },
+  {
+   "terrains": [
+    "평지"
+   ],
+   "printed": {
+    "food": 2
+   }
+  },
+  {
+   "terrains": [
+    "평지"
+   ],
+   "printed": {
+    "food": 2
+   }
+  },
+  {
+   "terrains": [
+    "평지"
+   ],
+   "printed": {
+    "food": 2
+   }
+  },
+  {
+   "terrains": [
+    "평지"
+   ],
+   "printed": {
+    "food": 2
+   }
+  },
+  {
+   "terrains": [
+    "평지"
+   ],
+   "printed": {
+    "food": 2
+   }
+  },
+  {
+   "terrains": [
+    "평지"
+   ],
+   "printed": {
+    "food": 2
+   }
+  },
+  {
+   "terrains": [
+    "평지"
+   ],
+   "printed": {
+    "food": 2
+   }
+  },
+  {
+   "terrains": [
+    "언덕"
+   ],
+   "printed": {
+    "hammer": 2
+   }
+  },
+  {
+   "terrains": [
+    "숲",
+    "언덕",
+    "툰드라"
+   ],
+   "printed": {
+    "food": 1,
+    "hammer": 1
+   }
+  },
+  {
+   "terrains": [
+    "언덕"
+   ],
+   "printed": {
+    "hammer": 2
+   }
+  },
+  {
+   "terrains": [
+    "언덕",
+    "툰드라"
+   ],
+   "printed": {
+    "hammer": 2
+   }
+  },
+  {
+   "terrains": [
+    "정글",
+    "언덕"
+   ],
+   "printed": {
+    "food": 2
+   }
+  },
+  {
+   "terrains": [
+    "숲",
+    "언덕"
+   ],
+   "printed": {
+    "food": 1,
+    "hammer": 1
+   }
+  },
+  {
+   "terrains": [
+    "언덕",
+    "사막"
+   ],
+   "printed": {
+    "hammer": 2
+   }
+  },
+  {
+   "terrains": [
+    "정글",
+    "언덕"
+   ],
+   "printed": {
+    "food": 2
+   }
+  },
+  {
+   "terrains": [
+    "평지"
+   ],
+   "resource": "wheat",
+   "printed": {
+    "food": 2
+   }
+  },
+  {
+   "terrains": [
+    "정글",
+    "언덕"
+   ],
+   "resource": "banana",
+   "printed": {
+    "food": 2
+   }
+  },
+  {
+   "terrains": [
+    "평지"
+   ],
+   "resource": "wheat",
+   "printed": {
+    "food": 2
+   }
+  },
+  {
+   "terrains": [
+    "사막"
+   ],
+   "resource": "wheat",
+   "printed": {
+    "food": 1
+   }
+  },
+  {
+   "terrains": [
+    "정글"
+   ],
+   "resource": "banana",
+   "printed": {
+    "food": 2
+   }
+  },
+  {
+   "terrains": [
+    "사막"
+   ],
+   "resource": "wheat",
+   "printed": {
+    "food": 1
+   }
+  },
+  {
+   "terrains": [
+    "정글"
+   ],
+   "resource": "banana",
+   "printed": {
+    "food": 2
+   }
+  },
+  {
+   "terrains": [
+    "오아시스",
+    "사막"
+   ],
+   "printed": {
+    "food": 3,
+    "gold": 1
+   }
+  },
+  {
+   "terrains": [
+    "언덕"
+   ],
+   "resource": "sheep",
+   "printed": {
+    "hammer": 2
+   }
+  },
+  {
+   "terrains": [
+    "언덕",
+    "사막"
+   ],
+   "resource": "sheep",
+   "printed": {
+    "hammer": 2
+   }
+  },
+  {
+   "terrains": [
+    "언덕",
+    "툰드라"
+   ],
+   "resource": "sheep",
+   "printed": {
+    "hammer": 2
+   }
+  },
+  {
+   "terrains": [
+    "숲",
+    "언덕",
+    "툰드라"
+   ],
+   "resource": "deer",
+   "printed": {
+    "food": 1,
+    "hammer": 1
+   }
+  },
+  {
+   "terrains": [
+    "평지"
+   ],
+   "resource": "cattle",
+   "printed": {
+    "food": 2
+   }
+  },
+  {
+   "terrains": [
+    "평지"
+   ],
+   "resource": "cattle",
+   "printed": {
+    "food": 2
+   }
+  },
+  {
+   "terrains": [
+    "평지"
+   ],
+   "resource": "cattle",
+   "printed": {
+    "food": 2
+   }
+  },
+  {
+   "terrains": [
+    "숲"
+   ],
+   "resource": "deer",
+   "printed": {
+    "food": 1,
+    "hammer": 1
+   }
+  },
+  {
+   "terrains": [
+    "평지"
+   ],
+   "resource": "horse",
+   "printed": {
+    "food": 2,
+    "hammer": 1
+   }
+  },
+  {
+   "terrains": [
+    "평지"
+   ],
+   "resource": "horse",
+   "printed": {
+    "food": 2,
+    "hammer": 1
+   }
+  },
+  {
+   "terrains": [
+    "평지"
+   ],
+   "resource": "horse",
+   "printed": {
+    "food": 2,
+    "hammer": 1
+   }
+  },
+  {
+   "terrains": [
+    "평지"
+   ],
+   "resource": "horse",
+   "printed": {
+    "food": 2,
+    "hammer": 1
+   }
+  },
+  {
+   "terrains": [
+    "평지"
+   ],
+   "resource": "horse",
+   "printed": {
+    "food": 2,
+    "hammer": 1
+   }
+  },
+  {
+   "terrains": [
+    "평지"
+   ],
+   "resource": "horse",
+   "printed": {
+    "food": 2,
+    "hammer": 1
+   }
+  },
+  {
+   "terrains": [
+    "평지"
+   ],
+   "resource": "horse",
+   "printed": {
+    "food": 2,
+    "hammer": 1
+   }
+  },
+  {
+   "terrains": [
+    "평지"
+   ],
+   "resource": "horse",
+   "printed": {
+    "food": 2,
+    "hammer": 1
+   }
+  },
+  {
+   "terrains": [
+    "숲"
+   ],
+   "resource": "cocoa",
+   "printed": {
+    "food": 1,
+    "hammer": 1,
+    "gold": 3
+   }
+  },
+  {
+   "terrains": [
+    "습지"
+   ],
+   "resource": "sugar",
+   "printed": {
+    "food": 1,
+    "gold": 3
+   }
+  },
+  {
+   "terrains": [
+    "평지"
+   ],
+   "resource": "sugar",
+   "printed": {
+    "food": 2,
+    "gold": 3
+   }
+  },
+  {
+   "terrains": [
+    "평지"
+   ],
+   "resource": "sugar",
+   "printed": {
+    "food": 2,
+    "gold": 3
+   }
+  },
+  {
+   "terrains": [
+    "정글"
+   ],
+   "resource": "cocoa",
+   "printed": {
+    "food": 2,
+    "gold": 3
+   }
+  },
+  {
+   "terrains": [
+    "사막"
+   ],
+   "resource": "incense",
+   "printed": {
+    "food": 1,
+    "gold": 3
+   }
+  },
+  {
+   "terrains": [
+    "평지"
+   ],
+   "resource": "incense",
+   "printed": {
+    "food": 2,
+    "gold": 3
+   }
+  },
+  {
+   "terrains": [
+    "사막"
+   ],
+   "resource": "incense",
+   "printed": {
+    "food": 1,
+    "gold": 3
+   }
+  },
+  {
+   "terrains": [
+    "산"
+   ],
+   "printed": {}
+  },
+  {
+   "terrains": [
+    "평지"
+   ],
+   "resource": "salt",
+   "printed": {
+    "food": 2,
+    "hammer": 1,
+    "gold": 3
+   }
+  },
+  {
+   "terrains": [
+    "숲"
+   ],
+   "resource": "salt",
+   "printed": {
+    "food": 1,
+    "hammer": 2,
+    "gold": 3
+   }
+  },
+  {
+   "terrains": [
+    "툰드라"
+   ],
+   "resource": "salt",
+   "printed": {
+    "food": 1,
+    "hammer": 1,
+    "gold": 3
+   }
+  },
+  {
+   "terrains": [
+    "평지"
+   ],
+   "printed": {
+    "food": 2
+   }
+  },
+  {
+   "terrains": [
+    "숲"
+   ],
+   "resource": "deer",
+   "printed": {
+    "food": 1,
+    "hammer": 1
+   }
+  },
+  {
+   "terrains": [
+    "숲",
+    "툰드라"
+   ],
+   "resource": "salt",
+   "printed": {
+    "food": 1,
+    "hammer": 2,
+    "gold": 3
+   }
+  },
+  {
+   "terrains": [
+    "사막"
+   ],
+   "resource": "salt",
+   "printed": {
+    "food": 1,
+    "hammer": 1,
+    "gold": 3
+   }
+  },
+  {
+   "terrains": [
+    "평지"
+   ],
+   "resource": "marble",
+   "printed": {
+    "food": 2,
+    "hammer": 1,
+    "gold": 3
+   }
+  },
+  {
+   "terrains": [
+    "언덕"
+   ],
+   "resource": "marble",
+   "printed": {
+    "hammer": 3,
+    "gold": 3
+   }
+  },
+  {
+   "terrains": [
+    "언덕"
+   ],
+   "resource": "marble",
+   "printed": {
+    "hammer": 3,
+    "gold": 3
+   }
+  },
+  {
+   "terrains": [
+    "언덕",
+    "툰드라"
+   ],
+   "resource": "marble",
+   "printed": {
+    "hammer": 3,
+    "gold": 3
+   }
+  },
+  {
+   "terrains": [
+    "사막"
+   ],
+   "resource": "stone",
+   "printed": {
+    "food": 1,
+    "hammer": 1
+   }
+  },
+  {
+   "terrains": [
+    "평지"
+   ],
+   "resource": "stone",
+   "printed": {
+    "food": 2,
+    "hammer": 1
+   }
+  },
+  {
+   "terrains": [
+    "툰드라"
+   ],
+   "resource": "stone",
+   "printed": {
+    "food": 1,
+    "hammer": 1
+   }
+  },
+  {
+   "terrains": [
+    "언덕",
+    "사막"
+   ],
+   "resource": "marble",
+   "printed": {
+    "hammer": 3,
+    "gold": 3
+   }
+  },
+  {
+   "terrains": [
+    "습지"
+   ],
+   "printed": {
+    "food": 1
+   }
+  },
+  {
+   "terrains": [
+    "언덕"
+   ],
+   "resource": "copper",
+   "printed": {
+    "hammer": 2,
+    "gold": 3
+   }
+  },
+  {
+   "terrains": [
+    "언덕"
+   ],
+   "resource": "gold",
+   "printed": {
+    "hammer": 2,
+    "gold": 3
+   }
+  },
+  {
+   "terrains": [
+    "언덕",
+    "툰드라"
+   ],
+   "resource": "gold",
+   "printed": {
+    "hammer": 2,
+    "gold": 3
+   }
+  },
+  {
+   "terrains": [
+    "숲",
+    "언덕",
+    "툰드라"
+   ],
+   "resource": "gems",
+   "printed": {
+    "food": 1,
+    "hammer": 1,
+    "gold": 3
+   }
+  },
+  {
+   "terrains": [
+    "언덕"
+   ],
+   "resource": "gems",
+   "printed": {
+    "hammer": 2,
+    "gold": 3
+   }
+  },
+  {
+   "terrains": [
+    "언덕",
+    "사막"
+   ],
+   "resource": "copper",
+   "printed": {
+    "hammer": 2,
+    "gold": 3
+   }
+  },
+  {
+   "terrains": [
+    "언덕",
+    "사막"
+   ],
+   "resource": "gold",
+   "printed": {
+    "hammer": 2,
+    "gold": 3
+   }
+  },
+  {
+   "terrains": [
+    "평지"
+   ],
+   "resource": "horse",
+   "printed": {
+    "food": 2,
+    "hammer": 1
+   }
+  },
+  {
+   "terrains": [
+    "평지"
+   ],
+   "resource": "ivory",
+   "printed": {
+    "food": 2,
+    "gold": 3
+   }
+  },
+  {
+   "terrains": [
+    "숲",
+    "툰드라"
+   ],
+   "resource": "furs",
+   "printed": {
+    "food": 1,
+    "hammer": 1,
+    "gold": 3
+   }
+  },
+  {
+   "terrains": [
+    "툰드라"
+   ],
+   "resource": "furs",
+   "printed": {
+    "food": 1,
+    "gold": 3
+   }
+  },
+  {
+   "terrains": [
+    "평지"
+   ],
+   "resource": "horse",
+   "printed": {
+    "food": 2,
+    "hammer": 1
+   }
+  },
+  {
+   "terrains": [
+    "숲"
+   ],
+   "resource": "furs",
+   "printed": {
+    "food": 1,
+    "hammer": 1,
+    "gold": 3
+   }
+  },
+  {
+   "terrains": [
+    "평지"
+   ],
+   "resource": "ivory",
+   "printed": {
+    "food": 2,
+    "gold": 3
+   }
+  },
+  {
+   "terrains": [
+    "평지"
+   ],
+   "resource": "ivory",
+   "printed": {
+    "food": 2,
+    "gold": 3
+   }
+  },
+  {
+   "terrains": [
+    "해안"
+   ],
+   "resource": "pearls",
+   "printed": {
+    "food": 1,
+    "gold": 3
+   }
+  },
+  {
+   "terrains": [
+    "해안"
+   ],
+   "resource": "pearls",
+   "printed": {
+    "food": 1,
+    "gold": 3
+   }
+  },
+  {
+   "terrains": [
+    "해안"
+   ],
+   "resource": "crab",
+   "printed": {
+    "food": 1,
+    "gold": 3
+   }
+  },
+  {
+   "terrains": [
+    "해안"
+   ],
+   "resource": "crab",
+   "printed": {
+    "food": 1,
+    "gold": 3
+   }
+  },
+  {
+   "terrains": [
+    "해안"
+   ],
+   "resource": "whale",
+   "printed": {
+    "food": 2,
+    "gold": 3
+   }
+  },
+  {
+   "terrains": [
+    "해안"
+   ],
+   "resource": "fish",
+   "printed": {
+    "food": 2
+   }
+  },
+  {
+   "terrains": [
+    "해안"
+   ],
+   "resource": "fish",
+   "printed": {
+    "food": 2
+   }
+  },
+  {
+   "terrains": [
+    "해안"
+   ],
+   "resource": "whale",
+   "printed": {
+    "food": 2,
+    "gold": 3
+   }
+  },
+  {
+   "terrains": [
+    "해안"
+   ],
+   "printed": {
+    "food": 1
+   }
+  },
+  {
+   "terrains": [
+    "호수"
+   ],
+   "printed": {
+    "food": 2
+   }
+  },
+  {
+   "terrains": [
+    "해안"
+   ],
+   "printed": {
+    "food": 1
+   }
+  },
+  {
+   "terrains": [
+    "호수"
+   ],
+   "printed": {
+    "food": 2
+   }
+  },
+  {
+   "terrains": [
+    "해안"
+   ],
+   "printed": {
+    "food": 1
+   }
+  },
+  {
+   "terrains": [
+    "해안"
+   ],
+   "resource": "fish",
+   "printed": {
+    "food": 2
+   }
+  },
+  {
+   "terrains": [
+    "해안"
+   ],
+   "resource": "fish",
+   "printed": {
+    "food": 2
+   }
+  },
+  {
+   "terrains": [
+    "호수"
+   ],
+   "printed": {
+    "food": 2
+   }
+  },
+  {
+   "terrains": [
+    "평지"
+   ],
+   "historic": true,
+   "printed": {
+    "food": 2
+   }
+  },
+  {
+   "terrains": [
+    "정글",
+    "언덕"
+   ],
+   "historic": true,
+   "printed": {
+    "food": 2
+   }
+  },
+  {
+   "terrains": [
+    "언덕"
+   ],
+   "historic": true,
+   "printed": {
+    "hammer": 2
+   }
+  },
+  {
+   "terrains": [
+    "툰드라"
+   ],
+   "historic": true,
+   "printed": {
+    "food": 1
+   }
+  },
+  {
+   "terrains": [
+    "정글"
+   ],
+   "historic": true,
+   "printed": {
+    "food": 2
+   }
+  },
+  {
+   "terrains": [
+    "숲"
+   ],
+   "historic": true,
+   "printed": {
+    "food": 1,
+    "hammer": 1
+   }
+  },
+  {
+   "terrains": [
+    "사막"
+   ],
+   "historic": true,
+   "printed": {
+    "food": 1
+   }
+  },
+  {
+   "terrains": [
+    "언덕",
+    "사막"
+   ],
+   "historic": true,
+   "printed": {
+    "hammer": 2
+   }
+  },
+  {
+   "terrains": [
+    "평지"
+   ],
+   "resource": "iron",
+   "printed": {
+    "food": 2,
+    "hammer": 1
+   }
+  },
+  {
+   "terrains": [
+    "언덕"
+   ],
+   "resource": "iron",
+   "printed": {
+    "hammer": 3
+   }
+  },
+  {
+   "terrains": [
+    "설원"
+   ],
+   "resource": "iron",
+   "printed": {
+    "hammer": 1
+   }
+  },
+  {
+   "terrains": [
+    "툰드라"
+   ],
+   "resource": "iron",
+   "printed": {
+    "food": 1,
+    "hammer": 1
+   }
+  },
+  {
+   "terrains": [
+    "숲"
+   ],
+   "resource": "iron",
+   "printed": {
+    "food": 1,
+    "hammer": 2
+   }
+  },
+  {
+   "terrains": [
+    "숲"
+   ],
+   "resource": "iron",
+   "printed": {
+    "food": 1,
+    "hammer": 2
+   }
+  },
+  {
+   "terrains": [
+    "숲"
+   ],
+   "resource": "iron",
+   "printed": {
+    "food": 1,
+    "hammer": 2
+   }
+  },
+  {
+   "terrains": [
+    "사막"
+   ],
+   "resource": "iron",
+   "printed": {
+    "food": 1,
+    "hammer": 1
+   }
+  },
+  {
+   "terrains": [
+    "언덕"
+   ],
+   "resource": "coal",
+   "printed": {
+    "hammer": 2
+   }
+  },
+  {
+   "terrains": [
+    "정글",
+    "언덕"
+   ],
+   "resource": "coal",
+   "printed": {
+    "food": 2
+   }
+  },
+  {
+   "terrains": [
+    "숲",
+    "언덕"
+   ],
+   "resource": "coal",
+   "printed": {
+    "food": 1,
+    "hammer": 1
+   }
+  },
+  {
+   "terrains": [
+    "언덕",
+    "툰드라"
+   ],
+   "resource": "coal",
+   "printed": {
+    "hammer": 2
+   }
+  },
+  {
+   "terrains": [
+    "정글"
+   ],
+   "resource": "coal",
+   "printed": {
+    "food": 2
+   }
+  },
+  {
+   "terrains": [
+    "숲"
+   ],
+   "resource": "coal",
+   "printed": {
+    "food": 1,
+    "hammer": 1
+   }
+  },
+  {
+   "terrains": [
+    "언덕",
+    "사막"
+   ],
+   "resource": "coal",
+   "printed": {
+    "hammer": 2
+   }
+  },
+  {
+   "terrains": [
+    "숲",
+    "언덕",
+    "툰드라"
+   ],
+   "resource": "coal",
+   "printed": {
+    "food": 1,
+    "hammer": 1
+   }
+  },
+  {
+   "terrains": [
+    "평지"
+   ],
+   "printed": {
+    "food": 2
+   }
+  },
+  {
+   "terrains": [
+    "정글",
+    "언덕"
+   ],
+   "resource": "aluminum",
+   "printed": {
+    "food": 2
+   }
+  },
+  {
+   "terrains": [
+    "툰드라"
+   ],
+   "resource": "aluminum",
+   "printed": {
+    "food": 1
+   }
+  },
+  {
+   "terrains": [
+    "언덕",
+    "툰드라"
+   ],
+   "resource": "aluminum",
+   "printed": {
+    "hammer": 2
+   }
+  },
+  {
+   "terrains": [
+    "정글"
+   ],
+   "resource": "aluminum",
+   "printed": {
+    "food": 2
+   }
+  },
+  {
+   "terrains": [
+    "숲",
+    "언덕"
+   ],
+   "resource": "aluminum",
+   "printed": {
+    "food": 1,
+    "hammer": 1
+   }
+  },
+  {
+   "terrains": [
+    "언덕",
+    "사막"
+   ],
+   "resource": "aluminum",
+   "printed": {
+    "hammer": 2
+   }
+  },
+  {
+   "terrains": [
+    "사막"
+   ],
+   "resource": "aluminum",
+   "printed": {
+    "food": 1
+   }
+  },
+  {
+   "terrains": [
+    "습지"
+   ],
+   "resource": "oil",
+   "printed": {
+    "food": 1
+   }
+  },
+  {
+   "terrains": [
+    "습지"
+   ],
+   "resource": "oil",
+   "printed": {
+    "food": 1
+   }
+  },
+  {
+   "terrains": [
+    "설원"
+   ],
+   "resource": "oil",
+   "printed": {}
+  },
+  {
+   "terrains": [
+    "툰드라"
+   ],
+   "resource": "oil",
+   "printed": {
+    "food": 1
+   }
+  },
+  {
+   "terrains": [
+    "정글"
+   ],
+   "resource": "oil",
+   "printed": {
+    "food": 2
+   }
+  },
+  {
+   "terrains": [
+    "사막"
+   ],
+   "resource": "oil",
+   "printed": {
+    "food": 1
+   }
+  },
+  {
+   "terrains": [
+    "사막"
+   ],
+   "resource": "oil",
+   "printed": {
+    "food": 1
+   }
+  },
+  {
+   "terrains": [
+    "사막"
+   ],
+   "resource": "oil",
+   "printed": {
+    "food": 1
+   }
+  },
+  {
+   "terrains": [
+    "정글"
+   ],
+   "resource": "uranium",
+   "printed": {
+    "food": 2
+   }
+  },
+  {
+   "terrains": [
+    "습지"
+   ],
+   "resource": "uranium",
+   "printed": {
+    "food": 1
+   }
+  },
+  {
+   "terrains": [
+    "평지"
+   ],
+   "resource": "uranium",
+   "printed": {
+    "food": 2
+   }
+  },
+  {
+   "terrains": [
+    "툰드라"
+   ],
+   "resource": "uranium",
+   "printed": {
+    "food": 1
+   }
+  },
+  {
+   "terrains": [
+    "해안"
+   ],
+   "resource": "oil",
+   "printed": {
+    "food": 1
+   }
+  },
+  {
+   "terrains": [
+    "해안"
+   ],
+   "resource": "oil",
+   "printed": {
+    "food": 1
+   }
+  },
+  {
+   "terrains": [
+    "숲"
+   ],
+   "resource": "uranium",
+   "printed": {
+    "food": 1,
+    "hammer": 1
+   }
+  },
+  {
+   "terrains": [
+    "해안"
+   ],
+   "resource": "oil",
+   "printed": {
+    "food": 1
+   }
+  },
+  {
+   "terrains": [
+    "산"
+   ],
+   "wonder": "kilimanjaro",
+   "printed": {
+    "food": 3
+   }
+  },
+  {
+   "terrains": [],
+   "wonder": "eldorado",
+   "printed": {}
+  },
+  {
+   "terrains": [],
+   "wonder": "old_faithful",
+   "printed": {
+    "science": 2
+   }
+  },
+  {
+   "terrains": [
+    "산"
+   ],
+   "printed": {}
+  },
+  {
+   "terrains": [],
+   "wonder": "king_solomons_mines",
+   "printed": {
+    "hammer": 4
+   }
+  },
+  {
+   "terrains": [
+    "호수"
+   ],
+   "wonder": "lake_victoria",
+   "printed": {
+    "food": 4
+   }
+  },
+  {
+   "terrains": [
+    "해안"
+   ],
+   "wonder": "great_barrier_reef",
+   "printed": {
+    "food": 2,
+    "hammer": 1,
+    "science": 2
+   }
+  },
+  {
+   "terrains": [
+    "산"
+   ],
+   "printed": {}
+  }
+ ]
+}

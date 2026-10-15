@@ -4,7 +4,7 @@ import { TECHS, civById, techById } from './data'
 import type { TechDef } from './data'
 import { shuffle } from './rng'
 import { computeYields, happiness, totalWorkers } from './yields'
-import { makePlaceholderDeck } from './placeholderDeck'
+import { makeTileDeck } from './tileDeck'
 import { currentPlayer, drawTiles, gainCulture, say } from './core'
 import { choosePolicy } from './policies'
 import { invest, settleWonders } from './wonders'
@@ -29,7 +29,7 @@ export function createGame(opts: CreateOptions): GameState {
   const state: GameState = {
     rng: opts.seed >>> 0,
     round: 1,
-    deck: (opts.deck ?? makePlaceholderDeck(opts.seed)).map((c) => ({ ...c })),
+    deck: (opts.deck ?? makeTileDeck(opts.seed)).map((c) => ({ ...c })),
     players: opts.civIds.map((civId, id) => ({
       id,
       civId,

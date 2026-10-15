@@ -5,7 +5,7 @@
 ## 구조
 - `src/engine/` — UI와 무관한 순수 규칙 엔진 (`createGame`, `apply(state, action)`).
   - `data/*.json` — 문명·지형·자원·자연경관·기술 트리(52장)·군사 카드 데이터 (나중에 Java 등으로 옮길 때 그대로 재사용)
-  - `placeholderDeck.ts` — **임시** 타일 덱 160장 (실제 카드 목록 없음)
+  - `data/tiles.json` — **실제 타일 카드 160장** (카드 하단 인쇄 산출을 엔진 계산과 테스트로 대조). `placeholderDeck.ts`는 160장이 안 모였을 때의 대비용
 - `src/engine/ai.ts` — 규칙 검증용 휴리스틱 AI (UI의 AI 자리, 시뮬레이션에 사용)
 - `src/ui/` — React 핫시트 화면 (`GameScreen`, 단계별 `panels/`)
 

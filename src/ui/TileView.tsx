@@ -29,7 +29,7 @@ export function TileView({ card, player, badge, selected, disabled, onClick, hin
     <button
       type="button"
       className={`tile${selected ? ' selected' : ''}${badge?.city ? ' city' : ''}${onClick ? '' : ' ro'}`}
-      style={{ background: TERRAIN_COLOR[primary] }}
+      style={{ background: primary ? TERRAIN_COLOR[primary] : '#ead9a0' }}
       disabled={disabled || !onClick}
       onClick={onClick}
       title={hint}
@@ -39,7 +39,7 @@ export function TileView({ card, player, badge, selected, disabled, onClick, hin
         {tileTitle(card)}
       </div>
       {res && <div className="tile-res">{res.name}</div>}
-      {wonder && <div className="tile-res">✨ {wonder.name}</div>}
+      {wonder && card.terrains.length > 0 && <div className="tile-res">✨ {wonder.name}</div>}
       {card.historic && <div className="tile-res">🏺 사적지</div>}
       <div className="tile-yield">{yieldText(y)}</div>
       <div className="tile-badges">

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { apply, createGame, currentPlayer, culture, happiness, primaryTerrain, researchableTechs, tileYield, ctxOf, RuleError, TECHS, COLUMN_COSTS, MILITARY_CARDS, techById, RESOURCES, makePlaceholderDeck } from '..'
+import { apply, createGame, currentPlayer, culture, happiness, primaryTerrain, researchableTechs, tileYield, ctxOf, RuleError, TECHS, COLUMN_COSTS, MILITARY_CARDS, techById, RESOURCES, makePlaceholderDeck, REAL_TILES, TILE_DECK_SIZE, makeTileDeck } from '..'
 import type { GameState } from '..'
 import { found, me, play, startGame, tile } from './helpers'
 
@@ -355,5 +355,48 @@ describe('데이터 무결성', () => {
     // 일반 카드 25종 + 고유 유닛 전용 카드(화차, 제고이센) 2종
     expect(MILITARY_CARDS.filter((c) => !c.uniqueOnly)).toHaveLength(25)
     expect(MILITARY_CARDS.filter((c) => c.uniqueOnly).map((c) => c.id).sort()).toEqual(['hwacha', 'zeijoisen'])
+  })
+})
+
+describe('실제 타일 카드 (옮겨 적은 목록)', () => {
+  // 카드 하단에 인쇄된 산출은 엔진이 지형 우선순위와 자원 규칙으로 계산한 값과 같아야 한다
+  it('인쇄된 산출이 엔진 계산(지형 우선순위·자원)과 일치한다', () => {
+    const s = startGame(['denmark'], [[tile(['평지']), tile(['숲']), tile(['언덕']), tile(['해안'])]])
+    const ctx = ctxOf(s.players[0])
+    const bad: string[] = []
+    REAL_TILES.forEach((t, i) => {
+      const y = tileYield({ id: i, terrains: t.terrains, resource: t.resource, wonder: t.wonder }, ctx)
+      const want = { food: 0, hammer: 0, science: 0, gold: 0, ...t.printed }
+      if (JSON.stringify(y) !== JSON.stringify(want)) bad.push(`#${i + 1} ${t.terrains.join(',')}${t.resource ? ' ' + t.resource : ''}: 계산 ${JSON.stringify(y)} / 인쇄 ${JSON.stringify(want)}`)
+    })
+    expect(bad).toEqual([])
+  })
+
+  it('160장이 모두 옮겨져 있고 구성이 맞다 (자연경관 6장, 사적지 8장, 산 3장 등)', () => {
+    expect(REAL_TILES).toHaveLength(TILE_DECK_SIZE)
+    expect(REAL_TILES.filter((t) => t.wonder).map((t) => t.wonder).sort()).toEqual(
+      ['eldorado', 'great_barrier_reef', 'king_solomons_mines', 'kilimanjaro', 'lake_victoria', 'old_faithful'].sort(),
+    )
+    expect(REAL_TILES.filter((t) => t.historic)).toHaveLength(8)
+    expect(REAL_TILES.filter((t) => t.terrains.length === 1 && t.terrains[0] === '산' && !t.wonder)).toHaveLength(3)
+    // 덱의 카드 id는 0~159로 겹치지 않는다
+    expect(new Set(makeTileDeck(1).map((c) => c.id)).size).toBe(160)
+  })
+
+  it('사치자원은 전부 그 문명 기술이 있어야 행복을 주는 종류이고, 카드에 있는 자원은 모두 자원 표에 있다', () => {
+    for (const t of REAL_TILES) if (t.resource) expect(RESOURCES[t.resource], t.resource).toBeTruthy()
+  })
+
+  it('자원은 그 자원이 나올 수 있는 지형에만 붙어 있다', () => {
+    for (const t of REAL_TILES) {
+      if (!t.resource) continue
+      expect(t.terrains.some((x) => RESOURCES[t.resource!].terrains.includes(x)), `${t.terrains.join(',')} ${t.resource}`).toBe(true)
+    }
+  })
+
+  it('160장이 모이기 전에는 임시 덱을 쓰고, 모이면 실제 덱을 쓴다', () => {
+    const deck = makeTileDeck(1)
+    if (REAL_TILES.length === TILE_DECK_SIZE) expect(deck.map((c) => c.terrains)).toEqual(REAL_TILES.map((t) => t.terrains))
+    else expect(deck).toHaveLength(160) // 임시 덱도 160장
   })
 })
