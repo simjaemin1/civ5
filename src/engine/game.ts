@@ -220,21 +220,23 @@ export function apply(prev: GameState, action: Action): GameState {
         if (anyProducible(s, p)) throw new RuleError('무료 군사 카드를 먼저 골라야 합니다')
         p.pendingFreeCards = 0
       }
-      foodSettlement(s, p)
-      // 선전포고(내정 6단계): 할 수 있는 선전포고가 있으면 선택하게 하고, 없으면 바로 차례를 끝낸다
+      // 선전포고(내정 5단계): 할 수 있는 선전포고가 있으면 선택하게 한다. 그 뒤에 식량 정산(6단계)을 한다.
       if (declarationTargets(s, p).length > 0) {
         s.phase = 'declare'
         return s
       }
+      foodSettlement(s, p)
       endTurn(s)
       return s
     case 'declareWar':
       expectPhase(s, 'declare')
       declareWar(s, p, action)
+      foodSettlement(s, p)
       endTurn(s)
       return s
     case 'endTurn':
       expectPhase(s, 'declare')
+      foodSettlement(s, p)
       endTurn(s)
       return s
     case 'arrangeBattle':

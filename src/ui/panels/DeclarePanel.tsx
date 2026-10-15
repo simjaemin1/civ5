@@ -27,7 +27,7 @@ export function DeclarePanel({ game, player, dispatch }: PanelProps) {
         })}
       </div>
       <button className="primary" onClick={() => dispatch({ type: 'endTurn' })}>
-        선전포고하지 않고 차례 끝내기
+        선전포고하지 않고 차례 끝내기 (식량 정산)
       </button>
     </div>
   )

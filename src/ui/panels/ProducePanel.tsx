@@ -159,7 +159,7 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
           </button>
         )}
         <button className="primary" onClick={() => dispatch({ type: 'endProduction' })}>
-          생산 끝내기 → 식량 정산
+          생산 끝내기
         </button>
       </div>
     </div>
