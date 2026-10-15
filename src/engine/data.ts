@@ -167,7 +167,7 @@ export type WonderCondition =
   | { kind: 'stoneInCity' }
   | { kind: 'coastFirst5' }
   | { kind: 'desertFirst5' }
-  | { kind: 'mountainInCity' }
+  | { kind: 'mountainInTerritory' }
   | { kind: 'policy'; policy: PolicyId }
 export interface WonderCardDef {
   id: string

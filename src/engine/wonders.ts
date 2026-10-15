@@ -17,8 +17,8 @@ export function conditionMet(p: Player, city: City, w: WonderCardDef): boolean {
       return first5(city).some((t) => t.card.terrains.includes('해안'))
     case 'desertFirst5':
       return first5(city).some((t) => t.card.terrains.includes('사막'))
-    case 'mountainInCity':
-      return city.tiles.some((t) => t.card.terrains.includes('산'))
+    case 'mountainInTerritory':
+      return p.cities.some((ci) => ci.tiles.some((t) => t.card.terrains.includes('산')))
     case 'policy':
       return p.policy === c.policy
   }

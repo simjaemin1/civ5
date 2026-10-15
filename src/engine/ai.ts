@@ -33,11 +33,17 @@ export function actorOf(s: GameState): number {
   return currentPlayer(s).id
 }
 
+/** 기본 과학으로는 가장 싼 기술도 못 사는 상태: 식량을 늘려 과학으로 바꾸고 일꾼도 키운다 */
+let starving = false
+/** 이웃의 군사에 비해 수비가 모자라면 망치를 더 챙긴다 */
+let defending = false
+
 function tileScore(p: Player, card: TileCard): number {
   const y = tileYield(card, ctxOf(p))
   if (aiStyle === 'hammer') return y.hammer * 4 + y.food * 1.5 + y.science * 0.3
-  // 아폴로 질주: 식량이 곧 과학이므로 식량과 과학을 크게 친다
-  if (rushingApollo(p)) return y.food * 3 + y.science * 3 + y.hammer * 0.5 + y.gold * 0.2
+  // 아폴로 질주·과학 기아: 식량이 곧 과학이므로 식량과 과학을 크게 친다
+  if (defending) return y.food * 1.6 + y.hammer * 3 + y.science * 0.8 + y.gold * 0.2
+  if (rushingApollo(p) || starving) return y.food * 3 + y.science * 3 + y.hammer * 0.5 + y.gold * 0.2
   return weight(y)
 }
 
@@ -83,24 +89,41 @@ function apolloMissing(p: Player): Set<string> {
 const APOLLO_RUSH = 8
 const rushingApollo = (p: Player): boolean => aiStyle === 'default' && apolloMissing(p).size <= APOLLO_RUSH
 
-/** 나침반 → 행복 타일 정찰 → 두 번째 도시(인쇄기술) → 일꾼 증식을 노리는 기술 우선순위 */
+/** 번성형 기술 순서: 나침반 → 과학·식량 산출을 키우는 기술과 행복(일꾼 상한) 기술 → 인쇄기술(두 번째 도시) → 나머지는 싼 것부터 넓게 */
 const COMPASS_CHAIN = new Set(['sailing', 'optics', 'compass'])
-function buildPriority(p: Player, t: TechDef): number {
-  if (p.techs.includes('compass') === false && COMPASS_CHAIN.has(t.id)) return 300
+/** 해금 기술이 산출을 올려 주는 자원 (자원 카드에 적힌 boosts 기준) */
+function boostTechValue(p: Player, techId: string): number {
   let v = 0
-  // 내 영토에 있는 사치 자원을 열어 주는 기술은 행복(= 일꾼 상한)을 늘린다
   for (const c of p.cities) {
     for (const tile of c.tiles) {
       const r = tile.card.resource ? RESOURCES[tile.card.resource] : undefined
-      if (r?.luxuryTech === t.id) v += 40
+      if (!r) continue
+      if (r.luxuryTech === techId) v += 40 // 사치 자원: 행복 +1 = 일꾼 상한 +1
+      for (const b of r.boosts ?? []) if (b.tech === techId) v += 12 * (b.yield.food ?? 0) + 8 * (b.yield.hammer ?? 0) + 14 * (b.yield.science ?? 0)
     }
   }
-  if (t.id === 'printing_press') v += 60
+  return v
+}
+
+function buildPriority(p: Player, t: TechDef): number {
+  if (p.techs.includes('compass') === false && COMPASS_CHAIN.has(t.id)) return 300
+  let v = boostTechValue(p, t.id)
+  const mountainFirstCity = !!p.cities[0]?.tiles.some((x) => (x.role === 'city' || x.role === 'side') && x.card.terrains.includes('산'))
+  if (t.id === 'writing') v += 90 // 식량을 과학으로 바꿀 수 있다
+  if (t.id === 'astronomy' && mountainFirstCity) v += 80 // 과학 +5
+  if (t.id === 'scientific_theory') v += 45
+  if (t.id === 'printing_press') v += 70
+  if (t.id === 'economics') v += 15
+  if (t.id === 'radar') v -= 60 // 정책이 전제정치로 바뀐다 (아폴로 질주 때만 감수)
+  // 고유 유닛이 초반에 열리는 문명은 그 길이 최우선, 고유 유닛 시대에는 장군(기마술)을 일찍 얻어 상대 좋은 타일을 압박한다
+  if (uniqueRoute(p)?.has(t.id)) v += 400
+  if (t.id === 'horseback' && (inUniqueEra(p) || !!uniqueRoute(p))) v += 150
   return v
 }
 
 function techPriority(t: TechDef, rush?: Set<string>, p?: Player): number {
-  let v = t.cost + (rush?.has(t.id) ? 500 : 0) + (p && !rush ? buildPriority(p, t) : 0)
+  // 평소에는 싼 기술부터 넓게 (고점을 보고 번성), 아폴로 질주 때는 선행 기술을 우선
+  let v = (rush ? t.cost : -t.cost) + (rush?.has(t.id) ? 500 : 0) + (p && !rush ? buildPriority(p, t) : 0)
   for (const e of t.effects) {
     if (e.kind === 'foodToScience') v += 5
     else if (e.kind === 'secondCity') v += 8
@@ -139,7 +162,38 @@ function researchCandidates(s: GameState, p: Player): Action[] {
   return out
 }
 
-const POLICY_PREFERENCE = ['aesthetics', 'tradition', 'rationalism', 'liberty', 'despotism', 'equality', 'regime', 'diplomacy'] as const
+const armyOf = (p: Player): number => p.military.filter((c) => cardStats(c).hp !== undefined).length
+
+/** 이웃이 군사를 가졌으면 그만큼(최대 4장, 최소 2장) 수비 군사를 갖춰야 한다 */
+function defenseTarget(s: GameState, p: Player): number {
+  const enemy = Math.max(0, ...s.players.filter((o) => o.id !== p.id && !o.eliminated).map(armyOf))
+  return enemy > 0 ? Math.min(4, Math.max(2, enemy)) : 0
+}
+
+/** 고유 유닛이 열리는 기술 (고유 유닛 자신의 기술, 없으면 바탕 카드의 기술) */
+function uniqueTechs(p: Player): string[] {
+  return civById(p.civId).uniques.map((u) => u.tech ?? cardById(u.base).tech)
+}
+/** 가장 빨리 열 수 있는 고유 유닛 기술이 초반(4칸 이내)이면 그 길을 최우선으로 탄다 */
+function uniqueRoute(p: Player): Set<string> | undefined {
+  const open = uniqueTechs(p).filter((id) => !p.techs.includes(id))
+  if (open.length === 0) return undefined
+  const early = open.map((id) => TECHS.find((t) => t.id === id)!).filter((t) => t.column <= 4).sort((a, b) => a.column - b.column)[0]
+  if (!early) return undefined
+  const need = new Set<string>()
+  const visit = (id: string) => {
+    if (p.techs.includes(id) || need.has(id)) return
+    need.add(id)
+    for (const pre of TECHS.find((t) => t.id === id)?.prereqs ?? []) visit(pre)
+  }
+  visit(early.id)
+  return need
+}
+/** 고유 유닛 시대: 고유 유닛 기술을 열었다 */
+const inUniqueEra = (p: Player): boolean => uniqueTechs(p).some((id) => p.techs.includes(id))
+
+type Policy = 'aesthetics' | 'tradition' | 'rationalism' | 'liberty' | 'despotism' | 'equality' | 'regime' | 'diplomacy'
+const POLICY_PREFERENCE: Policy[] = ['aesthetics', 'tradition', 'rationalism', 'liberty', 'despotism', 'equality', 'regime', 'diplomacy']
 
 /** 만들 수 있는 카드 후보: 비싼 순, 같은 값이면 고유 유닛을 먼저 (고유 유닛은 일반 카드보다 강하다) */
 function cardOptions(p: Player): { def: (typeof MILITARY_CARDS)[number]; unique?: string; cost: number }[] {
@@ -148,19 +202,35 @@ function cardOptions(p: Player): { def: (typeof MILITARY_CARDS)[number]; unique?
   return opts.sort((a, b) => b.cost - a.cost || Number(!!b.unique) - Number(!!a.unique))
 }
 
+/**
+ * 정책 고르기: 과학이 모자라 기술을 못 연구할 지경이면 합리주의·자유로, 아니면 미학·전통으로 번성한다.
+ * 과학 가능량 = 기본 과학 + (식량을 과학으로 바꿀 수 있으면) 남는 식량. 자유는 식량 전부, 합리주의는 +3(한국 +5).
+ */
+function policyOrder(s: GameState, p: Player): Policy[] {
+  const turn = p.turn
+  const food = turn ? turn.yields.cities.reduce((n, c) => n + c.food, 0) : 0
+  const base = turn ? turn.yields.science - (p.policy === 'rationalism' ? (p.civId === 'korea' ? 5 : 3) : 0) : 0
+  const writing = p.techs.includes('writing')
+  const cheapest = Math.min(...researchableTechs(s).map((t) => t.cost), 99)
+  const withNone = base + (writing ? Math.max(0, food - totalWorkers(p)) : 0)
+  const withRational = base + (p.civId === 'korea' ? 5 : 3) + (writing ? Math.max(0, food - totalWorkers(p)) : 0)
+  const withLiberty = base + (writing ? food : 0)
+  // 앞으로 만날 비용 10대 기술을 감당할 수 있는지 (번성 뒤에도 막히지 않도록 여유 있게)
+  const need = Math.max(cheapest, 10)
+  if (rushingApollo(p)) return ['liberty', 'rationalism', ...POLICY_PREFERENCE]
+  if (withNone >= need) return [...POLICY_PREFERENCE]
+  return withLiberty >= withRational ? ['liberty', 'rationalism', ...POLICY_PREFERENCE] : ['rationalism', 'liberty', ...POLICY_PREFERENCE]
+}
+
 function pendingCandidates(s: GameState, p: Player): Action[] {
   const out: Action[] = []
   if (p.pendingCity) out.push(foundSecond(p.pendingCity))
-  const prefs = rushingApollo(p) ? (['liberty', ...POLICY_PREFERENCE] as const) : POLICY_PREFERENCE
-  for (const policy of prefs) {
-    if (p.pendingPolicies > 0) out.push({ type: 'choosePolicy', policy })
-  }
+  if (p.pendingPolicies > 0) for (const policy of policyOrder(s, p)) out.push({ type: 'choosePolicy', policy })
   if (p.pendingFreeCards > 0) {
     for (const o of cardOptions(p)) {
       out.push({ type: 'claimFreeCard', defId: o.def.id, unique: o.unique })
     }
   }
-  void s
   return out
 }
 
@@ -211,6 +281,8 @@ function produceCandidates(s: GameState, p: Player): Action[] {
     const h = turn.yields.cities.find((c) => c.cityId === city.id)!.hammer
     const wonders = investableWonders(s, p, city)
       .filter((w) => minHammers(p, w) <= h)
+      // 과학 정책(합리주의·자유)을 평등 등으로 덮어쓰는 불가사의는 피한다
+      .filter((w) => !(['rationalism', 'liberty'].includes(p.policy ?? '') && w.effects.some((e) => e.kind === 'setPolicy' && e.policy !== 'liberty')))
       .sort((a, b) => b.minHammers - a.minHammers)
     const wonderActions: Action[] = wonders.map((w) => ({ type: 'invest', cityId: city.id, wonderId: w.id, hammers: h }))
     const cardActions: Action[] = []
@@ -218,8 +290,9 @@ function produceCandidates(s: GameState, p: Player): Action[] {
       if (o.def.notBattle || !producible(s, p, o.def.id, o.unique, city) || cardCost(p, o.def, o.unique ? uniqueOf(p, o.unique) : undefined) > h) continue
       cardActions.push({ type: 'produce', cityId: city.id, defId: o.def.id, unique: o.unique })
     }
-    // 군대가 3장 미만이면 군사 카드를 먼저, 그 뒤에는 불가사의에 망치를 모두 건다
-    out.push(...(army < 3 || aiStyle === 'hammer' ? [...cardActions, ...wonderActions] : [...wonderActions, ...cardActions]))
+    // 군대가 3장 미만이거나 이웃의 군사에 비해 수비가 모자라면 군사 카드를 먼저, 그 뒤에는 불가사의에 망치를 모두 건다
+    const needDefense = army < defenseTarget(s, p)
+    out.push(...(army < 3 || needDefense || aiStyle === 'hammer' ? [...cardActions, ...wonderActions] : [...wonderActions, ...cardActions]))
   }
   // 3) 금으로 승급 (가장 높은 단계부터 시도한다)
   if (!turn.upgraded && turn.yields.gold > 0) {
@@ -239,7 +312,17 @@ function declareCandidates(s: GameState, p: Player): Action[] {
   const out: Action[] = []
   const army = p.military.filter((c) => cardStats(c).hp !== undefined).length
   if (army >= 2) {
-    const targets = declarationTargets(s, p).sort((a, b) => Number(b.kind === 'city') - Number(a.kind === 'city'))
+    // 탈환 → 상대의 좋은 타일(산출·자원·행복) → 도시 순으로 노린다. 좋은 타일을 점령해 상대의 성장을 누른다
+    const value = (t: ReturnType<typeof declarationTargets>[number]): number => {
+      if (t.kind === 'retake') return 1000
+      if (t.kind === 'city') return 0
+      const owner = s.players[t.defenderId]
+      const card = owner.cities.find((c) => c.id === t.cityId)?.tiles.find((x) => x.card.id === t.tileId)?.card
+      if (!card) return 0
+      const r = card.resource ? RESOURCES[card.resource] : undefined
+      return weight(tileYield(card, ctxOf(owner))) + (r?.kind === 'luxury' ? 4 : r?.kind === 'strategic' ? 3 : 0) + (card.wonder ? 6 : 0)
+    }
+    const targets = declarationTargets(s, p).sort((a, b) => value(b) - value(a))
     for (const t of targets) out.push({ type: 'declareWar', defenderId: t.defenderId, cityId: t.cityId, tileId: t.tileId })
   } else {
     for (const t of declarationTargets(s, p)) {
@@ -288,6 +371,9 @@ export function aiCandidates(s: GameState): Action[] {
     case 'setup':
       return [foundAction(p, p.hand)]
     case 'place': {
+      const baseScience = civById(p.civId).bonus.science ?? 0
+      defending = armyOf(p) < defenseTarget(s, p)
+      starving = baseScience < Math.min(...researchableTechs(s).map((t) => t.cost), 99)
       const reserve = p.generals > 0 && p.military.length >= 2 ? 1 : 0
       return [
         ...scoutCandidates(s, p),

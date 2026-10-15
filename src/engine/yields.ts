@@ -96,10 +96,19 @@ export function computeYields(player: Player): TurnYields {
   if (ctx.techs.has('astronomy') && player.cities[0]?.tiles.some((t) => (t.role === 'city' || t.role === 'side') && t.card.terrains.includes('산'))) science += 5
   // 경제학: 다음 차례부터 금 +4
   if (ctx.techs.has('economics') && !ctx.fresh.has('economics')) gold += 4
-  if (player.policy === 'rationalism') science += player.civId === 'korea' ? 6 : 4
+  if (player.policy === 'rationalism') science += player.civId === 'korea' ? 5 : 3
   if (player.wonders.includes('colossus')) gold += 4
-  // 공중정원: 완성 다음 차례부터 턴당 식량 +1 (첫 도시)
-  if (player.wonders.includes('hanging_gardens') && cities.length) cities[0].food += 1
+  // 공중정원: 다음 차례부터 문명 카드에 적힌 기본 산출량이 1 늘어난다. 적힌 산출이 없는 문명은 식량 +1로 본다 (open-questions 참고)
+  if (player.wonders.includes('hanging_gardens') && cities.length) {
+    const bonus = ctx.civ.bonus
+    const printed = (['food', 'hammer', 'science', 'gold'] as const).filter((k) => (bonus[k] ?? 0) > 0)
+    for (const k of printed.length ? printed : (['food'] as const)) {
+      if (k === 'food') cities[0].food += 1
+      else if (k === 'hammer') cities[0].hammer += 1
+      else if (k === 'science') science += 1
+      else gold += 1
+    }
+  }
   return { cities, science, gold }
 }
 

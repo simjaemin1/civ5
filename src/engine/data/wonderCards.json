@@ -134,7 +134,7 @@
       "tech": "engineering",
       "minHammers": 5,
       "condition": {
-        "kind": "mountainInCity"
+        "kind": "mountainInTerritory"
       },
       "effects": [
         {
