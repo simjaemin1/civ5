@@ -107,11 +107,13 @@
       "minHammers": 5,
       "effects": [
         {
-          "kind": "happiness",
-          "amount": 2
+          "kind": "desertBonus"
         }
       ],
-      "progressNeeded": 2
+      "progressNeeded": 2,
+      "condition": {
+        "kind": "desertFirst5"
+      }
     },
     {
       "id": "chichen_itza",
@@ -120,13 +122,11 @@
       "minHammers": 5,
       "effects": [
         {
-          "kind": "desertBonus"
+          "kind": "happiness",
+          "amount": 2
         }
       ],
-      "progressNeeded": 2,
-      "condition": {
-        "kind": "desertFirst5"
-      }
+      "progressNeeded": 2
     },
     {
       "id": "great_wall",

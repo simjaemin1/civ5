@@ -125,7 +125,7 @@ describe('두 번째 도시 (인쇄기술)', () => {
     // 한국 과학 2로는 비용 5를 못 내므로 식량 변환 없이 과학을 직접 채운다
     let s = mod(printing(), (c) => c.players[0].techs.push('writing'))
     s = apply(s, { type: 'placeWorkers', placements: [] })
-    s = mod(s, (c) => (c.players[0].turn!.yields.science = 5))
+    s = mod(s, (c) => (c.players[0].turn!.yields.science = 6))
     s = apply(s, { type: 'research', techId: 'printing_press' })
     expect(me(s).pendingCity).toHaveLength(4)
     expect(() => apply(s, { type: 'endProduction' })).toThrow(RuleError)
@@ -278,16 +278,16 @@ describe('불가사의 완성 효과', () => {
   const owning = (civ: string, wonders: string[]) =>
     mod(solo(civ), (c) => (c.players[0].wonders = wonders))
 
-  it('행복: 마우솔레움 +1, 페트라 +2, 에펠탑 +1', () => {
+  it('행복: 마우솔레움 +1, 치첸이사 +2, 에펠탑 +1', () => {
     const base = happiness(me(solo('denmark')))
     expect(happiness(me(owning('denmark', ['mausoleum'])))).toBe(base + 1)
-    expect(happiness(me(owning('denmark', ['petra'])))).toBe(base + 2)
-    expect(happiness(me(owning('denmark', ['mausoleum', 'petra', 'eiffel_tower'])))).toBe(base + 4)
+    expect(happiness(me(owning('denmark', ['chichen_itza'])))).toBe(base + 2)
+    expect(happiness(me(owning('denmark', ['mausoleum', 'chichen_itza', 'eiffel_tower'])))).toBe(base + 4)
   })
 
   it('페르시아는 불가사의 행복 2배', () => {
     const base = happiness(me(solo('persia')))
-    expect(happiness(me(owning('persia', ['petra'])))).toBe(base + 4)
+    expect(happiness(me(owning('persia', ['chichen_itza'])))).toBe(base + 4)
   })
 
   it('거신상: 턴당 금 +4', () => {
@@ -300,10 +300,10 @@ describe('불가사의 완성 효과', () => {
     expect(tourism(me(owning('france', ['louvre', 'eiffel_tower'])))).toBe(10)
   })
 
-  it('치첸이사: 사막 타일 식량 +1', () => {
+  it('페트라: 사막 타일 식량 +1', () => {
     const desert = tile(['사막'])
     const s = solo('denmark', [tile(['평지']), desert, tile(['언덕']), tile(['해안'])])
-    const withIt = mod(s, (c) => c.players[0].wonders.push('chichen_itza'))
+    const withIt = mod(s, (c) => c.players[0].wonders.push('petra'))
     const place = [{ cityId: 0, tileId: desert.id }]
     const food = (st: GameState) => apply(st, { type: 'placeWorkers', placements: place }).players[0].turn!.yields.cities[0].food
     expect(food(withIt)).toBe(food(s) + 1)
@@ -317,7 +317,7 @@ describe('고고학', () => {
     // 고고학은 경제학 선행(경제학은 공공행정 선행). 선행 기술을 직접 지정한다
     s = mod(s, (c) => c.players[0].techs.push('civil_service', 'machinery', 'economics'))
     s = apply(s, { type: 'placeWorkers', placements: [] })
-    s = mod(s, (c) => (c.players[0].turn!.yields.science = 8))
+    s = mod(s, (c) => (c.players[0].turn!.yields.science = 10))
     const before = culture(me(s))
     s = apply(s, { type: 'research', techId: 'archaeology' })
     expect(culture(me(s))).toBe(before + 2)

@@ -337,8 +337,8 @@ describe('데이터 무결성', () => {
     }
     expect(chain('computers').map((i) => techById(i).name)).toEqual(['공공행정', '경제학', '고고학', '생물학', '냉각기술', '컴퓨터'])
     expect(chain('radio').map((i) => techById(i).name)).toEqual(['교육학', '음향학', '과학이론', '전기', '라디오'])
-    expect(techById('economics').cost).toBe(5)
-    expect(techById('archaeology').cost).toBe(8)
+    expect(techById('economics').cost).toBe(6)
+    expect(techById('archaeology').cost).toBe(10)
   })
 
   it('규칙서가 참조하는 기술이 모두 트리에 있다', () => {

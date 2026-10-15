@@ -25,7 +25,7 @@ export interface YieldCtx {
   techs: ReadonlySet<string>
   /** 이번 차례에 연구한 기술: "다음 차례부터" 효과를 제외한다 */
   fresh: ReadonlySet<string>
-  /** 치첸이사: 사막 타일 산출 +1 */
+  /** 페트라: 사막 타일 식량 +1 */
   desertBonus: boolean
 }
 
@@ -34,7 +34,7 @@ export function ctxOf(player: Player): YieldCtx {
     civ: civById(player.civId),
     techs: new Set(player.techs),
     fresh: new Set(player.freshTechs),
-    desertBonus: player.wonders.includes('chichen_itza'),
+    desertBonus: player.wonders.includes('petra'),
   }
 }
 
@@ -63,7 +63,7 @@ export function tileYield(card: TileCard, ctx: YieldCtx): Yield {
     if (hit) y = addYield(y, m.yield)
   }
   if (ctx.desertBonus && card.terrains.includes('사막')) {
-    // 치첸이사: 영토의 모든 사막 타일 식량 +1
+    // 페트라: 영토의 모든 사막 타일 식량 +1
     y = { ...y, food: y.food + 1 }
   }
   return y

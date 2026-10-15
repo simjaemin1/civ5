@@ -58,7 +58,7 @@ describe('기술 카드: 산출 효과', () => {
   it('핵융합: 연구하면 원자폭탄 1장을 바로 얻는다', () => {
     let s = solo(['atomic_theory'])
     s = play(s, { type: 'placeWorkers', placements: [] })
-    s = mod(s, (c) => (c.players[0].turn!.yields.science = 14))
+    s = mod(s, (c) => (c.players[0].turn!.yields.science = 15))
     s = apply(s, { type: 'research', techId: 'fusion' })
     expect(me(s).military.some((c) => c.defId === 'atomic_bomb')).toBe(true)
   })
