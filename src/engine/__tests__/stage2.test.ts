@@ -366,3 +366,14 @@ describe('과학이론: 망치를 과학으로', () => {
     expect(() => apply(few, { type: 'research', techId: 'civil_service', hammerToScience: 2 })).toThrow(RuleError)
   })
 })
+
+describe('로그 번호', () => {
+  it('행동마다 새 로그 줄 수만큼 logSeq가 늘어난다', () => {
+    let s = mod(toProduce(solo()), (c) => (c.players[0].pendingPolicies = 1))
+    const before = s.logSeq
+    const lines = s.log.length
+    s = apply(s, { type: 'choosePolicy', policy: 'aesthetics' }) // 정책 로그 + 문화 로그
+    expect(s.logSeq - before).toBe(s.log.length - lines)
+    expect(s.logSeq - before).toBeGreaterThanOrEqual(2)
+  })
+})

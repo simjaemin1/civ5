@@ -35,6 +35,7 @@ export function GameScreen({ initial, seats, onExit }: Props) {
   const [game, setGame] = useState(initial)
   const [history, setHistory] = useState<GameState[]>([])
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState<string[]>([])
   const [speed, setSpeed] = useState(300)
   const [revealed, setRevealed] = useState('')
 
@@ -53,6 +54,8 @@ export function GameScreen({ initial, seats, onExit }: Props) {
       setError('')
       try {
         const next = apply(game, a)
+        const added = Math.min(next.logSeq - game.logSeq, next.log.length)
+        setNotice(added > 0 ? next.log.slice(-added) : [])
         setHistory((h) => [...h.slice(-99), game])
         setGame(next)
       } catch (e) {
@@ -88,6 +91,7 @@ export function GameScreen({ initial, seats, onExit }: Props) {
   }, [game, seats])
 
   const yields = player.turn?.yields
+  const skipsFood = !!player.turn?.skipFoodSettle
 
   let main: React.ReactNode
   if (over) {
@@ -181,6 +185,15 @@ export function GameScreen({ initial, seats, onExit }: Props) {
         </div>
       </header>
       {error && <div className="error banner-error">⚠ {error}</div>}
+      {!error && notice.length > 0 && !actorSeat.ai && (
+        <div className="notice">
+          <b>방금 일어난 일</b>
+          {notice.map((l, i) => (
+            <div key={i}>{l.replace(/^\[R\d+\] /, '')}</div>
+          ))}
+        </div>
+      )}
+      {skipsFood && !actorSeat.ai && <div className="notice">📜 이번 차례는 식량 정산을 하지 않습니다 (전통/체제). 일꾼 수는 그대로입니다.</div>}
       <div className="stats">
         {player.cities.length > 0 && (
           <span>

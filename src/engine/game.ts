@@ -66,6 +66,7 @@ export function createGame(opts: CreateOptions): GameState {
     declarations: [],
     battle: null,
     eldoradoFound: false,
+    logSeq: 0,
     winner: null,
     log: [],
   }

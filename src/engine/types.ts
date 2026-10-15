@@ -155,6 +155,8 @@ export interface GameState {
   declarations: Declaration[]
   battle: BattleState | null
   eldoradoFound: boolean
+  /** 지금까지 쓴 로그 줄 수 (log는 최근 줄만 남기므로 새 줄 수를 셀 때 쓴다) */
+  logSeq: number
   winner: { playerId: number; type: 'science' | 'culture' | 'conquest' } | null
   log: string[]
 }

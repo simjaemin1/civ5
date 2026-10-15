@@ -9,6 +9,7 @@ const MAX_LOG = 400
 
 export function say(s: GameState, msg: string): void {
   s.log.push(`[R${s.round}] ${msg}`)
+  s.logSeq++
   // 상태를 매번 복사하므로 로그는 최근 줄만 남긴다
   if (s.log.length > MAX_LOG) s.log.splice(0, s.log.length - MAX_LOG)
 }
