@@ -104,7 +104,7 @@ function pendingCandidates(s: GameState, p: Player): Action[] {
   }
   if (p.pendingFreeCards > 0) {
     for (const c of [...MILITARY_CARDS].sort((a, b) => b.cost - a.cost)) {
-      for (const dir of c.variantDirs ?? [undefined]) out.push({ type: 'claimFreeCard', defId: c.id, dir })
+      out.push({ type: 'claimFreeCard', defId: c.id })
     }
   }
   void s
@@ -134,16 +134,14 @@ function produceCandidates(s: GameState, p: Player): Action[] {
     const cardActions: Action[] = []
     for (const def of [...MILITARY_CARDS].sort((a, b) => b.cost - a.cost)) {
       if (def.notBattle || !producible(s, p, def.id) || cardCost(p, def) > h) continue
-      for (const dir of def.variantDirs ?? [undefined]) cardActions.push({ type: 'produce', cityId: city.id, defId: def.id, dir })
+      cardActions.push({ type: 'produce', cityId: city.id, defId: def.id })
     }
     // 군대가 3장 미만이면 군사 카드를 먼저, 그 뒤에는 불가사의에 망치를 모두 건다
     out.push(...(army < 3 ? [...cardActions, ...wonderActions] : [...wonderActions, ...cardActions]))
   }
   // 3) 금으로 승급
   if (!turn.upgraded && turn.yields.gold > 0) {
-    for (const c of p.military) {
-      for (const dir of ['L', 'C', 'R'] as const) out.push({ type: 'upgrade', uid: c.uid, dir })
-    }
+    for (const c of p.military) out.push({ type: 'upgrade', uid: c.uid })
   }
   return out
 }

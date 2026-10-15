@@ -9,7 +9,7 @@ import { currentPlayer, drawTiles, gainCulture, say } from './core'
 import { choosePolicy } from './policies'
 import { invest, settleWonders } from './wonders'
 import {
-  anyProducible, claimFreeCard, gainGeneral, initCardPool, produceCard, sacrificeCard, upgradeCard,
+  anyProducible, claimFreeCard, gainGeneral, produceCard, sacrificeCard, upgradeCard,
 } from './military'
 import { endScouting, freeWorkers, holdScouted, releaseHeld, scout } from './scouting'
 import {
@@ -61,7 +61,6 @@ export function createGame(opts: CreateOptions): GameState {
     wonderProgress: {},
     wonderOwners: {},
     investments: [],
-    cardPool: initCardPool(),
     nextUid: 1,
     declarations: [],
     battle: null,

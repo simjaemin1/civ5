@@ -15,11 +15,16 @@ function simulate(seed: number, civs: string[], maxSteps = 1500): { state: GameS
 
 /** 게임 상태가 항상 만족해야 하는 불변식 */
 function checkInvariants(s: GameState): void {
-  // 군사 카드 보존: 공용 덱 + 모든 문명이 가진 카드 = 처음 장수
-  for (const c of MILITARY_CARDS) {
-    const initial = c.variantDirs ? c.variantDirs.length : (c.copies ?? 3)
-    const held = s.players.reduce((n, p) => n + p.military.filter((m) => m.defId === c.id).length, 0)
-    expect(s.cardPool[c.id].length + held, `${c.id} 카드 수`).toBe(initial)
+  // 한 종류의 군사 카드는 6장까지, 방향 카드에는 방향이 있고 그 외에는 없다
+  for (const p of s.players) {
+    for (const c of MILITARY_CARDS) {
+      expect(p.military.filter((m) => m.defId === c.id).length, `${p.civId} ${c.id} 보유`).toBeLessThanOrEqual(6)
+    }
+    for (const m of p.military) {
+      const def = cardById(m.defId)
+      if (def.variantDirs) expect(def.variantDirs).toContain(m.dir)
+      else expect(m.dir).toBeUndefined()
+    }
   }
   // 타일 id는 어디에도 중복되지 않는다
   const ids: number[] = s.deck.map((t) => t.id)

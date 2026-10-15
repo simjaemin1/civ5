@@ -1,15 +1,12 @@
 import { useState } from 'react'
-import type { Dir } from '../../engine'
 import { MILITARY_CARDS, PROGRESS_NEEDED, cardById, cardCost, civById, investableWonders, minHammers, producible, uniqueOf, wonderCardById } from '../../engine'
-import { cardLine, conditionText, DIR_LABEL, ICON, wonderEffectText } from '../format'
+import { cardLine, conditionText, ICON, wonderEffectText } from '../format'
 import type { PanelProps } from './types'
 
 export function ProducePanel({ game, player, dispatch }: PanelProps) {
   const turn = player.turn!
   const civ = civById(player.civId)
   const [amounts, setAmounts] = useState<Record<string, number>>({})
-  const [dirs, setDirs] = useState<Record<string, Dir>>({})
-  const dirFor = (key: string, options: Dir[]): Dir => dirs[key] && options.includes(dirs[key]) ? dirs[key] : options[0]
 
   const upgrades = player.military
     .map((c) => {
@@ -71,7 +68,7 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
                   </div>
                 </details>
                 <details>
-                  <summary>군사 카드 생산</summary>
+                  <summary>군사 카드 생산 (방향이 있는 카드는 생산할 때 무작위로 정해집니다)</summary>
                   <div className="list">
                     {MILITARY_CARDS.flatMap((def) => {
                       const entries: { unique?: string }[] = [{}, ...civ.uniques.filter((u) => u.base === def.id).map((u) => ({ unique: u.name }))]
@@ -79,27 +76,17 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
                         .filter((e) => producible(game, player, def.id, e.unique))
                         .map((e) => {
                           const key = `${city.id}:${def.id}:${e.unique ?? ''}`
-                          const opts = (def.variantDirs ?? []).filter((d) => game.cardPool[def.id].includes(d))
                           const cost = cardCost(player, def, e.unique ? uniqueOf(player, e.unique) : undefined)
                           return (
                             <div key={key} className="row">
-                              <span>{cardLine(def, opts.length ? dirFor(key, opts) : undefined, e.unique)}</span>
+                              <span>{cardLine(def, undefined, e.unique)}</span>
                               <b>
                                 {ICON.hammer}
                                 {cost}
                               </b>
-                              {opts.length > 0 && (
-                                <select value={dirFor(key, opts)} onChange={(ev) => setDirs({ ...dirs, [key]: ev.target.value as Dir })}>
-                                  {opts.map((d) => (
-                                    <option key={d} value={d}>
-                                      {DIR_LABEL[d]}
-                                    </option>
-                                  ))}
-                                </select>
-                              )}
                               <button
                                 disabled={cost > h}
-                                onClick={() => dispatch({ type: 'produce', cityId: city.id, defId: def.id, dir: opts.length ? dirFor(key, opts) : undefined, unique: e.unique })}
+                                onClick={() => dispatch({ type: 'produce', cityId: city.id, defId: def.id, unique: e.unique })}
                               >
                                 생산
                               </button>
@@ -119,28 +106,17 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
         <summary>금으로 승급 ({upgrades.length}장 가능, 한 차례에 한 장{turn.upgraded ? ' — 이번 차례 사용함' : ''})</summary>
         <div className="list">
           {upgrades.map(({ inst, lower, upper }) => {
-            const opts = (upper.variantDirs ?? []).filter((d) => game.cardPool[upper.id].includes(d))
-            const key = `up:${inst.uid}`
             const cost = cardCost(player, upper)
             return (
               <div key={inst.uid} className="row">
                 <span>
-                  {lower.name} → {cardLine(upper)}
+                  {lower.name} → {cardLine(upper)} (방향은 무작위)
                 </span>
                 <b>
                   {ICON.gold}
                   {cost}
                 </b>
-                {opts.length > 0 && (
-                  <select value={dirFor(key, opts)} onChange={(ev) => setDirs({ ...dirs, [key]: ev.target.value as Dir })}>
-                    {opts.map((d) => (
-                      <option key={d} value={d}>
-                        {DIR_LABEL[d]}
-                      </option>
-                    ))}
-                  </select>
-                )}
-                <button disabled={turn.upgraded || turn.yields.gold < cost || !player.techs.includes(upper.tech)} onClick={() => dispatch({ type: 'upgrade', uid: inst.uid, dir: opts.length ? dirFor(key, opts) : undefined })}>
+                <button disabled={turn.upgraded || turn.yields.gold < cost || !player.techs.includes(upper.tech)} onClick={() => dispatch({ type: 'upgrade', uid: inst.uid })}>
                   승급
                 </button>
               </div>

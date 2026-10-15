@@ -135,14 +135,14 @@ export function InfoTabs({ game, viewer }: { game: GameState; viewer: number }) 
       )}
       {tab === 'card' && (
         <div className="scroll">
-        <p className="muted">남은 장수만 공개합니다. 누가 어떤 방향의 카드를 가졌는지는 비공개이고, 무엇을 생산했는지는 로그에 남습니다.</p>
+        <p className="muted">공용 덱의 카드는 사실상 무제한이고, 한 종류는 6장까지 가질 수 있습니다. 방향이 있는 카드는 만들 때 방향이 무작위로 정해지고, 누가 어떤 방향의 카드를 가졌는지는 비공개입니다. 무엇을 생산했는지는 로그에 남습니다.</p>
         <table className="table">
           <thead>
             <tr>
               <th>카드</th>
               <th>망치</th>
               <th>기술</th>
-              <th>공용 덱 남은 장수</th>
+              <th>내 보유</th>
             </tr>
           </thead>
           <tbody>
@@ -152,7 +152,7 @@ export function InfoTabs({ game, viewer }: { game: GameState; viewer: number }) 
                 <td>{c.cost}</td>
                 <td>{TECHS.find((t) => t.id === c.tech)?.name}</td>
                 <td>
-                  {game.cardPool[c.id].length}/{c.variantDirs ? c.variantDirs.length : (c.copies ?? 3)}장
+                  {me.military.filter((m) => m.defId === c.id).length}/6장
                 </td>
               </tr>
             ))}

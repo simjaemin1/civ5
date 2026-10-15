@@ -1,5 +1,5 @@
 {
- "_note": "규칙서 이미지 카드에서 읽음. marks: 카드 위쪽 전투력 마크(L=왼쪽, C=가운데, R=오른쪽)와 그 전투력. attack.choose: '카드를 1개 골라 전투력 N으로 공격'. variantDirs가 있는 카드는 전투력 power의 마크가 L·C·R 각각 한 방향인 카드가 따로 있다(사용자 확인). 장수(copies)는 이미지에 보인 장수(규칙서: 최대 3장).",
+ "_note": "규칙서 이미지 카드에서 읽음. marks: 카드 위쪽 전투력 마크(L=왼쪽, C=가운데, R=오른쪽)와 그 전투력. attack.choose: '카드를 1개 골라 전투력 N으로 공격'. variantDirs가 있는 카드는 전투력 power의 마크가 L·C·R 각각 한 방향인 카드가 따로 있고(사용자 확인), 생산할 때 방향이 무작위로 정해진다(사용자 확인). 공용 덱의 카드는 사실상 무제한이고 한 종류는 6장까지 보유할 수 있다.",
  "cards": [
   {
    "id": "warrior",
@@ -227,8 +227,7 @@
     "power": 1
    },
    "hp": 1,
-   "def": 1,
-   "copies": 3
+   "def": 1
   },
   {
    "id": "horseman",
@@ -242,8 +241,7 @@
     "power": 2
    },
    "hp": 3,
-   "def": 1,
-   "copies": 3
+   "def": 1
   },
   {
    "id": "knight",
@@ -257,8 +255,7 @@
     "power": 2
    },
    "hp": 4,
-   "def": 2,
-   "copies": 3
+   "def": 2
   },
   {
    "id": "cavalry",
@@ -272,8 +269,7 @@
     "power": 3
    },
    "hp": 5,
-   "def": 2,
-   "copies": 3
+   "def": 2
   },
   {
    "id": "tank",
@@ -287,8 +283,7 @@
     "power": 4
    },
    "hp": 5,
-   "def": 3,
-   "copies": 3
+   "def": 3
   },
   {
    "id": "cannon",
@@ -358,8 +353,7 @@
    ],
    "hp": 1,
    "def": 0,
-   "special": "airImmune",
-   "copies": 3
+   "special": "airImmune"
   },
   {
    "id": "fighter",
@@ -375,8 +369,7 @@
    ],
    "hp": 1,
    "def": 1,
-   "special": "airImmune",
-   "copies": 3
+   "special": "airImmune"
   },
   {
    "id": "aa_gun",

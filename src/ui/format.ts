@@ -61,7 +61,7 @@ export function cardLine(def: MilitaryCardDef, dir?: Dir, unique?: string): stri
   let atk: string
   if (def.attack?.choose) atk = `⚔${def.attack.power} 대상 선택`
   else if (def.marks) atk = def.marks.map((m) => `⚔${m.power}${DIR_LABEL[m.dir]}`).join('·')
-  else atk = `⚔${def.power}${dir ? DIR_LABEL[dir] : ''}`
+  else atk = `⚔${def.power}${dir ? DIR_LABEL[dir] : def.variantDirs ? ' 방향 무작위' : ''}`
   const flags = [def.noCounter ? '반격 없음' : '', def.special === 'destroysCity' ? '도시 파괴' : '', def.special === 'coastalOnly' ? '해안 전용' : '']
     .filter(Boolean)
     .join(' ')

@@ -91,7 +91,6 @@ export interface MilitaryCardDef {
   def?: number
   noCounter?: boolean
   special?: string
-  copies?: number
   notBattle?: boolean
   note?: string
 }

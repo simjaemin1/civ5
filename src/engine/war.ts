@@ -4,7 +4,7 @@ import { cardById, civById } from './data'
 import type { MilitaryCardDef } from './data'
 import { say } from './core'
 import { freeWorkers } from './scouting'
-import { isCoastalOnly, returnToPool, uniqueOf } from './military'
+import { isCoastalOnly, uniqueOf } from './military'
 import { culture, tourism } from './yields'
 
 export interface DeclTarget {
@@ -282,8 +282,8 @@ function resolveBattle(s: GameState): void {
     for (const u of units[pid]) {
       if (!destroyed.has(u.inst.uid)) continue
       p.military = p.military.filter((c) => c.uid !== u.inst.uid)
+      // 파괴된 카드는 공용 덱으로 돌아간다. 오스만은 상대의 해안 전용 카드를 파괴하면 그 카드를 가져온다.
       if (enemy.civId === 'ottoman' && isCoastalOnly(u.inst)) enemy.military.push(u.inst)
-      else returnToPool(s, u.inst)
     }
   }
   say(
@@ -380,7 +380,6 @@ export function detonateAtomicBomb(s: GameState, p: Player, a: { defenderId: num
   found.city.placed = found.city.placed.filter((id) => id !== a.tileId)
   p.generals += 1
   p.military = p.military.filter((c) => c.uid !== bomb.uid)
-  returnToPool(s, bomb)
   say(s, `${civById(p.civId).name} 원자폭탄 → ${civById(def.civId).name} 타일 파괴`)
 }
 

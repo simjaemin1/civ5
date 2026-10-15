@@ -3,7 +3,7 @@ import type { PolicyId } from '../../engine'
 import { MILITARY_CARDS, POLICIES, civById, happiness, producible, totalWorkers } from '../../engine'
 import { CityBuilder } from './CityBuilder'
 import type { PanelProps } from './types'
-import { cardLine, DIR_LABEL, policyName } from '../format'
+import { cardLine, policyName } from '../format'
 
 const ORDER: PolicyId[] = ['tradition', 'aesthetics', 'despotism', 'regime', 'liberty', 'rationalism', 'equality', 'diplomacy']
 
@@ -86,13 +86,11 @@ export function PendingPanel({ game, player, dispatch }: PanelProps) {
               for (const u of civById(player.civId).uniques) if (u.base === def.id) entries.push({ def, unique: u.name })
               return entries
                 .filter((e) => producible(game, player, e.def.id, e.unique))
-                .flatMap((e) =>
-                  (e.def.variantDirs ?? [undefined]).filter((d) => !d || game.cardPool[e.def.id].includes(d)).map((dir) => (
-                    <button key={`${e.def.id}-${e.unique}-${dir}`} onClick={() => dispatch({ type: 'claimFreeCard', defId: e.def.id, dir, unique: e.unique })}>
-                      {cardLine(e.def, dir, e.unique)} {dir ? `[${DIR_LABEL[dir]}]` : ''}
-                    </button>
-                  )),
-                )
+                .map((e) => (
+                  <button key={`${e.def.id}-${e.unique}`} onClick={() => dispatch({ type: 'claimFreeCard', defId: e.def.id, unique: e.unique })}>
+                    {cardLine(e.def, undefined, e.unique)}
+                  </button>
+                ))
             })}
           </div>
         </div>

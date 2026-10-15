@@ -19,13 +19,11 @@ const passTurn = (s: GameState) => {
   return r.phase === 'declare' ? apply(r, { type: 'endTurn' }) : r
 }
 
-/** 공용 덱에서 카드를 꺼내 문명에게 준다 (uid 반환) */
+/** 카드를 만들어 문명에게 준다 (uid 반환). 방향은 테스트가 정한다. */
 function give(s: GameState, pid: number, defId: string, dir?: 'L' | 'C' | 'R', unique?: string): number {
   const def = cardById(defId)
-  const v = def.variantDirs ? (dir ?? def.variantDirs[0]) : 'x'
-  s.cardPool[defId].splice(s.cardPool[defId].indexOf(v), 1)
   const uid = s.nextUid++
-  s.players[pid].military.push({ uid, defId, dir: def.variantDirs ? (v as 'L' | 'C' | 'R') : undefined, unique })
+  s.players[pid].military.push({ uid, defId, dir: def.variantDirs ? (dir ?? def.variantDirs[0]) : undefined, unique })
   return uid
 }
 
@@ -68,37 +66,52 @@ describe('군사 카드 생산', () => {
   }
   const withHammers = (s: GameState, n: number) => mod(s, (c) => (c.players[0].turn!.yields.cities[0].hammer = n))
 
-  it('필요한 기술이 있고 망치가 충분하면 카드를 만들고 공용 덱에서 방향 카드를 가져온다', () => {
+  it('필요한 기술이 있고 망치가 충분하면 카드를 만든다 (방향 카드는 방향이 정해진다)', () => {
     let s = withHammers(at('denmark', ['agriculture']), 5)
-    expect(() => apply(s, { type: 'produce', cityId: 0, defId: 'warrior' })).toThrow(RuleError) // 방향 미지정
-    s = apply(s, { type: 'produce', cityId: 0, defId: 'warrior', dir: 'C' })
+    s = apply(s, { type: 'produce', cityId: 0, defId: 'warrior' })
     expect(me(s).military).toHaveLength(1)
-    expect(me(s).military[0]).toMatchObject({ defId: 'warrior', dir: 'C' })
-    expect(s.cardPool.warrior).toEqual(['L', 'R'])
+    expect(me(s).military[0].defId).toBe('warrior')
+    expect(['L', 'C', 'R']).toContain(me(s).military[0].dir)
+  })
+
+  it('공격 방향은 무작위로 정해지고 세 방향이 고르게 나온다 (고를 수 없음)', () => {
+    const counts: Record<string, number> = { L: 0, C: 0, R: 0 }
+    const base = withHammers(at('denmark', ['agriculture']), 5)
+    for (let seed = 1; seed <= 300; seed++) {
+      const s = apply(mod(base, (c) => (c.rng = seed * 7919)), { type: 'produce', cityId: 0, defId: 'warrior' })
+      counts[me(s).military[0].dir!]++
+    }
+    for (const d of ['L', 'C', 'R']) expect(counts[d], `${d} 방향`).toBeGreaterThan(60) // 기대값 100
+    // 같은 시드는 같은 결과
+    const a = apply(mod(base, (c) => (c.rng = 42)), { type: 'produce', cityId: 0, defId: 'warrior' })
+    const b = apply(mod(base, (c) => (c.rng = 42)), { type: 'produce', cityId: 0, defId: 'warrior' })
+    expect(me(a).military[0].dir).toBe(me(b).military[0].dir)
+  })
+
+  it('방향이 고정된 카드(전차·폭격기·전투기·대공포)는 방향이 없다', () => {
+    const s = withHammers(at('denmark', ['animal_husbandry']), 5)
+    const r = apply(s, { type: 'produce', cityId: 0, defId: 'chariot' })
+    expect(me(r).military[0].dir).toBeUndefined()
   })
 
   it('기술이 없거나 망치가 모자라면 만들 수 없다', () => {
-    expect(() => apply(withHammers(at(), 9), { type: 'produce', cityId: 0, defId: 'warrior', dir: 'L' })).toThrow(RuleError)
-    expect(() => apply(withHammers(at('denmark', ['agriculture']), 4), { type: 'produce', cityId: 0, defId: 'warrior', dir: 'L' })).toThrow(RuleError)
+    expect(() => apply(withHammers(at(), 9), { type: 'produce', cityId: 0, defId: 'warrior' })).toThrow(RuleError)
+    expect(() => apply(withHammers(at('denmark', ['agriculture']), 4), { type: 'produce', cityId: 0, defId: 'warrior' })).toThrow(RuleError)
   })
 
   it('도시마다 한 차례에 생산은 1개 (불가사의 투자와 합쳐서)', () => {
     let s = withHammers(at('denmark', ['agriculture', 'archery']), 20)
-    s = apply(s, { type: 'produce', cityId: 0, defId: 'warrior', dir: 'L' })
-    expect(() => apply(s, { type: 'produce', cityId: 0, defId: 'archer', dir: 'L' })).toThrow(RuleError)
+    s = apply(s, { type: 'produce', cityId: 0, defId: 'warrior' })
+    expect(() => apply(s, { type: 'produce', cityId: 0, defId: 'archer' })).toThrow(RuleError)
   })
 
-  it('같은 방향의 카드는 공용 덱에 1장뿐이라 두 장 만들 수 없다', () => {
-    let s = withHammers(at('denmark', ['agriculture']), 5)
-    s = apply(s, { type: 'produce', cityId: 0, defId: 'warrior', dir: 'L' })
-    s = apply(s, { type: 'endProduction' })
-    s = withHammers(play(s, { type: 'placeWorkers', placements: [] }, { type: 'skipResearch' }), 5)
-    expect(() => apply(s, { type: 'produce', cityId: 0, defId: 'warrior', dir: 'L' })).toThrow(RuleError)
-  })
-
-  it('전차 계열은 종류당 3장까지만 존재한다', () => {
-    const s = at('denmark', ['animal_husbandry'])
-    expect(s.cardPool.chariot).toHaveLength(3)
+  it('한 종류는 6장까지만 보유할 수 있다 (공용 덱은 사실상 무제한)', () => {
+    let s = mod(withHammers(at('denmark', ['agriculture']), 5), (c) => {
+      for (let i = 0; i < 6; i++) give(c, 0, 'warrior', 'L')
+    })
+    expect(() => apply(s, { type: 'produce', cityId: 0, defId: 'warrior' })).toThrow(RuleError)
+    s = mod(s, (c) => c.players[0].military.pop())
+    expect(() => apply(s, { type: 'produce', cityId: 0, defId: 'warrior' })).not.toThrow()
   })
 
   it('전함은 첫 5타일에 해안이 있는 도시에서만 만들 수 있다', () => {
@@ -107,14 +120,14 @@ describe('군사 카드 생산', () => {
     s = mod(s, (c) => c.players[0].techs.push('biology'))
     s = play(s, { type: 'placeWorkers', placements: [] }, { type: 'skipResearch' })
     s = withHammers(s, 10)
-    expect(() => apply(s, { type: 'produce', cityId: 0, defId: 'battleship', dir: 'L' })).toThrow(RuleError)
+    expect(() => apply(s, { type: 'produce', cityId: 0, defId: 'battleship' })).toThrow(RuleError)
     const coastal = withHammers(at('denmark', ['biology']), 10)
-    expect(() => apply(coastal, { type: 'produce', cityId: 0, defId: 'battleship', dir: 'L' })).not.toThrow()
+    expect(() => apply(coastal, { type: 'produce', cityId: 0, defId: 'battleship' })).not.toThrow()
   })
 
   it('아르테미스 사원: 생산 비용 -1', () => {
     const s = withHammers(mod(at('denmark', ['agriculture']), (c) => c.players[0].wonders.push('temple_of_artemis')), 4)
-    expect(() => apply(s, { type: 'produce', cityId: 0, defId: 'warrior', dir: 'L' })).not.toThrow()
+    expect(() => apply(s, { type: 'produce', cityId: 0, defId: 'warrior' })).not.toThrow()
   })
 
   it('고유 유닛: 스페인 테르시오는 머스킷병 취급에 망치 1이 더 든다', () => {
@@ -122,10 +135,10 @@ describe('군사 카드 생산', () => {
     let s = found(s0)
     s = mod(s, (c) => c.players[0].techs.push('gunpowder'))
     s = play(s, { type: 'placeWorkers', placements: [] }, { type: 'skipResearch' })
-    expect(() => apply(withHammers(s, 9), { type: 'produce', cityId: 0, defId: 'musketman', dir: 'L', unique: '테르시오' })).toThrow(RuleError)
-    const ok = apply(withHammers(s, 10), { type: 'produce', cityId: 0, defId: 'musketman', dir: 'L', unique: '테르시오' })
+    expect(() => apply(withHammers(s, 9), { type: 'produce', cityId: 0, defId: 'musketman', unique: '테르시오' })).toThrow(RuleError)
+    const ok = apply(withHammers(s, 10), { type: 'produce', cityId: 0, defId: 'musketman', unique: '테르시오' })
     expect(me(ok).military[0]).toMatchObject({ defId: 'musketman', unique: '테르시오' })
-    expect(() => apply(withHammers(s, 10), { type: 'produce', cityId: 0, defId: 'musketman', dir: 'L', unique: '불멸자' })).toThrow(RuleError)
+    expect(() => apply(withHammers(s, 10), { type: 'produce', cityId: 0, defId: 'musketman', unique: '불멸자' })).toThrow(RuleError)
   })
 })
 
@@ -138,9 +151,9 @@ describe('군사 카드 공개 범위', () => {
       c.players[0].turn!.yields.cities[0].hammer = 5
       c.players[0].turn!.yields.gold = 10
     })
-    s = apply(s, { type: 'produce', cityId: 0, defId: 'warrior', dir: 'C' })
+    s = apply(s, { type: 'produce', cityId: 0, defId: 'warrior' })
     expect(s.log.at(-1)).toContain('전사')
-    s = apply(s, { type: 'upgrade', uid: s.players[0].military[0].uid, dir: 'R' })
+    s = apply(s, { type: 'upgrade', uid: s.players[0].military[0].uid })
     expect(s.log.at(-1)).toContain('장검사')
     expect(s.log.filter((l) => /생산|승급/.test(l)).join('\n')).not.toMatch(/왼쪽|가운데|오른쪽|\bL\b|\bC\b|\bR\b/)
   })
@@ -162,13 +175,12 @@ describe('금으로 승급', () => {
       give(c, 0, 'warrior', 'C')
       c.players[0].turn!.yields.gold = 10
     })
-    expect(() => apply(setup(), { type: 'upgrade', uid: 999, dir: 'L' })).toThrow(RuleError)
-    s = apply(s, { type: 'upgrade', uid, dir: 'R' })
-    expect(me(s).military.find((c) => c.defId === 'longswordsman')).toMatchObject({ dir: 'R' })
-    expect(s.cardPool.warrior).toContain('L') // 하위 카드는 공용 덱으로
+    expect(() => apply(setup(), { type: 'upgrade', uid: 999 })).toThrow(RuleError)
+    s = apply(s, { type: 'upgrade', uid })
+    expect(['L', 'C', 'R']).toContain(me(s).military.find((c) => c.defId === 'longswordsman')!.dir) // 새 카드의 방향은 무작위
     expect(me(s).turn!.yields.gold).toBe(3) // 10 - 7
     const other = me(s).military.find((c) => c.defId === 'warrior')!.uid
-    expect(() => apply(s, { type: 'upgrade', uid: other, dir: 'L' })).toThrow(RuleError) // 한 차례에 한 장
+    expect(() => apply(s, { type: 'upgrade', uid: other })).toThrow(RuleError) // 한 차례에 한 장
   })
 
   it('금이 모자라거나 기술이 없으면 승급할 수 없다', () => {
@@ -178,12 +190,12 @@ describe('금으로 승급', () => {
       uid = give(c, 0, 'warrior', 'L')
       c.players[0].turn!.yields.gold = 6
     })
-    expect(() => apply(s, { type: 'upgrade', uid, dir: 'L' })).toThrow(RuleError)
+    expect(() => apply(s, { type: 'upgrade', uid })).toThrow(RuleError)
     const noTech = mod(s, (c) => {
       c.players[0].techs = c.players[0].techs.filter((t) => t !== 'iron_working')
       c.players[0].turn!.yields.gold = 20
     })
-    expect(() => apply(noTech, { type: 'upgrade', uid, dir: 'L' })).toThrow(RuleError)
+    expect(() => apply(noTech, { type: 'upgrade', uid })).toThrow(RuleError)
   })
 })
 
@@ -325,7 +337,6 @@ describe('전투 규칙', () => {
     s = arrange(s, 0, [warrior, null, null, null]) // 내 1번 ↔ 상대 4번
     s = arrange(s, 1, [null, null, null, pike])
     expect(ids(s, 0)).not.toContain(warrior)
-    expect(s.cardPool.warrior).toContain('C') // 파괴된 카드는 공용 덱으로
     expect(ids(s, 1)).toContain(pike)
   })
 
@@ -591,7 +602,6 @@ describe('도시 공격·탈환·탈락', () => {
     expect(culture(s.players[1])).toBe(before - 1)
     expect(s.players[0].generals).toBe(1)
     expect(s.players[0].military.some((c) => c.defId === 'atomic_bomb')).toBe(false)
-    expect(s.cardPool.atomic_bomb).toHaveLength(3)
   })
 
   it('만리장성: 게임 중 1번, 내 영토 위 상대 장군을 모두 돌려보낸다', () => {
@@ -749,7 +759,6 @@ describe('문명 능력 (전쟁·군사 관련)', () => {
     const before = me(s).turn!.yields.cities[0].food
     s = apply(s, { type: 'sacrificeCard', uid })
     expect(me(s).turn!.yields.cities[0].food).toBe(before + 2)
-    expect(s.cardPool.warrior).toHaveLength(3)
   })
 
   it('스웨덴: 배치하지 않은 위대한 장군을 일꾼처럼 타일에 올려 사용', () => {
@@ -818,17 +827,18 @@ describe('문명 능력 (전쟁·군사 관련)', () => {
 })
 
 describe('군사 카드 데이터', () => {
-  it('방향 카드는 방향마다 공용 덱에 1장, 그 외는 3장', () => {
-    const s = startGame(['korea'], [hand4()])
+  it('방향 카드는 L·C·R 세 방향이 있고, 전차·폭격기·전투기 등은 방향이 따로 없다', () => {
     for (const c of MILITARY_CARDS) {
-      const expected = c.variantDirs ? c.variantDirs.length : (c.copies ?? 3)
-      expect(s.cardPool[c.id]).toHaveLength(expected)
+      if (c.variantDirs) expect(c.variantDirs).toEqual(['L', 'C', 'R'])
     }
+    expect(cardById('chariot').variantDirs).toBeUndefined()
+    expect(cardById('bomber').variantDirs).toBeUndefined()
+    expect(cardById('fighter').variantDirs).toBeUndefined()
   })
 
   it('고유 유닛이 가리키는 기초 카드와 기술이 존재한다', () => {
     const s = startGame(['korea'], [hand4()])
-    for (const civ of s.players) void civ
+    void s
     expect(MILITARY_CARDS.find((c) => c.id === 'cannon')).toBeTruthy()
   })
 })

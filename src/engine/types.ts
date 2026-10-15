@@ -149,8 +149,6 @@ export interface GameState {
   wonderOwners: Record<string, number>
   /** 이번 라운드의 불가사의 투자 (정산 때 처리) */
   investments: { wonderId: string; playerId: number; cityId: number; hammers: number }[]
-  /** 공용 군사 카드 덱: 카드 종류별 남은 카드 (방향 카드는 'L'|'C'|'R', 그 외는 'x') */
-  cardPool: Record<string, string[]>
   nextUid: number
   declarations: Declaration[]
   battle: BattleState | null
@@ -179,8 +177,8 @@ export type Action =
   | { type: 'choosePolicy'; policy: PolicyId; discard?: { cityId: number; count: number }[]; dismiss?: { cityId: number; tileId: number } }
   | { type: 'buildSecondCity'; cityTileId: number; sideTiles: Partial<Record<Side, number>> }
   | { type: 'invest'; cityId: number; wonderId: string; hammers: number }
-  | { type: 'produce'; cityId: number; defId: string; dir?: 'L' | 'C' | 'R'; unique?: string }
-  | { type: 'upgrade'; uid: number; dir?: 'L' | 'C' | 'R'; unique?: string }
+  | { type: 'produce'; cityId: number; defId: string; unique?: string }
+  | { type: 'upgrade'; uid: number; unique?: string }
   | { type: 'scout' }
   | { type: 'holdScouted' }
   | { type: 'releaseHeld' }
@@ -191,6 +189,6 @@ export type Action =
   | { type: 'useAtomicBomb'; defenderId: number; cityId: number; tileId: number }
   | { type: 'useGreatWall' }
   | { type: 'sacrificeCard'; uid: number }
-  | { type: 'claimFreeCard'; defId: string; dir?: 'L' | 'C' | 'R'; unique?: string }
+  | { type: 'claimFreeCard'; defId: string; unique?: string }
 
 export class RuleError extends Error {}
