@@ -23,7 +23,7 @@ const passTurn = (s: GameState) => {
 function give(s: GameState, pid: number, defId: string, dir?: 'L' | 'C' | 'R', unique?: string): number {
   const def = cardById(defId)
   const uid = s.nextUid++
-  s.players[pid].military.push({ uid, defId, dir: def.variantDirs ? (dir ?? def.variantDirs[0]) : undefined, unique })
+  s.players[pid].military.push({ uid, defId, dirs: def.variantDirs ? [dir ?? def.variantDirs[0]] : undefined, unique })
   return uid
 }
 
@@ -71,7 +71,7 @@ describe('군사 카드 생산', () => {
     s = apply(s, { type: 'produce', cityId: 0, defId: 'warrior' })
     expect(me(s).military).toHaveLength(1)
     expect(me(s).military[0].defId).toBe('warrior')
-    expect(['L', 'C', 'R']).toContain(me(s).military[0].dir)
+    expect(['L', 'C', 'R']).toContain(me(s).military[0].dirs![0])
   })
 
   it('공격 방향은 무작위로 정해지고 세 방향이 고르게 나온다 (고를 수 없음)', () => {
@@ -79,19 +79,19 @@ describe('군사 카드 생산', () => {
     const base = withHammers(at('denmark', ['agriculture']), 5)
     for (let seed = 1; seed <= 300; seed++) {
       const s = apply(mod(base, (c) => (c.rng = seed * 7919)), { type: 'produce', cityId: 0, defId: 'warrior' })
-      counts[me(s).military[0].dir!]++
+      counts[me(s).military[0].dirs![0]]++
     }
     for (const d of ['L', 'C', 'R']) expect(counts[d], `${d} 방향`).toBeGreaterThan(60) // 기대값 100
     // 같은 시드는 같은 결과
     const a = apply(mod(base, (c) => (c.rng = 42)), { type: 'produce', cityId: 0, defId: 'warrior' })
     const b = apply(mod(base, (c) => (c.rng = 42)), { type: 'produce', cityId: 0, defId: 'warrior' })
-    expect(me(a).military[0].dir).toBe(me(b).military[0].dir)
+    expect(me(a).military[0].dirs).toEqual(me(b).military[0].dirs)
   })
 
   it('방향이 고정된 카드(전차·폭격기·전투기·대공포)는 방향이 없다', () => {
     const s = withHammers(at('denmark', ['animal_husbandry']), 5)
     const r = apply(s, { type: 'produce', cityId: 0, defId: 'chariot' })
-    expect(me(r).military[0].dir).toBeUndefined()
+    expect(me(r).military[0].dirs).toBeUndefined()
   })
 
   it('기술이 없거나 망치가 모자라면 만들 수 없다', () => {
@@ -159,14 +159,13 @@ describe('군사 카드 공개 범위', () => {
   })
 })
 
-/** 고유 유닛 한 장을 재고에서 꺼내 문명에게 준다 */
-function giveUnique(s: GameState, pid: number, unique: string, defId: string, dir?: 'L' | 'C' | 'R'): number {
-  const def = cardById(defId)
+/** 고유 유닛 한 장을 재고에서 꺼내 문명에게 준다 (key: 재고의 방향 조합 'L', 'LC', 'x' 등) */
+function giveUnique(s: GameState, pid: number, unique: string, defId: string, key?: string): number {
   const supply = s.uniqueSupply[unique]
-  const v = def.variantDirs ? (dir ?? def.variantDirs[0]) : 'x'
-  supply.splice(supply.indexOf(v), 1)
+  const k = key ?? supply[0]
+  supply.splice(supply.indexOf(k), 1)
   const uid = s.nextUid++
-  s.players[pid].military.push({ uid, defId, dir: def.variantDirs ? (v as 'L' | 'C' | 'R') : undefined, unique })
+  s.players[pid].military.push({ uid, defId, dirs: k === 'x' ? undefined : (k.split('') as ('L' | 'C' | 'R')[]), unique })
   return uid
 }
 
@@ -188,7 +187,7 @@ describe('고유 유닛은 3장만 존재한다', () => {
     let s = spain(['gunpowder'])
     expect([...s.uniqueSupply['테르시오']].sort()).toEqual(['C', 'L', 'R'])
     for (let i = 0; i < 3; i++) s = produceUnique(s)
-    const dirs = me(s).military.filter((c) => c.unique === '테르시오').map((c) => c.dir)
+    const dirs = me(s).military.filter((c) => c.unique === '테르시오').map((c) => c.dirs![0])
     expect([...dirs].sort()).toEqual(['C', 'L', 'R'])
     expect(s.uniqueSupply['테르시오']).toEqual([])
     expect(() => produceUnique(s)).toThrow(RuleError)
@@ -259,7 +258,7 @@ describe('고유 유닛은 3장만 존재한다', () => {
     let ship = 0
     let s = toBattle(round2(['netherlands', 'ottoman']), (c) => {
       c.players[0].generals = 1
-      ship = giveUnique(c, 0, '제고이센', 'battleship', 'L')
+      ship = giveUnique(c, 0, '제고이센', 'zeijoisen', 'L')
       give(c, 1, 'tank')
       give(c, 1, 'tank')
     }, { pid: 1, idx: 3 }) // 오스만의 해안 타일: 해안 전투
@@ -293,7 +292,7 @@ describe('금으로 승급', () => {
     })
     expect(() => apply(setup(), { type: 'upgrade', uid: 999 })).toThrow(RuleError)
     s = apply(s, { type: 'upgrade', uid })
-    expect(['L', 'C', 'R']).toContain(me(s).military.find((c) => c.defId === 'longswordsman')!.dir) // 새 카드의 방향은 무작위
+    expect(['L', 'C', 'R']).toContain(me(s).military.find((c) => c.defId === 'longswordsman')!.dirs![0]) // 새 카드의 방향은 무작위
     expect(me(s).turn!.yields.gold).toBe(3) // 10 - 7
     const other = me(s).military.find((c) => c.defId === 'warrior')!.uid
     expect(() => apply(s, { type: 'upgrade', uid: other })).toThrow(RuleError) // 한 차례에 한 장

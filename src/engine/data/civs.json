@@ -13,8 +13,26 @@
   "uniques": [
    {
     "name": "화차",
-    "base": "cannon",
-    "tech": "gunpowder"
+    "base": "hwacha",
+    "cost": 9,
+    "hp": 2,
+    "def": 3,
+    "power": 2,
+    "variants": [
+     [
+      "L"
+     ],
+     [
+      "C"
+     ],
+     [
+      "R"
+     ]
+    ],
+    "noCounter": true,
+    "tech": "gunpowder",
+    "effect": "hwacha",
+    "text": "반격 대미지를 받지 않는다. 원래 자신 소유의 타일을 대상으로 전투할 때 체력 +2"
    }
   ]
  },
@@ -32,7 +50,12 @@
   "uniques": [
    {
     "name": "팬저",
-    "base": "tank"
+    "base": "tank",
+    "cost": 12,
+    "hp": 5,
+    "def": 3,
+    "choose": 5,
+    "text": "카드를 1개 골라 전투력 5로 공격한다"
    }
   ]
  },
@@ -48,7 +71,22 @@
   "uniques": [
    {
     "name": "총사대",
-    "base": "musketman"
+    "base": "musketman",
+    "cost": 9,
+    "hp": 5,
+    "def": 2,
+    "power": 2,
+    "variants": [
+     [
+      "L"
+     ],
+     [
+      "C"
+     ],
+     [
+      "R"
+     ]
+    ]
    }
   ]
  },
@@ -66,7 +104,27 @@
   "uniques": [
    {
     "name": "연노병",
-    "base": "crossbowman"
+    "base": "crossbowman",
+    "cost": 8,
+    "hp": 4,
+    "def": 2,
+    "power": 1,
+    "variants": [
+     [
+      "L",
+      "C"
+     ],
+     [
+      "L",
+      "R"
+     ],
+     [
+      "C",
+      "R"
+     ]
+    ],
+    "noCounter": true,
+    "text": "상대의 방어력에 의한 반격 대미지를 받지 않는다"
    }
   ]
  },
@@ -84,7 +142,24 @@
   "uniques": [
    {
     "name": "장궁병",
-    "base": "crossbowman"
+    "base": "crossbowman",
+    "cost": 8,
+    "hp": 4,
+    "def": 2,
+    "power": 2,
+    "variants": [
+     [
+      "L"
+     ],
+     [
+      "C"
+     ],
+     [
+      "R"
+     ]
+    ],
+    "noCounter": true,
+    "text": "상대의 방어력에 의한 반격 대미지를 받지 않는다"
    }
   ]
  },
@@ -111,7 +186,12 @@
    {
     "name": "코사크",
     "base": "cavalry",
-    "lateTarget": true
+    "cost": 10,
+    "hp": 5,
+    "def": 2,
+    "choose": 3,
+    "lateTarget": true,
+    "text": "상대의 공격 대상 지정이 전부 끝난 후, 카드를 1개 골라 전투력 3으로 공격한다"
    }
   ]
  },
@@ -127,7 +207,13 @@
   "uniques": [
    {
     "name": "전투 코끼리",
-    "base": "chariot"
+    "base": "chariot",
+    "cost": 5,
+    "hp": 3,
+    "def": 2,
+    "choose": 1,
+    "noCounter": true,
+    "text": "카드를 1개 골라 전투력 1으로 공격하며, 반격 대미지를 받지 않는다"
    }
   ]
  },
@@ -153,8 +239,25 @@
   "uniques": [
    {
     "name": "제고이센",
-    "base": "battleship",
-    "tech": "compass"
+    "base": "zeijoisen",
+    "cost": 9,
+    "hp": 6,
+    "def": 2,
+    "power": 3,
+    "variants": [
+     [
+      "L"
+     ],
+     [
+      "C"
+     ],
+     [
+      "R"
+     ]
+    ],
+    "coastalOnly": true,
+    "tech": "compass",
+    "text": "'해안' 타일에서 전투할 때만, 이 카드를 패에서 꺼내 자리에 배치할 수 있다"
    }
   ]
  },
@@ -186,7 +289,13 @@
   "uniques": [
    {
     "name": "낙타궁수",
-    "base": "knight"
+    "base": "knight",
+    "cost": 9,
+    "hp": 3,
+    "def": 2,
+    "choose": 2,
+    "noCounter": true,
+    "text": "카드를 1개 골라 전투력 2로 공격하며, 반격 대미지를 받지 않는다"
    }
   ]
  },
@@ -204,7 +313,24 @@
   "uniques": [
    {
     "name": "불멸자",
-    "base": "spearman"
+    "base": "spearman",
+    "cost": 5,
+    "hp": 5,
+    "def": 1,
+    "power": 1,
+    "variants": [
+     [
+      "L"
+     ],
+     [
+      "C"
+     ],
+     [
+      "R"
+     ]
+    ],
+    "effect": "immortal",
+    "text": "이 카드가 받게 되는 최대 반격 대미지를 1으로 만든다"
    }
   ]
  },
@@ -223,7 +349,23 @@
    {
     "name": "테르시오",
     "base": "musketman",
-    "extraCost": 1
+    "cost": 10,
+    "hp": 5,
+    "def": 5,
+    "power": 3,
+    "variants": [
+     [
+      "L"
+     ],
+     [
+      "C"
+     ],
+     [
+      "R"
+     ]
+    ],
+    "effect": "tercio",
+    "text": "'기사','기병대'가 아닌 상대에게는 자신의 전투력을 2, 방어력을 1으로 계산한다"
    }
   ]
  },
@@ -239,11 +381,31 @@
   "uniques": [
    {
     "name": "장갑보병",
-    "base": "spearman"
+    "base": "spearman",
+    "cost": 5,
+    "hp": 3,
+    "def": 2,
+    "power": 2,
+    "variants": [
+     [
+      "L"
+     ],
+     [
+      "C"
+     ],
+     [
+      "R"
+     ]
+    ]
    },
    {
     "name": "헤타이로이",
-    "base": "horseman"
+    "base": "horseman",
+    "cost": 7,
+    "hp": 4,
+    "def": 2,
+    "choose": 2,
+    "text": "카드를 1개 골라 전투력 2로 공격한다"
    }
   ]
  },
@@ -269,7 +431,24 @@
   "uniques": [
    {
     "name": "사무라이",
-    "base": "longswordsman"
+    "base": "longswordsman",
+    "cost": 7,
+    "hp": 4,
+    "def": 1,
+    "power": 2,
+    "variants": [
+     [
+      "L"
+     ],
+     [
+      "C"
+     ],
+     [
+      "R"
+     ]
+    ],
+    "effect": "samurai",
+    "text": "이 카드가 받게 될 총 대미지가 3 이상이라면 이 카드의 전투력을 4로 한다"
    }
   ]
  },
@@ -287,7 +466,13 @@
   "uniques": [
    {
     "name": "전투 전차",
-    "base": "chariot"
+    "base": "chariot",
+    "cost": 5,
+    "hp": 4,
+    "def": 0,
+    "choose": 1,
+    "noCounter": true,
+    "text": "카드를 1개 골라 전투력 1으로 공격하며, 반격 대미지를 받지 않는다"
    }
   ]
  },
@@ -314,7 +499,25 @@
   "uniques": [
    {
     "name": "투석병사",
-    "base": "archer"
+    "base": "archer",
+    "cost": 5,
+    "hp": 2,
+    "def": 0,
+    "power": 1,
+    "variants": [
+     [
+      "L"
+     ],
+     [
+      "C"
+     ],
+     [
+      "R"
+     ]
+    ],
+    "noCounter": true,
+    "effect": "slinger",
+    "text": "이 카드를 향한 공격 중 1개까지 대미지를 0으로 한다. 반격 대미지를 받지 않는다"
    }
   ]
  },
@@ -332,7 +535,24 @@
   "uniques": [
    {
     "name": "예니체리",
-    "base": "musketman"
+    "base": "musketman",
+    "cost": 9,
+    "hp": 5,
+    "def": 1,
+    "power": 2,
+    "variants": [
+     [
+      "L"
+     ],
+     [
+      "C"
+     ],
+     [
+      "R"
+     ]
+    ],
+    "effect": "janissary",
+    "text": "이 카드가 공격한 대상이 이번 전투로 파괴된다면 이 카드의 체력을 7으로 계산한다"
    }
   ]
  },
@@ -348,7 +568,24 @@
   "uniques": [
    {
     "name": "캐롤리언",
-    "base": "rifleman"
+    "base": "rifleman",
+    "cost": 12,
+    "hp": 5,
+    "def": 2,
+    "power": 3,
+    "variants": [
+     [
+      "L"
+     ],
+     [
+      "C"
+     ],
+     [
+      "R"
+     ]
+    ],
+    "effect": "carolean",
+    "text": "원래 상대 소유의 타일을 대상으로 전투할 때 체력 +1"
    }
   ]
  },
@@ -374,7 +611,24 @@
   "uniques": [
    {
     "name": "재규어",
-    "base": "warrior"
+    "base": "warrior",
+    "cost": 5,
+    "hp": 4,
+    "def": 0,
+    "power": 1,
+    "variants": [
+     [
+      "L"
+     ],
+     [
+      "C"
+     ],
+     [
+      "R"
+     ]
+    ],
+    "effect": "jaguar",
+    "text": "이 카드가 공격한 대상이 이번 전투로 파괴된다면 문화를 1 얻는다"
    }
   ]
  },
@@ -390,7 +644,22 @@
   "uniques": [
    {
     "name": "프라싱야",
-    "base": "infantry"
+    "base": "infantry",
+    "cost": 16,
+    "hp": 6,
+    "def": 3,
+    "power": 4,
+    "variants": [
+     [
+      "L"
+     ],
+     [
+      "C"
+     ],
+     [
+      "R"
+     ]
+    ]
    }
   ]
  },
@@ -416,7 +685,24 @@
   "uniques": [
    {
     "name": "모호크족 전사",
-    "base": "warrior"
+    "base": "warrior",
+    "cost": 5,
+    "hp": 3,
+    "def": 2,
+    "power": 1,
+    "variants": [
+     [
+      "L"
+     ],
+     [
+      "C"
+     ],
+     [
+      "R"
+     ]
+    ],
+    "effect": "mohawk",
+    "text": "숲, 정글 타일을 대상으로 전투할 때 방어력 +2"
    }
   ]
  },
@@ -434,11 +720,43 @@
   "uniques": [
    {
     "name": "광전사",
-    "base": "longswordsman"
+    "base": "longswordsman",
+    "cost": 7,
+    "hp": 4,
+    "def": 2,
+    "power": 2,
+    "variants": [
+     [
+      "L"
+     ],
+     [
+      "C"
+     ],
+     [
+      "R"
+     ]
+    ]
    },
    {
     "name": "스키 보병",
-    "base": "rifleman"
+    "base": "rifleman",
+    "cost": 12,
+    "hp": 5,
+    "def": 3,
+    "power": 2,
+    "variants": [
+     [
+      "L"
+     ],
+     [
+      "C"
+     ],
+     [
+      "R"
+     ]
+    ],
+    "effect": "ski",
+    "text": "툰드라, 설원, 언덕 타일을 대상으로 전투할 때 전투력 +2, 체력 +2"
    }
   ]
  },
@@ -454,7 +772,24 @@
   "uniques": [
    {
     "name": "임피",
-    "base": "pikeman"
+    "base": "pikeman",
+    "cost": 8,
+    "hp": 3,
+    "def": 3,
+    "power": 2,
+    "variants": [
+     [
+      "L"
+     ],
+     [
+      "C"
+     ],
+     [
+      "R"
+     ]
+    ],
+    "effect": "impi",
+    "text": "모든 적 카드의 '효과 칸에 적힌' 공격을 없애고 효과 또한 없앤다 (무시한다)"
    }
   ]
  },
@@ -471,11 +806,21 @@
    {
     "name": "공성추",
     "base": "spearman",
-    "siege": true
+    "cost": 5,
+    "hp": 2,
+    "def": 1,
+    "siege": true,
+    "text": "도시 선전포고 시 이 카드가 파괴되지 않고 승리했다면 도시를 파괴한다"
    },
    {
     "name": "궁기병",
-    "base": "chariot"
+    "base": "chariot",
+    "cost": 5,
+    "hp": 3,
+    "def": 0,
+    "choose": 2,
+    "noCounter": true,
+    "text": "카드를 1개 골라 전투력 2로 공격하며, 반격 대미지를 받지 않는다"
    }
   ]
  },
@@ -491,7 +836,13 @@
   "uniques": [
    {
     "name": "케식텐",
-    "base": "knight"
+    "base": "knight",
+    "cost": 9,
+    "hp": 4,
+    "def": 0,
+    "choose": 2,
+    "noCounter": true,
+    "text": "카드를 1개 골라 전투력 2로 공격하며, 반격 대미지를 받지 않는다"
    }
   ]
  }

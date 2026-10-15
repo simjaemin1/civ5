@@ -106,8 +106,8 @@ export interface Player {
 export interface CardInst {
   uid: number
   defId: string
-  /** 방향별 카드의 공격 방향 */
-  dir?: 'L' | 'C' | 'R'
+  /** 전투력 마크의 방향 (방향 카드를 만들 때 무작위로 정해진다. 연노병처럼 마크가 둘이면 둘) */
+  dirs?: ('L' | 'C' | 'R')[]
   /** 고유 유닛 이름 (기초 카드로 취급) */
   unique?: string
 }

@@ -1,5 +1,5 @@
-import type { Dir, MilitaryCardDef, PolicyId, WonderCondition, WonderEffect } from '../engine'
-import { POLICIES } from '../engine'
+import type { Dir, PolicyId, WonderCondition, WonderEffect } from '../engine'
+import { POLICIES, cardById, cardStats } from '../engine'
 import type { PartialYield, Terrain, TileCard, Yield } from '../engine'
 
 export const ICON = { food: '🍎', hammer: '🔨', science: '🧪', gold: '🪙' } as const
@@ -54,16 +54,17 @@ export function conditionText(c: WonderCondition | undefined): string {
   }
 }
 
-/** 군사 카드 한 줄 요약: ⚔ 전투력(방향) ♥ 체력 🛡 방어력 */
-export function cardLine(def: MilitaryCardDef, dir?: Dir, unique?: string): string {
-  const name = unique ? `${unique}(${def.name})` : def.name
-  if (def.hp === undefined) return `${name} — ${def.note ?? '전투에 쓰이지 않음'}`
+/** 군사 카드 한 줄 요약: ⚔ 전투력(방향) ♥ 체력 🛡 방어력, 고유 유닛은 카드에 적힌 능력치와 효과 */
+export function cardText(c: { defId: string; unique?: string; dirs?: Dir[] }, withEffect = true): string {
+  const st = cardStats({ uid: 0, ...c })
+  const base = cardById(c.defId)
+  if (st.hp === undefined) return `${st.name} — ${base.note ?? '전투에 쓰이지 않음'}`
   let atk: string
-  if (def.attack?.choose) atk = `⚔${def.attack.power} 대상 선택`
-  else if (def.marks) atk = def.marks.map((m) => `⚔${m.power}${DIR_LABEL[m.dir]}`).join('·')
-  else atk = `⚔${def.power}${dir ? DIR_LABEL[dir] : def.variantDirs ? ' 방향 무작위' : ''}`
-  const flags = [def.noCounter ? '반격 없음' : '', def.special === 'destroysCity' ? '도시 파괴' : '', def.special === 'coastalOnly' ? '해안 전용' : '']
-    .filter(Boolean)
-    .join(' ')
-  return `${name} ${atk} ♥${def.hp} 🛡${def.def ?? 0}${flags ? ` (${flags})` : ''}`
+  if (st.choose !== undefined) atk = `⚔${st.choose} 대상 선택`
+  else if (st.marks.length) atk = st.marks.map((m) => `⚔${m.power}${DIR_LABEL[m.dir]}`).join('·')
+  else if (st.markPower !== undefined) atk = `⚔${st.markPower} 방향 무작위`
+  else atk = '공격 없음'
+  const flags = [st.noCounter ? '반격 없음' : '', st.siege ? '도시 파괴' : '', st.coastalOnly ? '해안 전용' : ''].filter(Boolean).join(' ')
+  const effect = withEffect && st.text ? ` — ${st.text}` : ''
+  return `${st.name} ${atk} ♥${st.hp} 🛡${st.def}${flags ? ` (${flags})` : ''}${effect}`
 }

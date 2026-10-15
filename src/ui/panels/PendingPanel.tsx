@@ -3,7 +3,7 @@ import type { PolicyId } from '../../engine'
 import { MILITARY_CARDS, POLICIES, civById, happiness, producible, totalWorkers } from '../../engine'
 import { CityBuilder } from './CityBuilder'
 import type { PanelProps } from './types'
-import { cardLine, policyName } from '../format'
+import { cardText, policyName } from '../format'
 
 const ORDER: PolicyId[] = ['tradition', 'aesthetics', 'despotism', 'regime', 'liberty', 'rationalism', 'equality', 'diplomacy']
 
@@ -88,7 +88,7 @@ export function PendingPanel({ game, player, dispatch }: PanelProps) {
                 .filter((e) => producible(game, player, e.def.id, e.unique))
                 .map((e) => (
                   <button key={`${e.def.id}-${e.unique}`} onClick={() => dispatch({ type: 'claimFreeCard', defId: e.def.id, unique: e.unique })}>
-                    {cardLine(e.def, undefined, e.unique)}
+                    {cardText({ defId: e.def.id, unique: e.unique })}
                   </button>
                 ))
             })}

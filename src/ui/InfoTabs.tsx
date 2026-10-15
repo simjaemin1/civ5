@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { GameState, Player } from '../engine'
-import { MILITARY_CARDS, PROGRESS_NEEDED, TECHS, WONDER_CARDS, civById, culture, happiness, totalWorkers, tourism } from '../engine'
-import { conditionText, ICON, policyName, wonderEffectText } from './format'
+import { CIVS, MILITARY_CARDS, PROGRESS_NEEDED, TECHS, WONDER_CARDS, civById, culture, happiness, totalWorkers, tourism } from '../engine'
+import { cardText, conditionText, ICON, policyName, wonderEffectText } from './format'
 
 export function PlayersTable({ game, seats, actor }: { game: GameState; seats: { ai: boolean }[]; actor: number }) {
   return (
@@ -75,7 +75,7 @@ export function TechTree({ player }: { player: Player }) {
   )
 }
 
-type Tab = 'tech' | 'wonder' | 'card' | 'log'
+type Tab = 'tech' | 'wonder' | 'card' | 'unique' | 'log'
 
 export function InfoTabs({ game, viewer }: { game: GameState; viewer: number }) {
   const [tab, setTab] = useState<Tab>('tech')
@@ -88,6 +88,7 @@ export function InfoTabs({ game, viewer }: { game: GameState; viewer: number }) 
             ['tech', '기술 트리'],
             ['wonder', '불가사의'],
             ['card', '군사 카드'],
+            ['unique', '고유 유닛'],
             ['log', '로그'],
           ] as [Tab, string][]
         ).map(([k, name]) => (
@@ -146,7 +147,7 @@ export function InfoTabs({ game, viewer }: { game: GameState; viewer: number }) 
             </tr>
           </thead>
           <tbody>
-            {MILITARY_CARDS.map((c) => (
+            {MILITARY_CARDS.filter((c) => !c.uniqueOnly).map((c) => (
               <tr key={c.id}>
                 <td>{c.name}</td>
                 <td>{c.cost}</td>
@@ -158,6 +159,35 @@ export function InfoTabs({ game, viewer }: { game: GameState; viewer: number }) 
             ))}
           </tbody>
         </table>
+        </div>
+      )}
+      {tab === 'unique' && (
+        <div className="scroll">
+          <p className="muted">고유 유닛은 문명마다 3장만 존재합니다 (방향 카드는 방향마다 한 장). 능력치와 효과는 카드에 적힌 그대로이고, 효과를 적용할 때는 괄호 안의 기초 카드로 취급합니다.</p>
+          <table className="table">
+            <thead>
+              <tr>
+                <th>문명</th>
+                <th>고유 유닛</th>
+                <th>기초 카드</th>
+                <th>망치</th>
+                <th>능력치와 효과</th>
+              </tr>
+            </thead>
+            <tbody>
+              {CIVS.flatMap((c) =>
+                c.uniques.map((u) => (
+                  <tr key={u.name}>
+                    <td>{c.name}</td>
+                    <td>{u.name}</td>
+                    <td>{MILITARY_CARDS.find((m) => m.id === u.base)?.uniqueOnly ? '(없음)' : MILITARY_CARDS.find((m) => m.id === u.base)?.name}</td>
+                    <td>{u.cost}</td>
+                    <td>{cardText({ defId: u.base, unique: u.name })}</td>
+                  </tr>
+                )),
+              )}
+            </tbody>
+          </table>
         </div>
       )}
       {tab === 'log' && (

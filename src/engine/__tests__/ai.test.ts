@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { aiStep, createGame, cardById, MILITARY_CARDS, civById, CIVS, happiness, totalWorkers } from '..'
+import { aiStep, createGame, cardById, cardStats, MILITARY_CARDS, civById, CIVS, happiness, totalWorkers } from '..'
 import type { GameState } from '..'
 
 /** AI끼리 게임을 끝까지(또는 maxSteps까지) 돌린다. */
@@ -21,9 +21,9 @@ function checkInvariants(s: GameState): void {
       expect(p.military.filter((m) => m.defId === c.id).length, `${p.civId} ${c.id} 보유`).toBeLessThanOrEqual(6)
     }
     for (const m of p.military) {
-      const def = cardById(m.defId)
-      if (def.variantDirs) expect(def.variantDirs).toContain(m.dir)
-      else expect(m.dir).toBeUndefined()
+      const st = cardStats(m)
+      // 전투력 마크가 방향 카드이면 방향이 정해져 있다
+      if (st.markPower !== undefined) expect(m.dirs?.length, `${m.unique ?? m.defId} 방향`).toBeGreaterThan(0)
     }
   }
   // 고유 유닛은 항상 3장: 재고 + 문명들이 가진 장수 (빼앗긴 카드는 가져간 문명이 가진 것으로 센다)

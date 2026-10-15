@@ -26,15 +26,32 @@ export interface CivDef {
   terrainOverride?: TileMod[]
   uniques: UniqueUnitDef[]
 }
-/** 고유 유닛: 능력치는 자료가 없어 기초 카드와 같다고 본다 */
+export type UniqueEffect =
+  | 'jaguar' | 'mohawk' | 'immortal' | 'slinger' | 'samurai' | 'janissary'
+  | 'tercio' | 'impi' | 'hwacha' | 'ski' | 'carolean'
+
+/** 고유 유닛: 카드에 적힌 능력치. 기초 카드(괄호 안)는 효과를 적용할 때만 쓴다 (예: 케식텐은 기사 취급). */
 export interface UniqueUnitDef {
   name: string
   base: string
   tech?: string
-  extraCost?: number
-  lateTarget?: boolean
+  cost: number
+  hp: number
+  def: number
+  /** 전투력 마크 하나당 전투력 */
+  power?: number
+  /** 마크가 놓일 수 있는 방향 조합: 카드가 3장이며 한 장씩 (기본: 왼쪽·가운데·오른쪽) */
+  variants?: Dir[][]
+  /** 카드를 1개 골라 공격하는 전투력 */
+  choose?: number
+  noCounter?: boolean
   siege?: boolean
+  lateTarget?: boolean
+  coastalOnly?: boolean
+  effect?: UniqueEffect
+  text?: string
 }
+
 export interface ResourceDef {
   name: string
   kind: 'bonus' | 'strategic' | 'luxury'
@@ -93,9 +110,15 @@ export interface MilitaryCardDef {
   special?: string
   notBattle?: boolean
   note?: string
+  /** 고유 유닛으로만 만들 수 있는 카드 (화차, 제고이센) */
+  uniqueOnly?: boolean
 }
 
-export const CIVS = civsJson as CivDef[]
+export const CIVS = civsJson as unknown as CivDef[]
+/** 고유 유닛 이름 → 소유 문명과 정의 (이름은 모든 문명에서 겹치지 않는다) */
+export const UNIQUES: Record<string, { civId: string; def: UniqueUnitDef }> = Object.fromEntries(
+  CIVS.flatMap((c) => c.uniques.map((u) => [u.name, { civId: c.id, def: u }])),
+)
 export const TERRAINS = terrainsJson as Record<Terrain, PartialYield>
 export const RESOURCES = resourcesJson as Record<string, ResourceDef>
 export const WONDERS = wondersJson as Record<string, WonderDef>

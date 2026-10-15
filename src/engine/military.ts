@@ -4,6 +4,7 @@ import { MILITARY_CARDS, cardById, civById } from './data'
 import type { Dir, MilitaryCardDef, UniqueUnitDef } from './data'
 import { say } from './core'
 import { nextRandom } from './rng'
+import { dirsKey } from './cardstats'
 
 /** 한 종류의 군사 카드는 최대 6장까지 보유할 수 있다. 공용 덱의 카드는 사실상 무제한이라 재고는 세지 않는다. */
 export const MAX_HOLD = 6
@@ -16,8 +17,8 @@ export function initUniqueSupply(civIds: string[]): Record<string, string[]> {
   const supply: Record<string, string[]> = {}
   for (const id of civIds) {
     for (const u of civById(id).uniques) {
-      const base = cardById(u.base)
-      supply[u.name] = base.variantDirs ? [...base.variantDirs] : ['x', 'x', 'x']
+      // 전투력 마크가 있는 카드는 방향 조합마다 1장, 그 외(대상을 고르는 카드, 공성추)는 같은 카드 3장
+      supply[u.name] = u.power !== undefined ? (u.variants ?? [['L'], ['C'], ['R']]).map((v) => v.join('')) : ['x', 'x', 'x']
     }
   }
   return supply
@@ -25,14 +26,14 @@ export function initUniqueSupply(civIds: string[]): Record<string, string[]> {
 
 /** 판에서 사라지는 고유 유닛은 3장 재고로 돌아간다 (빼앗긴 경우는 호출하지 않는다). */
 export function releaseUnique(s: GameState, c: CardInst): void {
-  if (c.unique && s.uniqueSupply[c.unique]) s.uniqueSupply[c.unique].push(c.dir ?? 'x')
+  if (c.unique && s.uniqueSupply[c.unique]) s.uniqueSupply[c.unique].push(dirsKey(c.dirs))
 }
 
 export const hasAny = (p: Player, wonder: string): boolean => p.wonders.includes(wonder)
 
-/** 아르테미스 사원: 군사 카드 생산 비용 -1 */
+/** 아르테미스 사원: 군사 카드 생산 비용 -1. 고유 유닛은 카드에 적힌 비용. */
 export function cardCost(p: Player, def: MilitaryCardDef, unique?: UniqueUnitDef): number {
-  const base = def.cost + (unique?.extraCost ?? 0)
+  const base = unique?.cost ?? def.cost
   return Math.max(1, base - (hasAny(p, 'temple_of_artemis') ? 1 : 0))
 }
 
@@ -43,9 +44,6 @@ export function uniqueOf(p: Player, name: string): UniqueUnitDef | undefined {
 const first5 = (city: City) => city.tiles.filter((t) => t.role === 'city' || t.role === 'side')
 export const isCoastalCity = (city: City): boolean => first5(city).some((t) => t.card.terrains.includes('해안'))
 
-/** 해안 전용 카드: 전함, 제고이센 */
-export const isCoastalOnly = (c: CardInst): boolean => c.defId === 'battleship'
-
 /** 이 문명이 지금 만들 수 있는 카드 (기술 보유, 한 종류 6장 보유 한도). */
 export function producible(s: GameState, p: Player, defId: string, unique?: string): { def: MilitaryCardDef; uq?: UniqueUnitDef } | null {
   const uq = unique ? uniqueOf(p, unique) : undefined
@@ -53,6 +51,7 @@ export function producible(s: GameState, p: Player, defId: string, unique?: stri
   const id = uq ? uq.base : defId
   if (uq && uq.base !== defId) return null
   const def = cardById(id)
+  if (def.uniqueOnly && !uq) return null // 화차·제고이센은 고유 유닛으로만 만든다
   const tech = uq?.tech ?? def.tech
   if (!p.techs.includes(tech)) return null
   if (p.military.filter((c) => c.defId === id).length >= MAX_HOLD) return null
@@ -62,17 +61,17 @@ export function producible(s: GameState, p: Player, defId: string, unique?: stri
 
 /**
  * 새 카드: 방향이 있는 카드는 방향이 무작위로 정해진다 (같은 확률).
- * 고유 유닛은 남은 3장 중 하나가 무작위로 나온다.
+ * 고유 유닛은 남은 3장 중 하나가 무작위로 나온다 (카드마다 마크 방향이 정해져 있다).
  */
 function newCard(s: GameState, defId: string, unique?: string): CardInst {
   const def = cardById(defId)
   if (unique) {
     const supply = s.uniqueSupply[unique]
-    const v = supply.splice(Math.floor(nextRandom(s) * supply.length), 1)[0]
-    return { uid: s.nextUid++, defId, dir: def.variantDirs ? (v as Dir) : undefined, unique }
+    const key = supply.splice(Math.floor(nextRandom(s) * supply.length), 1)[0]
+    return { uid: s.nextUid++, defId, dirs: key === 'x' ? undefined : (key.split('') as Dir[]), unique }
   }
   const dir: Dir | undefined = def.variantDirs ? def.variantDirs[Math.floor(nextRandom(s) * def.variantDirs.length)] : undefined
-  return { uid: s.nextUid++, defId, dir }
+  return { uid: s.nextUid++, defId, dirs: dir ? [dir] : undefined }
 }
 
 export function produceCard(
@@ -87,7 +86,7 @@ export function produceCard(
   const ok = producible(s, p, a.defId, a.unique)
   if (!ok) throw new RuleError('지금 만들 수 없는 카드입니다')
   const { def, uq } = ok
-  if (isCoastalOnly({ uid: 0, defId: def.id }) && !isCoastalCity(city)) {
+  if ((uq?.coastalOnly || def.special === 'coastalOnly') && !isCoastalCity(city)) {
     throw new RuleError('첫 5타일에 해안이 있는 도시에서만 만들 수 있습니다')
   }
   const cost = cardCost(p, def, uq)

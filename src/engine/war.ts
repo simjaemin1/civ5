@@ -1,10 +1,11 @@
 import type { BattleState, CardInst, City, Declaration, GameState, Player, PlacedTile } from './types'
 import { RuleError, SIDES } from './types'
 import { cardById, civById } from './data'
-import type { MilitaryCardDef } from './data'
-import { say } from './core'
+import { gainCulture, say } from './core'
 import { freeWorkers } from './scouting'
-import { isCoastalOnly, releaseUnique, uniqueOf } from './military'
+import { releaseUnique } from './military'
+import { cardStats, isCoastalOnly } from './cardstats'
+import type { CardStats } from './cardstats'
 import { culture, tourism } from './yields'
 
 export interface DeclTarget {
@@ -79,12 +80,10 @@ export function declareWar(
 // ───────────────────────── 전투 ─────────────────────────
 
 const instOf = (p: Player, uid: number): CardInst | undefined => p.military.find((c) => c.uid === uid)
-const defOf = (c: CardInst): MilitaryCardDef => cardById(c.defId)
 
 /** 전투에 낼 수 있는 카드인지: 원자폭탄 제외, 해안 전용 카드는 해안 타일 전투에서만, 줄루는 자기 원래 영토 전투에서 임피 불가. */
 export function usableInBattle(s: GameState, b: BattleState, p: Player, c: CardInst): boolean {
-  const def = defOf(c)
-  if (def.notBattle || def.hp === undefined) return false
+  if (cardById(c.defId).notBattle || cardStats(c).hp === undefined) return false
   if (isCoastalOnly(c) && !b.coastal) return false
   const tileOwner = b.decl.kind === 'retake' ? b.decl.attackerId : b.decl.defenderId
   if (c.unique === '임피' && s.players[tileOwner].civId === 'zulu' && p.civId === 'zulu') return false
@@ -146,17 +145,20 @@ function boardUids(b: BattleState, pid: number): number[] {
   return (b.slots[pid] ?? []).filter((x): x is number => x !== null)
 }
 
-/** 카드를 공개한 뒤, 대상을 고르는 카드가 있으면 우선도가 높은 쪽부터 고른다. 코사크는 모두 고른 뒤에 고른다. */
+const impiOn = (s: GameState, b: BattleState, pid: number): boolean =>
+  boardUids(b, pid).some((uid) => cardStats(instOf(s.players[pid], uid)!).effect === 'impi')
+
+/** 카드를 공개한 뒤, 대상을 고르는 카드가 있으면 우선도가 높은 쪽부터 고른다. 코사크는 모두 고른 뒤에 고른다. 상대에게 임피가 있으면 효과 칸의 공격은 없어진다. */
 function beginChoosing(s: GameState): void {
   const b = s.battle!
   const ids = [b.decl.attackerId, b.decl.defenderId].sort((x, y) => prio(s, x) - prio(s, y))
   const chooser = (pid: number, late: boolean): number[] => {
     const p = s.players[pid]
+    const other = pid === ids[0] ? ids[1] : ids[0]
+    if (impiOn(s, b, other)) return []
     return boardUids(b, pid).filter((uid) => {
-      const c = instOf(p, uid)!
-      if (!defOf(c).attack?.choose) return false
-      const isLate = c.unique ? !!uniqueOf(p, c.unique)?.lateTarget : false
-      return isLate === late
+      const st = cardStats(instOf(p, uid)!)
+      return st.choose !== undefined && st.lateTarget === late
     })
   }
   b.chooseQueue = []
@@ -182,10 +184,10 @@ export function chooseTargets(s: GameState, playerId: number, picks: Record<numb
   for (const uid of head.uids) {
     const target = picks[uid]
     if (target === undefined || !enemyBoard.includes(target)) throw new RuleError('모든 카드의 대상을 상대 카드 중에서 골라야 합니다')
-    // 대전차포: 상대 탱크는 반드시 대전차포를 공격 대상으로 골라야 한다
-    const me = instOf(s.players[playerId], uid)!
-    const hasAT = enemyBoard.some((u) => instOf(enemy, u)!.defId === 'anti_tank_gun')
-    if (me.defId === 'tank' && hasAT && instOf(enemy, target)!.defId !== 'anti_tank_gun') {
+    // 대전차포: 상대 탱크는 반드시 대전차포를 공격 대상으로 골라야 한다 (내 쪽에 임피가 있으면 대전차포의 효과는 무시된다)
+    const me = cardStats(instOf(s.players[playerId], uid)!)
+    const hasAT = enemyBoard.some((u) => cardStats(instOf(enemy, u)!).baseId === 'anti_tank_gun')
+    if (me.baseId === 'tank' && hasAT && !impiOn(s, b, playerId) && cardStats(instOf(enemy, target)!).baseId !== 'anti_tank_gun') {
       throw new RuleError('탱크는 대전차포를 공격 대상으로 골라야 합니다')
     }
   }
@@ -196,7 +198,7 @@ export function chooseTargets(s: GameState, playerId: number, picks: Record<numb
 
 interface Unit {
   inst: CardInst
-  def: MilitaryCardDef
+  st: CardStats
   owner: number
   slot: number // 1~4
 }
@@ -204,20 +206,12 @@ interface Unit {
 /** 공격 방향 → 마주 보는 상대 자리: 가운데 5-i, 왼쪽 6-i, 오른쪽 4-i (범위 밖이면 빈칸) */
 const targetSlot = (dir: 'L' | 'C' | 'R', i: number): number => (dir === 'C' ? 5 - i : dir === 'L' ? 6 - i : 4 - i)
 
-/** from이 to에게 주는 대미지: 전투기·폭격기는 전투기·대공포 외에게서 0, 대공포는 폭격기에게서 0. */
-function effective(s: GameState, from: Unit, to: Unit, amount: number): number {
-  if (to.def.special === 'airImmune' && from.def.id !== 'fighter' && from.def.id !== 'aa_gun') {
-    // 로켓공학을 연구한 문명은 상대 전투기의 효과를 무시한다
-    if (to.def.id === 'fighter' && s.players[from.owner].techs.includes('rocketry')) return amount
-    return 0
-  }
-  if (to.def.special === 'bomberImmune' && from.def.id === 'bomber') return 0
-  return amount
-}
+const isKnightLike = (u: Unit): boolean => u.st.baseId === 'knight' || u.st.baseId === 'cavalry'
 
 function resolveBattle(s: GameState): void {
   const b = s.battle!
   const { attackerId, defenderId } = b.decl
+  const decl = b.decl
   const units: Record<number, Unit[]> = { [attackerId]: [], [defenderId]: [] }
   const board: Record<number, (Unit | null)[]> = {}
   for (const pid of [attackerId, defenderId]) {
@@ -225,12 +219,23 @@ function resolveBattle(s: GameState): void {
     board[pid] = (b.slots[pid] ?? [null, null, null, null]).map((uid, idx) => {
       if (uid === null) return null
       const inst = instOf(p, uid)!
-      const u: Unit = { inst, def: defOf(inst), owner: pid, slot: idx + 1 }
+      const u: Unit = { inst, st: cardStats(inst), owner: pid, slot: idx + 1 }
       units[pid].push(u)
       return u
     })
   }
-  const unitByUid = (uid: number) => [...units[attackerId], ...units[defenderId]].find((u) => u.inst.uid === uid)!
+  const all = [...units[attackerId], ...units[defenderId]]
+  const unitByUid = (uid: number) => all.find((u) => u.inst.uid === uid)!
+  const enemyIdOf = (u: Unit) => (u.owner === attackerId ? defenderId : attackerId)
+
+  // 목표 타일: 원래 주인과 지형 (지형·주인에 따라 달라지는 고유 유닛 효과용)
+  const tileOwnerId = decl.kind === 'retake' ? attackerId : defenderId
+  const terrains = findTile(s.players[tileOwnerId], decl.cityId, decl.tileId)?.tile.card.terrains ?? []
+  const onTerrain = (list: string[]) => terrains.some((t) => list.includes(t))
+
+  // 임피: 상대 카드의 효과 칸 공격과 효과를 모두 무시한다
+  const hasImpi = (pid: number) => units[pid].some((u) => u.st.effect === 'impi')
+  const eff = (u: Unit) => !hasImpi(enemyIdOf(u))
 
   // 해안 타일 전투: 영국, 알렉산드리아 등대는 모든 카드 공격 전투력 +1 (함께 있으면 +2)
   const coastalBonus = (pid: number) => {
@@ -239,38 +244,120 @@ function resolveBattle(s: GameState): void {
     return (p.civId === 'england' ? 1 : 0) + (p.wonders.includes('great_lighthouse') ? 1 : 0)
   }
 
-  const damage = new Map<number, number>()
-  const add = (u: Unit, n: number) => damage.set(u.inst.uid, (damage.get(u.inst.uid) ?? 0) + n)
-
-  for (const pid of [attackerId, defenderId]) {
-    const enemyId = pid === attackerId ? defenderId : attackerId
-    for (const u of units[pid]) {
-      const bonus = coastalBonus(pid)
-      const hits: { target: Unit | null; power: number }[] = []
-      if (u.def.attack?.choose) {
-        const t = b.picks[u.inst.uid]
-        hits.push({ target: t == null ? null : unitByUid(t), power: u.def.attack.power + bonus })
-      } else {
-        const marks = u.def.variantDirs ? [{ dir: u.inst.dir!, power: u.def.power! }] : (u.def.marks ?? [])
-        for (const m of marks) {
-          const j = targetSlot(m.dir, u.slot)
-          const t = j >= 1 && j <= 4 ? board[enemyId][j - 1] : null
-          hits.push({ target: t, power: m.power + bonus })
-        }
-      }
-      let counter = 0
-      for (const h of hits) {
-        if (!h.target) continue // 빈칸: 대미지도 반격도 없음
-        add(h.target, effective(s, u, h.target, h.power))
-        if (!u.def.noCounter) counter += effective(s, h.target, u, h.target.def.def ?? 0)
-      }
-      if (counter > 0) add(u, counter)
+  /** 체력: 스키 보병(툰드라·설원·언덕 +2), 화차(원래 내 타일 +2), 캐롤리언(원래 상대 타일 +1) */
+  const hpOf = (u: Unit): number => {
+    let hp = u.st.hp ?? Infinity
+    if (eff(u)) {
+      if (u.st.effect === 'ski' && onTerrain(['툰드라', '설원', '언덕'])) hp += 2
+      if (u.st.effect === 'hwacha' && u.owner === tileOwnerId) hp += 2
+      if (u.st.effect === 'carolean' && u.owner !== tileOwnerId) hp += 1
     }
+    return hp
+  }
+  /** 전투력 마크 하나의 전투력: 테르시오(기사·기병대가 아니면 2), 스키 보병(+2), 사무라이(4로 지정) */
+  const markPower = (u: Unit, base: number, target: Unit | null, over: Map<number, number>): number => {
+    let p = base
+    if (eff(u)) {
+      if (u.st.effect === 'tercio' && target && !isKnightLike(target)) p = 2
+      if (u.st.effect === 'ski' && onTerrain(['툰드라', '설원', '언덕'])) p += 2
+    }
+    if (over.has(u.inst.uid)) p = over.get(u.inst.uid)!
+    return p + coastalBonus(u.owner)
+  }
+  /** 공격받았을 때 공격한 카드에게 주는 반격 대미지(방어력): 테르시오(기사·기병대가 아니면 1), 모호크(숲·정글 +2) */
+  const defVs = (t: Unit, attacker: Unit): number => {
+    let d = t.st.def
+    if (eff(t)) {
+      if (t.st.effect === 'tercio' && !isKnightLike(attacker)) d = 1
+      if (t.st.effect === 'mohawk' && onTerrain(['숲', '정글'])) d += 2
+    }
+    return d
+  }
+  /** from이 to에게 주는 대미지: 전투기·폭격기는 전투기·대공포 외에게서 0, 대공포는 폭격기에게서 0 (효과가 무시되면 해당 없음) */
+  const dmg = (from: Unit, to: Unit, amount: number): number => {
+    if (eff(to) && to.st.special === 'airImmune' && from.st.baseId !== 'fighter' && from.st.baseId !== 'aa_gun') {
+      // 로켓공학을 연구한 문명은 상대 전투기의 효과를 무시한다
+      if (to.st.baseId === 'fighter' && s.players[from.owner].techs.includes('rocketry')) return amount
+      return 0
+    }
+    if (eff(to) && to.st.special === 'bomberImmune' && from.st.baseId === 'bomber') return 0
+    return amount
   }
 
+  interface Calc {
+    total: Map<number, number>
+    hits: Map<number, Unit[]>
+  }
+  /** 모든 카드가 동시에 공격한 결과. over: 사무라이처럼 전투력이 새로 정해진 카드 */
+  const compute = (over: Map<number, number>): Calc => {
+    const attacksIn = new Map<number, number[]>()
+    const counterIn = new Map<number, number>()
+    const hits = new Map<number, Unit[]>()
+    for (const u of all) hits.set(u.inst.uid, [])
+    for (const pid of [attackerId, defenderId]) {
+      const enemyId = pid === attackerId ? defenderId : attackerId
+      for (const u of units[pid]) {
+        const attacks: { target: Unit | null; power: number }[] = []
+        if (u.st.choose !== undefined) {
+          if (eff(u)) {
+            const t = b.picks[u.inst.uid]
+            const target = t == null ? null : unitByUid(t)
+            attacks.push({ target, power: u.st.choose + coastalBonus(pid) })
+          }
+        } else {
+          for (const m of u.st.marks) {
+            const j = targetSlot(m.dir, u.slot)
+            const target = j >= 1 && j <= 4 ? board[enemyId][j - 1] : null
+            attacks.push({ target, power: markPower(u, m.power, target, over) })
+          }
+        }
+        for (const a of attacks) {
+          if (!a.target) continue // 빈칸: 대미지도 반격도 없음
+          const list = attacksIn.get(a.target.inst.uid) ?? []
+          list.push(dmg(u, a.target, a.power))
+          attacksIn.set(a.target.inst.uid, list)
+          hits.get(u.inst.uid)!.push(a.target)
+          if (!(u.st.noCounter && eff(u))) {
+            counterIn.set(u.inst.uid, (counterIn.get(u.inst.uid) ?? 0) + dmg(a.target, u, defVs(a.target, u)))
+          }
+        }
+      }
+    }
+    // 투석병사: 자신을 향한 공격 중 1개까지(가장 큰 것) 대미지를 0으로 한다
+    for (const u of all) {
+      const list = attacksIn.get(u.inst.uid)
+      if (eff(u) && u.st.effect === 'slinger' && list?.length) list[list.indexOf(Math.max(...list))] = 0
+    }
+    // 불멸자: 받게 되는 최대 반격 대미지를 1으로 만든다
+    for (const u of all) {
+      if (eff(u) && u.st.effect === 'immortal') counterIn.set(u.inst.uid, Math.min(counterIn.get(u.inst.uid) ?? 0, 1))
+    }
+    const total = new Map<number, number>()
+    for (const u of all) {
+      const a = (attacksIn.get(u.inst.uid) ?? []).reduce((x, y) => x + y, 0)
+      total.set(u.inst.uid, a + (counterIn.get(u.inst.uid) ?? 0))
+    }
+    return { total, hits }
+  }
+
+  // 조건이 붙은 효과는 대미지 계산 결과를 보고 판정한다: 먼저 계산하고, 사무라이(받은 총 대미지 3 이상이면 전투력 4)를 반영해 다시 계산한다.
+  let calc = compute(new Map())
+  const over = new Map<number, number>()
+  for (const u of all) {
+    if (eff(u) && u.st.effect === 'samurai' && (calc.total.get(u.inst.uid) ?? 0) >= 3) over.set(u.inst.uid, 4)
+  }
+  if (over.size > 0) calc = compute(over)
+
   const destroyed = new Set<number>()
-  for (const u of [...units[attackerId], ...units[defenderId]]) {
-    if ((damage.get(u.inst.uid) ?? 0) >= (u.def.hp ?? Infinity)) destroyed.add(u.inst.uid)
+  for (const u of all) {
+    if ((calc.total.get(u.inst.uid) ?? 0) >= hpOf(u)) destroyed.add(u.inst.uid)
+  }
+  // 예니체리: 공격한 대상이 이번 전투로 파괴되면 체력을 7으로 계산한다 (받은 대미지 5·6이어도 살아남는다)
+  for (const u of all) {
+    if (eff(u) && u.st.effect === 'janissary' && calc.hits.get(u.inst.uid)!.some((t) => destroyed.has(t.inst.uid))) {
+      if ((calc.total.get(u.inst.uid) ?? 0) >= 7) destroyed.add(u.inst.uid)
+      else destroyed.delete(u.inst.uid)
+    }
   }
   const survivors = (pid: number) => units[pid].filter((u) => !destroyed.has(u.inst.uid))
   const attackerWins = survivors(attackerId).length > survivors(defenderId).length // 같으면 수비 측 승리
@@ -282,7 +369,6 @@ function resolveBattle(s: GameState): void {
     for (const u of units[pid]) {
       if (!destroyed.has(u.inst.uid)) continue
       p.military = p.military.filter((c) => c.uid !== u.inst.uid)
-      // 파괴된 카드는 공용 덱으로 돌아간다. 오스만은 상대의 해안 전용 카드를 파괴하면 그 카드를 가져온다.
       if (enemy.civId === 'ottoman' && isCoastalOnly(u.inst)) enemy.military.push(u.inst)
       else releaseUnique(s, u.inst) // 파괴된 고유 유닛은 3장 재고로 돌아간다
     }
@@ -291,10 +377,16 @@ function resolveBattle(s: GameState): void {
     s,
     `전투 결과: 공격 ${survivors(attackerId).length} / 수비 ${survivors(defenderId).length} → ${attackerWins ? '공격' : '수비'} 승 (파괴 ${destroyed.size}장)`,
   )
+  // 재규어: 공격한 대상이 이번 전투로 파괴되면 문화 1
+  for (const u of all) {
+    const owner = s.players[u.owner]
+    if (eff(u) && u.st.effect === 'jaguar' && owner.cities.length > 0 && calc.hits.get(u.inst.uid)!.some((t) => destroyed.has(t.inst.uid))) {
+      gainCulture(s, owner, 1)
+    }
+  }
 
   const attacker = s.players[attackerId]
   const defender = s.players[defenderId]
-  const decl = b.decl
   if (decl.kind === 'normal') {
     if (attackerWins) {
       const t = findTile(defender, decl.cityId, decl.tileId)
@@ -312,9 +404,7 @@ function resolveBattle(s: GameState): void {
   } else {
     // 도시 공격: 장군은 돌려받고, 공성 카드가 파괴되지 않은 채 이기면 도시를 파괴한다
     attacker.generals += 1
-    const siege = survivors(attackerId).some(
-      (u) => u.def.line === 'siege' || (u.inst.unique && uniqueOf(attacker, u.inst.unique)?.siege),
-    )
+    const siege = survivors(attackerId).some((u) => u.st.siege && eff(u))
     if (attackerWins && siege) {
       const city = defender.cities.find((c) => c.id === decl.cityId)
       if (city) destroyCity(s, defender, city)

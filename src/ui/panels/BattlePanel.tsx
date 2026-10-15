@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { actorOf, cardById, civById, usableInBattle } from '../../engine'
+import { actorOf, cardStats, civById, usableInBattle } from '../../engine'
 import type { CardInst, GameState, Player } from '../../engine'
-import { cardLine } from '../format'
+import { cardText } from '../format'
 import type { PanelProps } from './types'
 
-const label = (p: Player, c: CardInst) => cardLine(cardById(c.defId), c.dir, c.unique) + (p.civId ? '' : '')
+const label = (_p: Player, c: CardInst) => cardText(c, false)
 
 /** 전투: 비공개로 카드를 1~4번 자리에 놓고, 공개 후 대상을 고르는 카드는 대상을 고른다. */
 export function BattlePanel({ game, player, dispatch }: PanelProps) {
@@ -98,7 +98,7 @@ function Choose({ game, me, enemy, dispatch }: { game: GameState; me: Player; en
   const head = b.chooseQueue[0]
   const [picks, setPicks] = useState<Record<number, number>>({})
   const enemyBoard = (b.slots[enemy.id] ?? []).map((u, i) => ({ u, i })).filter((x): x is { u: number; i: number } => x.u !== null)
-  const hasAT = enemyBoard.some((x) => enemy.military.find((m) => m.uid === x.u)?.defId === 'anti_tank_gun')
+  const hasAT = enemyBoard.some((x) => cardStats(enemy.military.find((m) => m.uid === x.u)!).baseId === 'anti_tank_gun')
   return (
     <>
       <p>카드가 공개되었습니다. 대상을 고르는 카드는 우선도가 높은 쪽부터 대상을 고릅니다 (코사크는 모두 고른 뒤에).</p>
@@ -107,7 +107,7 @@ function Choose({ game, me, enemy, dispatch }: { game: GameState; me: Player; en
       <h4>{civById(me.civId).name}: 공격 대상 고르기</h4>
       {head.uids.map((uid) => {
         const mine = me.military.find((m) => m.uid === uid)!
-        const must = mine.defId === 'tank' && hasAT
+        const must = cardStats(mine).baseId === 'tank' && hasAT
         return (
           <label key={uid} className="row">
             <span>{label(me, mine)} →</span>
@@ -116,7 +116,7 @@ function Choose({ game, me, enemy, dispatch }: { game: GameState; me: Player; en
               {enemyBoard.map(({ u, i }) => {
                 const c = enemy.military.find((m) => m.uid === u)!
                 return (
-                  <option key={u} value={u} disabled={must && c.defId !== 'anti_tank_gun'}>
+                  <option key={u} value={u} disabled={must && cardStats(c).baseId !== 'anti_tank_gun'}>
                     상대 {i + 1}번 {label(enemy, c)}
                   </option>
                 )

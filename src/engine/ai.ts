@@ -1,6 +1,7 @@
 import type { Action, GameState, Player, Side, TileCard } from './types'
 import { RuleError, SIDES } from './types'
-import { MILITARY_CARDS, cardById } from './data'
+import { MILITARY_CARDS } from './data'
+import { cardStats } from './cardstats'
 import type { TechDef } from './data'
 import { apply, researchableTechs } from './game'
 import { ctxOf, tileYield, totalWorkers } from './yields'
@@ -123,7 +124,7 @@ function foundSecond(hand: TileCard[]): Action {
 function produceCandidates(s: GameState, p: Player): Action[] {
   const out: Action[] = []
   const turn = p.turn!
-  const army = p.military.filter((c) => cardById(c.defId).hp !== undefined).length
+  const army = p.military.filter((c) => cardStats(c).hp !== undefined).length
   for (const city of p.cities) {
     if (turn.produced.includes(city.id)) continue
     const h = turn.yields.cities.find((c) => c.cityId === city.id)!.hammer
@@ -148,7 +149,7 @@ function produceCandidates(s: GameState, p: Player): Action[] {
 
 function declareCandidates(s: GameState, p: Player): Action[] {
   const out: Action[] = []
-  const army = p.military.filter((c) => cardById(c.defId).hp !== undefined).length
+  const army = p.military.filter((c) => cardStats(c).hp !== undefined).length
   if (army >= 2) {
     const targets = declarationTargets(s, p).sort((a, b) => Number(b.kind === 'city') - Number(a.kind === 'city'))
     for (const t of targets) out.push({ type: 'declareWar', defenderId: t.defenderId, cityId: t.cityId, tileId: t.tileId })
@@ -167,8 +168,8 @@ function battleCandidates(s: GameState): Action[] {
   const p = s.players[pid]
   if (b.step === 'arrange') {
     const power = (uid: number) => {
-      const d = cardById(p.military.find((c) => c.uid === uid)!.defId)
-      return (d.hp ?? 0) + (d.power ?? d.attack?.power ?? d.marks?.[0]?.power ?? 0) * 2
+      const st = cardStats(p.military.find((c) => c.uid === uid)!)
+      return (st.hp ?? 0) + (st.choose ?? st.marks[0]?.power ?? st.markPower ?? 0) * 2
     }
     const usable = p.military.map((c) => c.uid).sort((x, y) => power(y) - power(x))
     return [
@@ -180,13 +181,13 @@ function battleCandidates(s: GameState): Action[] {
   const enemyId = pid === b.decl.attackerId ? b.decl.defenderId : b.decl.attackerId
   const enemy = s.players[enemyId]
   const enemyBoard = (b.slots[enemyId] ?? []).filter((x): x is number => x !== null)
-  const hpOf = (uid: number) => cardById(enemy.military.find((c) => c.uid === uid)!.defId).hp ?? 99
+  const hpOf = (uid: number) => cardStats(enemy.military.find((c) => c.uid === uid)!).hp ?? 99
   const sorted = [...enemyBoard].sort((x, y) => hpOf(x) - hpOf(y))
-  const antiTank = enemyBoard.filter((u) => enemy.military.find((c) => c.uid === u)!.defId === 'anti_tank_gun')
+  const antiTank = enemyBoard.filter((u) => cardStats(enemy.military.find((c) => c.uid === u)!).baseId === 'anti_tank_gun')
   const picks: Record<number, number> = {}
   for (const uid of head.uids) {
     const me = p.military.find((c) => c.uid === uid)!
-    picks[uid] = me.defId === 'tank' && antiTank.length ? antiTank[0] : sorted[0]
+    picks[uid] = cardStats(me).baseId === 'tank' && antiTank.length ? antiTank[0] : sorted[0]
   }
   return [{ type: 'chooseTargets', playerId: pid, picks }]
 }

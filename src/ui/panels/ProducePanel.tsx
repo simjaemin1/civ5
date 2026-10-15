@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { MILITARY_CARDS, PROGRESS_NEEDED, cardById, cardCost, civById, investableWonders, minHammers, producible, uniqueOf, wonderCardById } from '../../engine'
-import { cardLine, conditionText, ICON, wonderEffectText } from '../format'
+import { cardText, conditionText, ICON, wonderEffectText } from '../format'
 import type { PanelProps } from './types'
 
 export function ProducePanel({ game, player, dispatch }: PanelProps) {
@@ -79,7 +79,7 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
                           const cost = cardCost(player, def, e.unique ? uniqueOf(player, e.unique) : undefined)
                           return (
                             <div key={key} className="row">
-                              <span>{cardLine(def, undefined, e.unique)}{e.unique ? ` — 고유 유닛, 남은 ${game.uniqueSupply[e.unique].length}/3장` : ''}</span>
+                              <span>{cardText({ defId: def.id, unique: e.unique })}{e.unique ? ` — 고유 유닛, 남은 ${game.uniqueSupply[e.unique].length}/3장` : ''}</span>
                               <b>
                                 {ICON.hammer}
                                 {cost}
@@ -110,7 +110,7 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
             return (
               <div key={inst.uid} className="row">
                 <span>
-                  {lower.name} → {cardLine(upper)} (방향은 무작위)
+                  {lower.name} → {cardText({ defId: upper.id })} (방향은 무작위)
                 </span>
                 <b>
                   {ICON.gold}
@@ -138,7 +138,7 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
           <div className="list">
             {player.military.map((c) => (
               <div key={c.uid} className="row">
-                <span>{cardLine(cardById(c.defId), c.dir, c.unique)}</span>
+                <span>{cardText(c)}</span>
                 {player.civId === 'india' && <button onClick={() => dispatch({ type: 'sacrificeCard', uid: c.uid })}>공용 덱에 돌려 파괴 (식량 +2)</button>}
               </div>
             ))}
