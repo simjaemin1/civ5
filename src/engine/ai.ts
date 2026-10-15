@@ -1,12 +1,12 @@
 import type { Action, GameState, Player, Side, TileCard } from './types'
 import { RuleError, SIDES } from './types'
-import { MILITARY_CARDS } from './data'
+import { MILITARY_CARDS, cardById, civById } from './data'
 import { cardStats } from './cardstats'
 import type { TechDef } from './data'
 import { apply, researchableTechs } from './game'
 import { ctxOf, tileYield, totalWorkers } from './yields'
 import { investableWonders, minHammers } from './wonders'
-import { cardCost, producible } from './military'
+import { cardCost, producible, uniqueOf } from './military'
 import { declarationTargets } from './war'
 import { currentPlayer } from './core'
 
@@ -97,6 +97,13 @@ function researchCandidates(s: GameState, p: Player): Action[] {
 
 const POLICY_PREFERENCE = ['rationalism', 'liberty', 'aesthetics', 'despotism', 'equality', 'regime', 'diplomacy', 'tradition'] as const
 
+/** 만들 수 있는 카드 후보: 비싼 순, 같은 값이면 고유 유닛을 먼저 (고유 유닛은 일반 카드보다 강하다) */
+function cardOptions(p: Player): { def: (typeof MILITARY_CARDS)[number]; unique?: string; cost: number }[] {
+  const opts: { def: (typeof MILITARY_CARDS)[number]; unique?: string; cost: number }[] = MILITARY_CARDS.map((def) => ({ def, cost: def.cost }))
+  for (const u of civById(p.civId).uniques) opts.push({ def: cardById(u.base), unique: u.name, cost: u.cost })
+  return opts.sort((a, b) => b.cost - a.cost || Number(!!b.unique) - Number(!!a.unique))
+}
+
 function pendingCandidates(s: GameState, p: Player): Action[] {
   const out: Action[] = []
   if (p.pendingCity) out.push(foundSecond(p.pendingCity))
@@ -104,8 +111,8 @@ function pendingCandidates(s: GameState, p: Player): Action[] {
     if (p.pendingPolicies > 0) out.push({ type: 'choosePolicy', policy })
   }
   if (p.pendingFreeCards > 0) {
-    for (const c of [...MILITARY_CARDS].sort((a, b) => b.cost - a.cost)) {
-      out.push({ type: 'claimFreeCard', defId: c.id })
+    for (const o of cardOptions(p)) {
+      out.push({ type: 'claimFreeCard', defId: o.def.id, unique: o.unique })
     }
   }
   void s
@@ -133,15 +140,18 @@ function produceCandidates(s: GameState, p: Player): Action[] {
       .sort((a, b) => b.minHammers - a.minHammers)
     const wonderActions: Action[] = wonders.map((w) => ({ type: 'invest', cityId: city.id, wonderId: w.id, hammers: h }))
     const cardActions: Action[] = []
-    for (const def of [...MILITARY_CARDS].sort((a, b) => b.cost - a.cost)) {
-      if (def.notBattle || !producible(s, p, def.id) || cardCost(p, def) > h) continue
-      cardActions.push({ type: 'produce', cityId: city.id, defId: def.id })
+    for (const o of cardOptions(p)) {
+      if (o.def.notBattle || !producible(s, p, o.def.id, o.unique) || cardCost(p, o.def, o.unique ? uniqueOf(p, o.unique) : undefined) > h) continue
+      cardActions.push({ type: 'produce', cityId: city.id, defId: o.def.id, unique: o.unique })
     }
     // 군대가 3장 미만이면 군사 카드를 먼저, 그 뒤에는 불가사의에 망치를 모두 건다
     out.push(...(army < 3 ? [...cardActions, ...wonderActions] : [...wonderActions, ...cardActions]))
   }
   // 3) 금으로 승급
   if (!turn.upgraded && turn.yields.gold > 0) {
+    for (const c of p.military) {
+      for (const u of civById(p.civId).uniques) out.push({ type: 'upgrade', uid: c.uid, unique: u.name })
+    }
     for (const c of p.military) out.push({ type: 'upgrade', uid: c.uid })
   }
   return out

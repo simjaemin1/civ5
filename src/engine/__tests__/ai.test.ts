@@ -96,4 +96,18 @@ describe('AI 시뮬레이션', () => {
     expect(civById('korea').uniques.length).toBeGreaterThan(0)
     expect(cardById('warrior').hp).toBe(3)
   }, 120000)
+
+  it('AI가 고유 유닛을 생산·보유한다 (문명 전체를 돌려 확인)', () => {
+    const made = new Set<string>()
+    for (let i = 0; i < CIVS.length; i += 2) {
+      const civs = [CIVS[i].id, CIVS[(i + 1) % CIVS.length].id]
+      let s = createGame({ seed: 300 + i, civIds: civs })
+      for (let n = 0; n < 1200 && s.phase !== 'over'; n++) {
+        s = aiStep(s).state
+        for (const p of s.players) for (const m of p.military) if (m.unique) made.add(m.unique)
+      }
+      checkInvariants(s)
+    }
+    expect(made.size).toBeGreaterThanOrEqual(5)
+  }, 240000)
 })
