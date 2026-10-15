@@ -1,0 +1,25 @@
+{
+  "_note": "부분 데이터. 열별 과학 비용은 규칙서 23쪽: 0,1,1,4,5,8,8,10,14,20(아폴로). 기술 이름·연결선은 규칙서 도표가 아이콘뿐이라 초반 19장만 입력함. prereqs는 규칙서 본문에 명시된 것만 입력.",
+  "columnCosts": [0,1,1,4,5,8,8,10,14,20],
+  "techs": [
+    {"id":"agriculture","name":"농업","column":1,"effects":[]},
+    {"id":"writing","name":"문자","column":1,"effects":[{"kind":"foodToScience"}]},
+    {"id":"archery","name":"궁술","column":1,"effects":[]},
+    {"id":"sailing","name":"항해","column":1,"effects":[]},
+    {"id":"animal_husbandry","name":"목축업","column":1,"effects":[]},
+    {"id":"mining","name":"광업","column":1,"effects":[]},
+    {"id":"bronze_working","name":"청동기술","column":1,"effects":[]},
+    {"id":"calendar","name":"역법","column":2,"effects":[]},
+    {"id":"drama","name":"드라마와 시","column":2,"effects":[{"kind":"culture","amount":1}]},
+    {"id":"mathematics","name":"수학","column":2,"effects":[]},
+    {"id":"optics","name":"광학","column":2,"prereqs":["sailing"],"effects":[]},
+    {"id":"horseback","name":"기마술","column":2,"effects":[{"kind":"general","amount":1}]},
+    {"id":"masonry","name":"석공술","column":2,"effects":[]},
+    {"id":"iron_working","name":"철제기술","column":2,"effects":[]},
+    {"id":"philosophy","name":"철학","column":3,"effects":[{"kind":"policy"}]},
+    {"id":"compass","name":"나침반","column":3,"prereqs":["optics"],"effects":[{"kind":"compass"}]},
+    {"id":"trapping","name":"수렵","column":3,"effects":[]},
+    {"id":"construction","name":"건축","column":3,"effects":[]},
+    {"id":"currency","name":"화폐","column":3,"effects":[{"kind":"policy"}]}
+  ]
+}
