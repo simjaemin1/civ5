@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { aiStep, createGame, cardById, cardStats, MILITARY_CARDS, civById, CIVS, happiness, totalWorkers } from '..'
+import { aiStep, createGame, cardById, cardStats, MILITARY_CARDS, civById, CIVS, happiness, rankTop, totalWorkers } from '..'
 import type { GameState } from '..'
 
 /** AI끼리 게임을 끝까지(또는 maxSteps까지) 돌린다. */
@@ -122,4 +122,22 @@ describe('AI 과학 승리 전략', () => {
     }
     expect(types).toContain('science')
   }, 240000)
+})
+
+describe('AI 견제 구도 (3명 이상)', () => {
+  it('딸리는 문명은 1등만 노리고, 1등은 2등을 노린다', () => {
+    const s = createGame({ seed: 1, civIds: ['korea', 'egypt', 'china', 'japan'] })
+    // 1번 문명이 확실한 1등: 기술과 불가사의를 많이 가짐
+    s.players[1].techs.push('agriculture', 'writing', 'sailing', 'mining', 'archery', 'calendar')
+    s.players[1].wonders.push('pyramids', 'petra')
+    s.players[2].techs.push('agriculture', 'writing', 'sailing')
+    const top = rankTop(s)!
+    expect(top.leader.id).toBe(1)
+    expect(top.runnerUp.id).toBe(2)
+  })
+
+  it('둘만 남으면 견제 구도를 쓰지 않는다', () => {
+    const s = createGame({ seed: 1, civIds: ['korea', 'egypt'] })
+    expect(rankTop(s)).toBeNull()
+  })
 })

@@ -4,7 +4,7 @@ import { MILITARY_CARDS, RESOURCES, TECHS, WONDERS, cardById, civById } from './
 import { cardStats } from './cardstats'
 import type { TechDef } from './data'
 import { apply, researchableTechs } from './game'
-import { ctxOf, tileYield, totalWorkers } from './yields'
+import { ctxOf, culture, tileYield, totalWorkers } from './yields'
 import { investableWonders, minHammers } from './wonders'
 import { cardCost, producible, uniqueOf, upgradeTargets } from './military'
 import { declarationTargets, occupiedTiles } from './war'
@@ -20,7 +20,7 @@ export const setAiStyle = (style: 'default' | 'hammer'): void => {
 
 /** 튜닝값 (시뮬레이션으로 조정) */
 /** 시뮬레이션(30판)으로 고른 값: 정책은 과학 12 미만이면 합리주의·자유로, 과학이론 우선도 +60, 아폴로 질주는 남은 기술 8개부터 (더 일찍 달리면 오히려 판이 길어진다) */
-export const AI_TUNE = { scienceWeight: 1.3, apolloRush: 8, policyNeed: 12, theoryBonus: 60 }
+export const AI_TUNE = { scienceWeight: 1.3, apolloRush: 8, policyNeed: 12, theoryBonus: 60, coalition: true }
 
 const weight = (y: { food: number; hammer: number; science: number; gold: number }) =>
   y.food * 1.6 + y.hammer * 1.1 + y.science * AI_TUNE.scienceWeight + y.gold * 0.4
@@ -311,6 +311,16 @@ function produceCandidates(s: GameState, p: Player): Action[] {
   return out
 }
 
+/** 지금 얼마나 앞서 있는지: 문화(타일), 기술, 불가사의, 일꾼, 군사 */
+export function standing(p: Player): number {
+  return culture(p) + 2 * p.techs.length + 3 * p.wonders.length + totalWorkers(p) + 0.5 * armyOf(p)
+}
+/** 1등(가장 앞선 문명)과 2등. 탈락한 문명은 뺀다. */
+export function rankTop(s: GameState): { leader: Player; runnerUp: Player } | null {
+  const alive = s.players.filter((q) => !q.eliminated).sort((a, b) => standing(b) - standing(a) || a.id - b.id)
+  return alive.length >= 3 ? { leader: alive[0], runnerUp: alive[1] } : null
+}
+
 function declareCandidates(s: GameState, p: Player): Action[] {
   const out: Action[] = []
   const army = p.military.filter((c) => cardStats(c).hp !== undefined).length
@@ -325,7 +335,13 @@ function declareCandidates(s: GameState, p: Player): Action[] {
       const r = card.resource ? RESOURCES[card.resource] : undefined
       return weight(tileYield(card, ctxOf(owner))) + (r?.kind === 'luxury' ? 4 : r?.kind === 'strategic' ? 3 : 0) + (card.wonder ? 6 : 0)
     }
-    const targets = declarationTargets(s, p).sort((a, b) => value(b) - value(a))
+    // 셋 이상이면 한 사람을 집중공략하지 않고, 딸리는 나라들이 함께 1등을 견제한다.
+    // 1등은 2등을 견제한다. 탈환은 언제든 할 수 있다.
+    const top = AI_TUNE.coalition ? rankTop(s) : null
+    const aim = top ? (p.id === top.leader.id ? top.runnerUp.id : top.leader.id) : null
+    const targets = declarationTargets(s, p)
+      .filter((t) => aim === null || t.kind === 'retake' || t.defenderId === aim)
+      .sort((a, b) => value(b) - value(a))
     for (const t of targets) out.push({ type: 'declareWar', defenderId: t.defenderId, cityId: t.cityId, tileId: t.tileId })
   } else {
     for (const t of declarationTargets(s, p)) {
