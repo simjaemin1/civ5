@@ -19,7 +19,8 @@ export const setAiStyle = (style: 'default' | 'hammer'): void => {
 }
 
 /** 튜닝값 (시뮬레이션으로 조정) */
-export const AI_TUNE = { scienceWeight: 1.3, apolloRush: 8, policyNeed: 10, theoryBonus: 45 }
+/** 시뮬레이션(30판)으로 고른 값: 정책은 과학 12 미만이면 합리주의·자유로, 과학이론 우선도 +60, 아폴로 질주는 남은 기술 8개부터 (더 일찍 달리면 오히려 판이 길어진다) */
+export const AI_TUNE = { scienceWeight: 1.3, apolloRush: 8, policyNeed: 12, theoryBonus: 60 }
 
 const weight = (y: { food: number; hammer: number; science: number; gold: number }) =>
   y.food * 1.6 + y.hammer * 1.1 + y.science * AI_TUNE.scienceWeight + y.gold * 0.4
