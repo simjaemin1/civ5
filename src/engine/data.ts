@@ -151,7 +151,7 @@ export const POLICIES = policiesJson as Record<PolicyId, { name: string; desc: s
 
 export type WonderEffect =
   | { kind: 'general'; amount: number }
-  | { kind: 'militaryCostMinus'; amount: number }
+  | { kind: 'militaryCostMinus'; amount: number; bases: string[] }
   | { kind: 'happiness'; amount: number }
   | { kind: 'goldPerTurn'; amount: number }
   | { kind: 'gardens' }

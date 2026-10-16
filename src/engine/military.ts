@@ -1,6 +1,6 @@
 import type { CardInst, City, GameState, Player } from './types'
 import { RuleError } from './types'
-import { MILITARY_CARDS, cardById, civById } from './data'
+import { MILITARY_CARDS, cardById, civById, wonderCardById } from './data'
 import type { Dir, MilitaryCardDef, UniqueUnitDef } from './data'
 import { say } from './core'
 import { nextRandom } from './rng'
@@ -31,10 +31,16 @@ export function releaseUnique(s: GameState, c: CardInst): void {
 
 export const hasAny = (p: Player, wonder: string): boolean => p.wonders.includes(wonder)
 
-/** 아르테미스 사원: 군사 카드 생산 비용 -1. 고유 유닛은 카드에 적힌 비용. */
+/** 아르테미스 사원: 전사·궁수·창병·전차(와 이 카드를 바탕으로 하는 고유 유닛) 생산 비용 -1. 고유 유닛은 카드에 적힌 비용에서 뺀다. */
 export function cardCost(p: Player, def: MilitaryCardDef, unique?: UniqueUnitDef): number {
   const base = unique?.cost ?? def.cost
-  return Math.max(1, base - (hasAny(p, 'temple_of_artemis') ? 1 : 0))
+  let minus = 0
+  if (hasAny(p, 'temple_of_artemis')) {
+    for (const e of wonderCardById('temple_of_artemis').effects) {
+      if (e.kind === 'militaryCostMinus' && e.bases.includes(def.id)) minus += e.amount
+    }
+  }
+  return Math.max(1, base - minus)
 }
 
 export function uniqueOf(p: Player, name: string): UniqueUnitDef | undefined {

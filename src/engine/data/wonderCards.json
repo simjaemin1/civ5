@@ -22,10 +22,16 @@
       "effects": [
         {
           "kind": "militaryCostMinus",
-          "amount": 1
+          "amount": 1,
+          "bases": [
+            "warrior",
+            "archer",
+            "spearman",
+            "chariot"
+          ]
         }
       ],
-      "progressNeeded": 3
+      "progressNeeded": 2
     },
     {
       "id": "mausoleum",

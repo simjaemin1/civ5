@@ -28,7 +28,7 @@ export function tileTitle(card: TileCard): string {
 export function wonderEffectText(e: WonderEffect): string {
   switch (e.kind) {
     case 'general': return `위대한 장군 +${e.amount}`
-    case 'militaryCostMinus': return `군사 카드 생산 비용 -${e.amount}`
+    case 'militaryCostMinus': return `${e.bases.map((b) => cardById(b).name).join('·')} 생산 비용 -${e.amount}`
     case 'happiness': return `행복 +${e.amount}`
     case 'goldPerTurn': return `턴당 금 +${e.amount}`
     case 'gardens': return '다음 차례부터 첫 도시 식량 +1'

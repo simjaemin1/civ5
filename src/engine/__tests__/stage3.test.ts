@@ -125,9 +125,18 @@ describe('군사 카드 생산', () => {
     expect(() => apply(coastal, { type: 'produce', cityId: 0, defId: 'battleship' })).not.toThrow()
   })
 
-  it('아르테미스 사원: 생산 비용 -1', () => {
-    const s = withHammers(mod(at('denmark', ['agriculture']), (c) => c.players[0].wonders.push('temple_of_artemis')), 4)
-    expect(() => apply(s, { type: 'produce', cityId: 0, defId: 'warrior' })).not.toThrow()
+  it('아르테미스 사원: 전사·궁수·창병·전차 생산 비용 -1 (다른 카드는 그대로)', () => {
+    const own = (techs: string[], hammers: number) => withHammers(mod(at('denmark', techs), (c) => c.players[0].wonders.push('temple_of_artemis')), hammers)
+    // 전사 3 → 2
+    expect(() => apply(own(['agriculture'], 1), { type: 'produce', cityId: 0, defId: 'warrior' })).toThrow(RuleError)
+    expect(() => apply(own(['agriculture'], 2), { type: 'produce', cityId: 0, defId: 'warrior' })).not.toThrow()
+    // 궁수·창병·전차도 -1
+    expect(() => apply(own(['archery'], 2), { type: 'produce', cityId: 0, defId: 'archer' })).not.toThrow()
+    expect(() => apply(own(['bronze_working'], 2), { type: 'produce', cityId: 0, defId: 'spearman' })).not.toThrow()
+    expect(() => apply(own(['animal_husbandry'], 2), { type: 'produce', cityId: 0, defId: 'chariot' })).not.toThrow()
+    // 머스킷병(6)은 그대로
+    expect(() => apply(own(['gunpowder'], 5), { type: 'produce', cityId: 0, defId: 'musketman' })).toThrow(RuleError)
+    expect(() => apply(own(['gunpowder'], 6), { type: 'produce', cityId: 0, defId: 'musketman' })).not.toThrow()
   })
 
   it('고유 유닛: 스페인 테르시오는 머스킷병 취급에 망치 1이 더 든다', () => {
