@@ -18,8 +18,11 @@ export const setAiStyle = (style: 'default' | 'hammer'): void => {
   aiStyle = style
 }
 
+/** 튜닝값 (시뮬레이션으로 조정) */
+export const AI_TUNE = { scienceWeight: 1.3, apolloRush: 8, policyNeed: 10, theoryBonus: 45 }
+
 const weight = (y: { food: number; hammer: number; science: number; gold: number }) =>
-  y.food * 1.6 + y.hammer * 1.1 + y.science * 1.3 + y.gold * 0.4
+  y.food * 1.6 + y.hammer * 1.1 + y.science * AI_TUNE.scienceWeight + y.gold * 0.4
 
 /** 지금 입력을 해야 하는 문명 (전투 중에는 카드를 놓거나 대상을 골라야 하는 쪽) */
 export function actorOf(s: GameState): number {
@@ -86,8 +89,7 @@ function apolloMissing(p: Player): Set<string> {
 }
 
 /** 극후반: 아폴로까지 남은 기술이 이 정도면 과학 승리를 향해 달린다 (자유 정책 + 식량 전부를 과학으로) */
-const APOLLO_RUSH = 8
-const rushingApollo = (p: Player): boolean => aiStyle === 'default' && apolloMissing(p).size <= APOLLO_RUSH
+const rushingApollo = (p: Player): boolean => aiStyle === 'default' && apolloMissing(p).size <= AI_TUNE.apolloRush
 
 /** 번성형 기술 순서: 나침반 → 과학·식량 산출을 키우는 기술과 행복(일꾼 상한) 기술 → 인쇄기술(두 번째 도시) → 나머지는 싼 것부터 넓게 */
 const COMPASS_CHAIN = new Set(['sailing', 'optics', 'compass'])
@@ -111,7 +113,7 @@ function buildPriority(p: Player, t: TechDef): number {
   const mountainFirstCity = !!p.cities[0]?.tiles.some((x) => (x.role === 'city' || x.role === 'side') && x.card.terrains.includes('산'))
   if (t.id === 'writing') v += 90 // 식량을 과학으로 바꿀 수 있다
   if (t.id === 'astronomy' && mountainFirstCity) v += 80 // 과학 +5
-  if (t.id === 'scientific_theory') v += 45
+  if (t.id === 'scientific_theory') v += AI_TUNE.theoryBonus
   if (t.id === 'printing_press') v += 70
   if (t.id === 'economics') v += 15
   if (t.id === 'radar') v -= 60 // 정책이 전제정치로 바뀐다 (아폴로 질주 때만 감수)
@@ -216,7 +218,7 @@ function policyOrder(s: GameState, p: Player): Policy[] {
   const withRational = base + (p.civId === 'korea' ? 5 : 3) + (writing ? Math.max(0, food - totalWorkers(p)) : 0)
   const withLiberty = base + (writing ? food : 0)
   // 앞으로 만날 비용 10대 기술을 감당할 수 있는지 (번성 뒤에도 막히지 않도록 여유 있게)
-  const need = Math.max(cheapest, 10)
+  const need = Math.max(cheapest, AI_TUNE.policyNeed)
   if (rushingApollo(p)) return ['liberty', 'rationalism', ...POLICY_PREFERENCE]
   if (withNone >= need) return [...POLICY_PREFERENCE]
   return withLiberty >= withRational ? ['liberty', 'rationalism', ...POLICY_PREFERENCE] : ['rationalism', 'liberty', ...POLICY_PREFERENCE]
