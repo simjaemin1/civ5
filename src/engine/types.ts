@@ -229,7 +229,7 @@ export type Action =
   | { type: 'declareWar'; defenderId: number; cityId: number; tileId: number }
   | { type: 'endTurn' }
   | { type: 'arrangeBattle'; playerId: number; slots: (number | null)[] }
-  | { type: 'chooseTargets'; playerId: number; picks: Record<number, number> }
+  | { type: 'chooseTargets'; playerId: number; picks: Record<number, number | null> }
   | { type: 'useAtomicBomb'; defenderId: number; cityId: number; tileId: number }
   | { type: 'useGreatWall' }
   | { type: 'sacrificeCard'; uid: number }

@@ -150,7 +150,7 @@ function Board4({ game, pid }: { game: GameState; pid: number }) {
 function Choose({ game, me, enemy, dispatch }: { game: GameState; me: Player; enemy: Player; dispatch: PanelProps['dispatch'] }) {
   const b = game.battle!
   const head = b.chooseQueue[0]
-  const [picks, setPicks] = useState<Record<number, number>>({})
+  const [picks, setPicks] = useState<Record<number, number | null>>({})
   const enemyBoard = (b.slots[enemy.id] ?? []).map((u, i) => ({ u, i })).filter((x): x is { u: number; i: number } => x.u !== null)
   const hasAT = enemyBoard.some((x) => cardStats(enemy.military.find((m) => m.uid === x.u)!).baseId === 'anti_tank_gun')
   return (
@@ -165,8 +165,20 @@ function Choose({ game, me, enemy, dispatch }: { game: GameState; me: Player; en
         return (
           <label key={uid} className="row">
             <span>{label(me, mine)} →</span>
-            <select value={picks[uid] ?? ''} onChange={(e) => setPicks({ ...picks, [uid]: Number(e.target.value) })}>
+            <select
+              value={picks[uid] === undefined ? '' : picks[uid] === null ? 'empty' : picks[uid]!}
+              onChange={(e) => {
+                const v = e.target.value
+                const next = { ...picks }
+                if (v === '') delete next[uid]
+                else next[uid] = v === 'empty' ? null : Number(v)
+                setPicks(next)
+              }}
+            >
               <option value="">(선택)</option>
+              <option value="empty" disabled={must}>
+                빈칸 (일부러 아무도 공격하지 않음 — 대미지도 반격도 없음)
+              </option>
               {enemyBoard.map(({ u, i }) => {
                 const c = enemy.military.find((m) => m.uid === u)!
                 return (

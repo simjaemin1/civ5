@@ -609,6 +609,44 @@ describe('대상을 고르는 카드', () => {
     expect(() => apply(s, { type: 'chooseTargets', playerId: 0, picks: { [a]: w1 } })).toThrow(RuleError)
   })
 
+  it('대상을 고르는 카드(전차 등)는 일부러 빈칸을 공격할 수 있다: 대미지도 반격도 없다', () => {
+    const run = (pick: 'empty' | 'card') => {
+      let a = 0
+      let w = 0
+      let s = toBattle(round2(), (c) => {
+        c.players[0].generals = 1
+        a = give(c, 0, 'chariot')
+        w = give(c, 1, 'warrior', 'C')
+      }, T)
+      s = arrange(s, 0, [a, null, null, null])
+      s = arrange(s, 1, [w, null, null, null])
+      s = apply(s, { type: 'chooseTargets', playerId: 0, picks: { [a]: pick === 'empty' ? null : w } })
+      const r = s.battleReports.at(-1)!
+      return { r, a, w }
+    }
+    const hit = run('card')
+    const miss = run('empty')
+    // 카드를 고르면 전사가 전차의 전투력 1만큼 대미지를 받는다
+    expect(hit.r.units.find((u) => u.inst.uid === hit.w)!.attackDamage).toBe(1)
+    // 빈칸을 고르면 아무 대미지도 없다 (공격 기록도 없음)
+    expect(miss.r.units.find((u) => u.inst.uid === miss.w)!.attackDamage).toBe(0)
+    expect(miss.r.units.find((u) => u.inst.uid === miss.a)!.counterDamage).toBe(0)
+    expect(miss.r.hits.filter((h) => h.from.pid === 0)).toEqual([])
+  })
+
+  it('탱크는 상대에게 대전차포가 있으면 빈칸도 고를 수 없다', () => {
+    let tank = 0
+    let s = toBattle(round2(), (c) => {
+      c.players[0].generals = 1
+      tank = give(c, 0, 'tank')
+      give(c, 1, 'anti_tank_gun', 'C')
+    }, T)
+    s = arrange(s, 0, [tank, null, null, null])
+    const at = s.players[1].military[0].uid
+    s = arrange(s, 1, [null, null, null, at])
+    expect(() => apply(s, { type: 'chooseTargets', playerId: 0, picks: { [tank]: null } })).toThrow(RuleError)
+  })
+
   it('대전차포: 상대 탱크는 반드시 대전차포를 공격 대상으로 골라야 한다', () => {
     let tank = 0
     let at = 0
