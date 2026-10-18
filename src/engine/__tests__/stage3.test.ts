@@ -634,7 +634,7 @@ describe('대상을 고르는 카드', () => {
     expect(miss.r.hits.filter((h) => h.from.pid === 0)).toEqual([])
   })
 
-  it('탱크는 상대에게 대전차포가 있으면 빈칸도 고를 수 없다', () => {
+  it('탱크는 상대에게 대전차포가 있어도 일부러 빈칸을 고를 수 있다 (카드를 고른다면 대전차포여야 한다)', () => {
     let tank = 0
     let s = toBattle(round2(), (c) => {
       c.players[0].generals = 1
@@ -644,7 +644,7 @@ describe('대상을 고르는 카드', () => {
     s = arrange(s, 0, [tank, null, null, null])
     const at = s.players[1].military[0].uid
     s = arrange(s, 1, [null, null, null, at])
-    expect(() => apply(s, { type: 'chooseTargets', playerId: 0, picks: { [tank]: null } })).toThrow(RuleError)
+    expect(() => apply(s, { type: 'chooseTargets', playerId: 0, picks: { [tank]: null } })).not.toThrow()
   })
 
   it('대전차포: 상대 탱크는 반드시 대전차포를 공격 대상으로 골라야 한다', () => {

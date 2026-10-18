@@ -176,7 +176,7 @@ function Choose({ game, me, enemy, dispatch }: { game: GameState; me: Player; en
               }}
             >
               <option value="">(선택)</option>
-              <option value="empty" disabled={must}>
+              <option value="empty">
                 빈칸 (일부러 아무도 공격하지 않음 — 대미지도 반격도 없음)
               </option>
               {enemyBoard.map(({ u, i }) => {
@@ -188,7 +188,7 @@ function Choose({ game, me, enemy, dispatch }: { game: GameState; me: Player; en
                 )
               })}
             </select>
-            {must && <small className="muted">탱크는 대전차포를 골라야 합니다</small>}
+            {must && <small className="muted">탱크가 카드를 고른다면 대전차포를 골라야 합니다 (빈칸은 가능)</small>}
           </label>
         )
       })}

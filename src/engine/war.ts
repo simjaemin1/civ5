@@ -206,10 +206,10 @@ export function chooseTargets(s: GameState, playerId: number, picks: Record<numb
   for (const uid of head.uids) {
     const target = picks[uid]
     if (target === undefined || (target !== null && !enemyBoard.includes(target))) throw new RuleError('모든 카드의 대상을 상대 카드(또는 빈칸) 중에서 골라야 합니다')
-    // 대전차포: 상대 탱크는 반드시 대전차포를 공격 대상으로 골라야 한다 (내 쪽에 임피가 있으면 대전차포의 효과는 무시된다). 빈칸도 고를 수 없다.
+    // 대전차포: 상대 탱크는 카드를 고른다면 반드시 대전차포를 골라야 한다 (내 쪽에 임피가 있으면 대전차포의 효과는 무시된다). 일부러 빈칸을 고르는 것은 괜찮다.
     const me = cardStats(instOf(s.players[playerId], uid)!)
     const hasAT = enemyBoard.some((u) => cardStats(instOf(enemy, u)!).baseId === 'anti_tank_gun')
-    if (me.baseId === 'tank' && hasAT && !impiOn(s, b, playerId) && (target === null || cardStats(instOf(enemy, target)!).baseId !== 'anti_tank_gun')) {
+    if (me.baseId === 'tank' && hasAT && !impiOn(s, b, playerId) && target !== null && cardStats(instOf(enemy, target)!).baseId !== 'anti_tank_gun') {
       throw new RuleError('탱크는 대전차포를 공격 대상으로 골라야 합니다')
     }
   }
