@@ -4,7 +4,11 @@ import type { GameView } from '../../src/engine'
 import type { ServerMsg } from '../../src/online/protocol'
 import { Hub } from '../hub'
 import type { Conn } from '../hub'
-import { MemoryStore } from '../store'
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { FileStore, MemoryStore } from '../store'
+import type { Store } from '../store'
 
 const CIVS = ['egypt', 'korea', 'china', 'japan', 'russia']
 
@@ -36,7 +40,8 @@ const send = (hub: Hub, p: Player, msg: object): string | undefined => {
 }
 
 /** 방장 + 사람 n-1명이 들어온 로비 */
-function lobby(n: number, store = new MemoryStore()) {
+function lobby<S extends Store = MemoryStore>(n: number, given?: S) {
+  const store = (given ?? new MemoryStore()) as S
   const hub = new Hub(store)
   const created = hub.createRoom('방장')
   const players = [enter(hub, created.room, created.token, created.seat)]
@@ -47,8 +52,8 @@ function lobby(n: number, store = new MemoryStore()) {
   return { hub, store, id: created.room, players }
 }
 
-function startedGame(humans: number, ais: number, store = new MemoryStore()) {
-  const g = lobby(humans, store)
+function startedGame<S extends Store = MemoryStore>(humans: number, ais: number, store?: S) {
+  const g = lobby<S>(humans, store)
   g.players.forEach((p, i) => expect(send(g.hub, p, { type: 'setCiv', civId: CIVS[i] })).toBeUndefined())
   for (let i = 0; i < ais; i++) expect(send(g.hub, g.players[0], { type: 'addAI' })).toBeUndefined()
   expect(send(g.hub, g.players[0], { type: 'start' })).toBeUndefined()
@@ -56,7 +61,7 @@ function startedGame(humans: number, ais: number, store = new MemoryStore()) {
 }
 
 /** 지금 입력할 사람의 행동을 (서버 상태를 보는 AI로) 하나 만들어 그 사람 이름으로 보낸다 */
-function playOne(g: ReturnType<typeof lobby>): boolean {
+function playOne(g: { hub: Hub; id: string; players: Player[] }): boolean {
   const room = g.hub.rooms.get(g.id)!
   const s = room.state!
   if (s.phase === 'over') return false
@@ -66,6 +71,26 @@ function playOne(g: ReturnType<typeof lobby>): boolean {
   if (err) throw new Error(err)
   return true
 }
+
+describe('파일 저장소', () => {
+  it('파일에 저장한 방을 새 허브가 같은 상태로 복원하고, 되돌리기·폭파가 파일에도 반영된다', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'civ5-rooms-'))
+    try {
+      const g = startedGame(2, 1, new FileStore(dir))
+      for (let i = 0; i < 60; i++) playOne(g)
+      const room = g.hub.rooms.get(g.id)!
+      const hub2 = new Hub(new FileStore(dir))
+      expect(JSON.stringify(hub2.rooms.get(g.id)!.state)).toBe(JSON.stringify(room.state))
+      send(g.hub, g.players[0], { type: 'undo' })
+      const hub3 = new Hub(new FileStore(dir))
+      expect(JSON.stringify(hub3.rooms.get(g.id)!.state)).toBe(JSON.stringify(room.state))
+      send(g.hub, g.players[0], { type: 'closeRoom' })
+      expect(new Hub(new FileStore(dir)).rooms.size).toBe(0)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  }, 60_000)
+})
 
 describe('로비', () => {
   it('방장이 방을 열고 최대 5명까지 들어온다', () => {
