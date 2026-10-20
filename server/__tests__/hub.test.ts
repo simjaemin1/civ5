@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { actorOf, aiStep } from '../../src/engine'
 import type { GameView } from '../../src/engine'
 import type { ServerMsg } from '../../src/online/protocol'
@@ -11,6 +11,12 @@ import { FileStore, MemoryStore } from '../store'
 import type { Store } from '../store'
 
 const CIVS = ['egypt', 'korea', 'china', 'japan', 'russia']
+
+// 시드는 Math.random으로 정해진다: 테스트가 판마다 달라지지 않게 고정된 수열을 쓴다
+beforeEach(() => {
+  let n = 0
+  vi.spyOn(Math, 'random').mockImplementation(() => ((++n * 0.6180339887) % 1))
+})
 
 class FakeConn implements Conn {
   msgs: ServerMsg[] = []
@@ -269,7 +275,7 @@ describe('진행', () => {
             // 남의 이름으로 낼 수 없다
             expect(send(g.hub, a, { type: 'action', action: { type: 'arrangeBattle', playerId: d.seat, slots: [null, null, null, null] } })).toMatch(/자기 자리/)
             // 먼저 낸 쪽의 배치는 상대 뷰에서 가려진다
-            if (!b.slots[a.seat]) {
+            if (!b.slots[a.seat] && !b.slots[d.seat]) {
               const mine = room.state!.players[a.seat].military[0]
               const slots = [mine?.uid ?? null, null, null, null]
               const err = send(g.hub, a, { type: 'action', action: { type: 'arrangeBattle', playerId: a.seat, slots } })
