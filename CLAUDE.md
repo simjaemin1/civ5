@@ -1,6 +1,6 @@
 # 문명 보드게임 (civ5) — 작업 안내
 
-사용자가 만든 문명풍 보드게임(규칙서: `docs/rules.md`)을 구현한 TypeScript 프로토타입. 지금은 **온라인 전환 단계**다. 먼저 `docs/online-plan.md`를 읽을 것.
+사용자가 만든 문명풍 보드게임(규칙서: `docs/rules.md`)을 구현한 TypeScript 프로토타입. 지금은 **온라인 전환 단계**다. 먼저 `docs/online-plan.md`를 읽을 것. 규칙 작업은 모두 `main`에 병합되어 있고, 온라인 작업은 `main`에서 `online/server` 브랜치를 따서 시작한다.
 
 ## 사용자와 일하는 방식
 - 사용자는 한국어를 쓴다. 답변도 한국어로 한다.
