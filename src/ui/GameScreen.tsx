@@ -11,6 +11,7 @@ import { BattleReportModal } from './BattleReportModal'
 import { BattlePanel } from './panels/BattlePanel'
 import { DeclarePanel } from './panels/DeclarePanel'
 import { PendingPanel } from './panels/PendingPanel'
+import { ChoicesPanel } from './panels/ChoicesPanel'
 import { PlacePanel } from './panels/PlacePanel'
 import { ProducePanel } from './panels/ProducePanel'
 import { ResearchPanel } from './panels/ResearchPanel'
@@ -137,6 +138,7 @@ export function GameScreen({ initial, seats, onExit }: Props) {
     main = (
       <>
         <PendingPanel game={game} player={player} dispatch={dispatch} />
+        <ChoicesPanel game={game} player={player} dispatch={dispatch} />
         <ResearchPanel game={game} player={player} dispatch={dispatch} />
       </>
     )
@@ -144,6 +146,7 @@ export function GameScreen({ initial, seats, onExit }: Props) {
     main = (
       <>
         <PendingPanel game={game} player={player} dispatch={dispatch} />
+        <ChoicesPanel game={game} player={player} dispatch={dispatch} />
         <ProducePanel game={game} player={player} dispatch={dispatch} />
       </>
     )

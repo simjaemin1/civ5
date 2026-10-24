@@ -231,3 +231,22 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .icon { vertical-align: middle; border-radius: 50%; }
 .tile-badges { display: flex; gap: 2px; align-items: center; }
 .tile-city-token { position: absolute; left: 4px; top: 4px; line-height: 0; }
+.conv { border-collapse: collapse; margin: 6px 0 10px; } .conv th, .conv td { padding: 3px 10px; text-align: left; }
+
+/* 전투 장면 애니메이션 */
+.unit { transition: transform 0.35s ease, opacity 0.5s ease, background 0.4s; }
+.unit .cardwrap { position: relative; }
+.unit.lunge-up { transform: translateY(-26px) scale(1.05); z-index: 2; box-shadow: 0 6px 14px rgba(0,0,0,0.4); }
+.unit.lunge-down { transform: translateY(26px) scale(1.05); z-index: 2; box-shadow: 0 6px 14px rgba(0,0,0,0.4); }
+.unit.hit { animation: unit-shake 0.5s ease; }
+.unit.hit .cardwrap::after { content: ''; position: absolute; inset: 0; background: rgba(220, 40, 40, 0.45); border-radius: 8px; animation: unit-flash 0.6s ease forwards; }
+.unit.dead { opacity: 0.55; filter: grayscale(0.8); }
+.unit .pop { position: absolute; left: 50%; top: 30%; transform: translateX(-50%); font-size: 1.9rem; font-weight: 800; color: #ff5348; text-shadow: 0 1px 3px #000, 0 0 8px #fff; animation: unit-pop 0.9s ease-out forwards; pointer-events: none; z-index: 3; }
+.hpbar { display: flex; gap: 2px; margin-top: 4px; }
+.hpbar i { flex: 1; height: 7px; border-radius: 3px; background: var(--line); }
+.hpbar i.on { background: #c0392b; }
+.anim-bar { justify-content: space-between; min-height: 32px; align-items: center; }
+@keyframes unit-shake { 0%, 100% { translate: 0 0; } 20% { translate: -6px 0; } 40% { translate: 6px 0; } 60% { translate: -4px 0; } 80% { translate: 3px 0; } }
+@keyframes unit-flash { from { opacity: 1; } to { opacity: 0; } }
+@keyframes unit-pop { from { opacity: 1; margin-top: 0; } to { opacity: 0; margin-top: -40px; } }
+@media (prefers-reduced-motion: reduce) { .unit, .unit * { animation: none !important; transition: none !important; } }

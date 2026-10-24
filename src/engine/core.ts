@@ -29,13 +29,14 @@ export function drawTiles(s: GameState, n: number): TileCard[] {
 export function gainCulture(s: GameState, p: Player, n: number): void {
   for (let i = 0; i < n; i++) {
     let card: TileCard
-    if (p.held) {
+    if (p.held && p.choices?.useHeld !== false) {
       card = p.held
       p.held = null
     } else {
       card = drawTiles(s, 1)[0]
     }
-    const city = p.cities.find((c) => c.openSides.length > 0) ?? p.cities[0]
+    const preferred = p.choices?.cultureCity !== undefined ? p.cities.find((c) => c.id === p.choices!.cultureCity) : undefined
+    const city = preferred ?? p.cities.find((c) => c.openSides.length > 0) ?? p.cities[0]
     const side = city.openSides.shift()
     city.tiles.push(side ? { card, role: 'side', side } : { card, role: 'extra' })
     onTileGained(s, p, card)
@@ -44,7 +45,7 @@ export function gainCulture(s: GameState, p: Player, n: number): void {
 }
 
 /** 타일을 영토로 얻을 때 붙는 효과: 자연경관, 스페인, 일본 */
-function onTileGained(s: GameState, p: Player, card: TileCard): void {
+export function onTileGained(s: GameState, p: Player, card: TileCard): void {
   if (card.wonder) {
     const w = WONDERS[card.wonder]
     if (w.cultureOnClaim) gainCulture(s, p, w.cultureOnClaim)

@@ -128,7 +128,12 @@
    "prereqs": [
     "education"
    ],
-   "effects": []
+   "effects": [
+    {
+     "kind": "culture",
+     "amount": 1
+    }
+   ]
   },
   {
    "id": "scientific_theory",
