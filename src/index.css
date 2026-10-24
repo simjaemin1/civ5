@@ -200,3 +200,9 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .wonder-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); }
 .wonder-row .controls { display: flex; flex-direction: column; gap: 6px; min-width: 200px; flex: 1; }
 .wonder-grid { display: flex; flex-wrap: wrap; gap: 14px; }
+
+/* 정책 카드 */
+.policy-card { --card-bg: #f1e4ef; --card-line: #b79ab4; }
+.policy-card.active-policy { outline: 3px solid var(--accent); }
+.policy-card:disabled { opacity: 0.55; }
+.policy-pick { display: inline-flex; flex-direction: column; gap: 6px; align-items: center; vertical-align: top; }

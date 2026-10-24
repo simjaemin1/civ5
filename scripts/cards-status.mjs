@@ -14,3 +14,5 @@ function status(label, items, dir) {
 
 status('기술 카드', JSON.parse(readFileSync('src/engine/data/techs.json', 'utf8')).techs, 'src/assets/cards/tech')
 status('불가사의 카드', JSON.parse(readFileSync('src/engine/data/wonderCards.json', 'utf8')).wonders, 'src/assets/cards/wonder')
+const policies = Object.entries(JSON.parse(readFileSync('src/engine/data/policies.json', 'utf8'))).map(([id, p]) => ({ id, name: p.name }))
+status('정책 카드', policies, 'src/assets/cards/policy')
