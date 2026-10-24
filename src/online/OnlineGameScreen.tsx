@@ -9,6 +9,7 @@ import { ICON } from '../ui/format'
 import { Icon } from '../ui/icons'
 import { BattlePanel } from '../ui/panels/BattlePanel'
 import { DeclarePanel } from '../ui/panels/DeclarePanel'
+import { ChoicesPanel } from '../ui/panels/ChoicesPanel'
 import { PendingPanel } from '../ui/panels/PendingPanel'
 import { PlacePanel } from '../ui/panels/PlacePanel'
 import { ProducePanel } from '../ui/panels/ProducePanel'
@@ -110,6 +111,7 @@ export function OnlineGameScreen({ online, onExit }: Props) {
     main = (
       <>
         <PendingPanel game={game} player={me} dispatch={dispatch} />
+        <ChoicesPanel game={game} player={me} dispatch={dispatch} />
         <ResearchPanel game={game} player={me} dispatch={dispatch} />
       </>
     )
@@ -117,6 +119,7 @@ export function OnlineGameScreen({ online, onExit }: Props) {
     main = (
       <>
         <PendingPanel game={game} player={me} dispatch={dispatch} />
+        <ChoicesPanel game={game} player={me} dispatch={dispatch} />
         <ProducePanel game={game} player={me} dispatch={dispatch} />
       </>
     )

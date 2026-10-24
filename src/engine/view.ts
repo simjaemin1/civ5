@@ -30,6 +30,7 @@ function viewPlayer(p: Player, viewer: number): Player {
     pendingCity: null,
     scouted: null,
     held: null,
+    choices: undefined, // 맡아둔 타일을 쓸지 같은 선택은 본인만
     military: p.military.map(stripDirs),
   }
 }

@@ -89,6 +89,13 @@ describe('view: 비공개 정보 걸러 보내기', () => {
     expect(sawHiddenSlots, '한쪽만 낸 배치 상태를 못 봤다').toBe(true)
   }, 120_000)
 
+  it('맡아둔 타일을 쓸지 같은 선택(choices)은 본인만 본다', () => {
+    const s = createGame({ seed: 7, civIds: CIVS.slice(0, 3) })
+    s.players[0].choices = { useHeld: false, cultureCity: 0 }
+    expect(view(s, 0).players[0].choices).toEqual({ useHeld: false, cultureCity: 0 })
+    expect(view(s, 1).players[0].choices).toBeUndefined()
+  })
+
   it('뷰는 원본 상태를 바꾸지 않는다', () => {
     const s = createGame({ seed: 5, civIds: CIVS.slice(0, 3) })
     const before = JSON.stringify(s)
