@@ -509,3 +509,17 @@ describe('시작 타일 엘도라도', () => {
     }
   })
 })
+
+describe('일꾼이 모자랄 때', () => {
+  it('일꾼이 0명인데 맡아둔 타일이 있으면 타일을 덱으로 돌려주고 배치를 계속한다 (진행 불능 방지)', () => {
+    const held = tile(['평지'])
+    let s = mod(solo(), (c) => {
+      c.players[0].cities[0].workers = 0
+      c.players[0].held = held
+    })
+    s = apply(s, { type: 'placeWorkers', placements: [] })
+    expect(me(s).held).toBeNull()
+    expect(s.deck.some((c) => c.id === held.id)).toBe(true)
+    expect(s.phase).toBe('research')
+  })
+})

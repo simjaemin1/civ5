@@ -422,6 +422,13 @@ function placeWorkers(s: GameState, p: Player, placements: Placement[]): GameSta
   for (const city of p.cities) {
     if (city.placed.length + (city.enemyPlaced?.length ?? 0) > city.workers) throw new RuleError('일꾼이 모자랍니다')
   }
+  if (freeWorkers(p) < 0 && placements.length === 0) {
+    // 일꾼이 굶어 줄어서 정찰·맡아둔 타일·선전포고에 묶인 일꾼조차 없다: 묶인 순서의 반대로 풀어 준다 (맡아둔 타일은 덱으로 돌아간다)
+    if (p.held) releaseHeld(s, p)
+    else if (p.scouting) p.scouting = false
+    if (freeWorkers(p) < 0) p.busyWorkers = Math.max(0, p.busyWorkers + freeWorkers(p))
+    say(s, `${civById(p.civId).name} 일꾼이 모자라 묶인 일꾼을 풀었습니다`)
+  }
   if (freeWorkers(p) < 0) throw new RuleError('정찰·선전포고·맡아둔 타일에 쓰는 일꾼과 합쳐 일꾼이 모자랍니다')
   p.turn = {
     yields: computeYields(p),
