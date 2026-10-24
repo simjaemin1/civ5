@@ -89,7 +89,7 @@ function techEffectLine(e: TechDef['effects'][number]): string | null {
     case 'freeCard': return `이 기술을 얻으면 즉시 ${cardById(e.defId).name}을(를) 1장 획득한다`
     case 'secondCity': return '문화를 4 얻으며 해당 문화로 두번째 도시를 편다'
     case 'archaeology': return '이 기술을 얻으면 얻은 시점에 자신이 보유한 사적지 타일 1장당 문화를 1씩 얻는다'
-    case 'tourismPerCulture': return '매 턴, 자신의 문화 2당 1의 관광 점수를 얻는다'
+    case 'tourismPerCulture': return `${e.onlyPolicy ? `자신의 정책이 '${POLICIES[e.onlyPolicy].name}'일 때, ` : ''}매 턴, 자신의 문화 2당 1의 관광 점수를 얻는다`
     case 'scienceVictory': return '이 기술을 가장 먼저 획득하였다면 이 게임에서 승리한다'
     case 'compass': return '1개의 타일까지, 정찰한 타일카드에 일꾼 토큰을 계속 배치하며 기억할 수 있다'
     default: return null // foodToScience, hammerToScience, ignoreRoundPicks 는 TECH_EXTRA가 설명

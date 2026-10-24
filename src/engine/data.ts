@@ -80,7 +80,7 @@ export type TechEffect =
   | { kind: 'compass' }
   | { kind: 'secondCity' }
   | { kind: 'archaeology' }
-  | { kind: 'tourismPerCulture' }
+  | { kind: 'tourismPerCulture'; onlyPolicy?: PolicyId }
   | { kind: 'ignoreRoundPicks' }
   | { kind: 'scienceVictory' }
   | { kind: 'hammerToScience'; amount: number }

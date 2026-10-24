@@ -74,7 +74,8 @@
    ],
    "effects": [
     {
-     "kind": "tourismPerCulture"
+     "kind": "tourismPerCulture",
+     "onlyPolicy": "equality"
     }
    ]
   },
