@@ -1,6 +1,6 @@
 import type { Action, City, GameState, Placement, Player, Side, TileCard } from './types'
 import { RuleError, SIDES } from './types'
-import { TECHS, civById, techById } from './data'
+import { TECHS, WONDERS, civById, techById } from './data'
 import type { TechDef } from './data'
 import { shuffle } from './rng'
 import { computeYields, happiness, totalWorkers } from './yields'
@@ -93,6 +93,14 @@ function beginTurn(s: GameState): void {
     if (p.hand.length === 0) {
       const civ = civById(p.civId)
       p.hand = drawTiles(s, 4 + civ.startCulture)
+      // 시작 손에서 엘도라도를 처음 발견하면 문화 +1: 타일 1장을 손에 더 받는다 (도시를 세울 때 영토 효과로 한 장 더)
+      for (let i = 0; i < p.hand.length; i++) {
+        const w = p.hand[i].wonder ? WONDERS[p.hand[i].wonder!] : undefined
+        if (!w?.cultureOnDiscover || s.eldoradoFound) continue
+        s.eldoradoFound = true
+        p.hand.push(...drawTiles(s, 1))
+        say(s, `${civ.name} 엘도라도 발견 (문화 +1, 손의 타일 ${p.hand.length}장)`)
+      }
     }
   } else {
     s.phase = 'place'

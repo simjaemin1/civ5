@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { apply, culture, happiness, tourism, computeYields, RuleError, WONDER_CARDS, TECHS } from '..'
+import { apply, createGame, culture, happiness, tourism, computeYields, RuleError, WONDER_CARDS, TECHS } from '..'
 import type { GameState, TileCard } from '..'
 import { found, me, play, startGame, tile } from './helpers'
 
@@ -470,8 +470,26 @@ describe('도시 선택 (식량·망치 변환, 문화 타일, 일꾼 버리기)
 })
 
 describe('시작 타일 엘도라도', () => {
-  it('시작 타일이 엘도라도면 영토 효과로 문화 +1', () => {
-    const s = solo('denmark', [tile([], { wonder: 'eldorado' }), tile(['숲']), tile(['언덕']), tile(['해안'])])
-    expect(culture(s.players[0])).toBe(5)
+  const eldoradoIn = (hand: TileCard[]) => hand.some((c) => c.wonder === 'eldorado')
+  it('시작 손에서 엘도라도를 처음 발견하면 손이 5장, 도시를 세우면 영토 효과로 6장', () => {
+    let hit = 0
+    for (let seed = 1; seed <= 400 && hit < 3; seed++) {
+      let s = createGame({ seed, civIds: ['denmark', 'china'] })
+      const hand = s.players[s.order[0]].hand
+      if (!eldoradoIn(hand)) continue
+      hit++
+      expect(hand).toHaveLength(5)
+      expect(s.eldoradoFound).toBe(true)
+      s = found(s)
+      expect(culture(me(s))).toBe(6)
+    }
+    expect(hit).toBeGreaterThan(0)
+  })
+  it('엘도라도가 없는 시작 손은 4장', () => {
+    for (let seed = 1; seed <= 40; seed++) {
+      const s = createGame({ seed, civIds: ['denmark', 'china'] })
+      const hand = s.players[s.order[0]].hand
+      if (!eldoradoIn(hand)) expect(hand).toHaveLength(4)
+    }
   })
 })
