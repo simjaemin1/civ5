@@ -3,8 +3,9 @@ import type { GameState, PolicyId, Player } from '../engine'
 import { POLICIES, prereqsMet, CIVS, MILITARY_CARDS, TECHS, WONDER_CARDS, civById, culture, happiness, totalWorkers, tourism } from '../engine'
 import { TechCard } from './cards/TechCard'
 import { PolicyCard } from './cards/PolicyCard'
+import { UnitCard } from './cards/UnitCard'
 import { WonderCard } from './cards/WonderCard'
-import { cardText, ICON, policyName } from './format'
+import { ICON, policyName } from './format'
 
 export function PlayersTable({ game, seats, actor }: { game: GameState; seats: { ai: boolean }[]; actor: number }) {
   return (
@@ -169,32 +170,28 @@ export function InfoTabs({ game, viewer }: { game: GameState; viewer: number }) 
         </div>
       )}
       {tab === 'unique' && (
-        <div className="scroll">
-          <p className="muted">고유 유닛은 문명마다 3장만 존재합니다 (방향 카드는 방향마다 한 장). 능력치와 효과는 카드에 적힌 그대로이고, 효과를 적용할 때는 괄호 안의 기초 카드로 취급합니다.</p>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>문명</th>
-                <th>고유 유닛</th>
-                <th>기초 카드</th>
-                <th>망치</th>
-                <th>능력치와 효과</th>
-              </tr>
-            </thead>
-            <tbody>
-              {CIVS.flatMap((c) =>
-                c.uniques.map((u) => (
-                  <tr key={u.name}>
-                    <td>{c.name}</td>
-                    <td>{u.name}</td>
-                    <td>{MILITARY_CARDS.find((m) => m.id === u.base)?.uniqueOnly ? '(없음)' : MILITARY_CARDS.find((m) => m.id === u.base)?.name}</td>
-                    <td>{u.cost}</td>
-                    <td>{cardText({ defId: u.base, unique: u.name })}</td>
-                  </tr>
-                )),
-              )}
-            </tbody>
-          </table>
+        <div>
+          <p className="muted">고유 유닛은 문명마다 3장만 존재합니다 (방향 카드는 방향마다 한 장). 효과를 적용할 때는 괄호 안의 기초 카드로 취급합니다. 카드를 누르면 크게 보입니다.</p>
+          <div className="unit-row">
+            {CIVS.flatMap((c) =>
+              c.uniques.map((u) => (
+                <div key={u.name} className="unit-group">
+                  <b>
+                    {c.name} · {u.name}
+                  </b>
+                  <div className="unit-row">
+                    {(u.variants ?? [undefined]).map((v) => (
+                      <UnitCard key={v?.join('') ?? 'x'} card={{ defId: u.base, unique: u.name, dirs: v }} width={130} />
+                    ))}
+                  </div>
+                  <small className="muted">
+                    🔨{u.cost}
+                    {u.variants ? '' : ' · 방향 없는 카드 (3장 모두 같음)'}
+                  </small>
+                </div>
+              )),
+            )}
+          </div>
         </div>
       )}
       {tab === 'log' && (

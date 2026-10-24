@@ -18,3 +18,25 @@ const policies = Object.entries(JSON.parse(readFileSync('src/engine/data/policie
 status('정책 카드', policies, 'src/assets/cards/policy')
 const civs = JSON.parse(readFileSync('src/engine/data/civs.json', 'utf8'))
 status('문명 카드', civs.civs ?? civs, 'src/assets/cards/civ')
+
+// 고유 유닛 카드: 유닛마다 방향 조합별로 한 장씩 (방향 없는 카드는 x 한 장)
+{
+  const files = existsSync('src/assets/cards/unique') ? readdirSync('src/assets/cards/unique').map((f) => f.replace(/\.[^.]+$/, '')) : []
+  const have = new Set(files)
+  const all = (civs.civs ?? civs).flatMap((c) => c.uniques)
+  let need = 0
+  const missing = []
+  for (const u of all) {
+    const keys = u.variants ? u.variants.map((v) => v.join('')) : ['x']
+    for (const k of keys) {
+      need++
+      if (!have.has(`${u.id}.${k}`)) missing.push(`${u.name}(${u.id}.${k})`)
+    }
+  }
+  console.log(`고유 유닛 카드 ${need - missing.length}/${need}장 등록`)
+  if (missing.length) console.log('  아직 없음:', missing.join(', '))
+  const known = new Set(all.flatMap((u) => (u.variants ? u.variants.map((v) => `${u.id}.${v.join('')}`) : [`${u.id}.x`])))
+  const bad = files.filter((f) => !known.has(f))
+  if (bad.length) console.log('  ⚠ 이름이 맞지 않는 파일:', bad.join(', '))
+}
+

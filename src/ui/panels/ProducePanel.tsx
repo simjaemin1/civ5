@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { MILITARY_CARDS, cardById, cardCost, civById, investableWonders, minHammers, producible, uniqueOf, upgradeTargets, wonderCardById, TECHS, occupiedTiles } from '../../engine'
+import { UnitCard } from '../cards/UnitCard'
 import { WonderCard } from '../cards/WonderCard'
 import { cardText, conditionText, ICON, wonderEffectText } from '../format'
 import type { PanelProps } from './types'
@@ -155,13 +156,13 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
       </details>
 
       {player.military.length > 0 && (
-        <details>
-          <summary>내 군사 카드 ({player.military.length}장)</summary>
-          <div className="list">
+        <details open>
+          <summary>내 군사 카드 ({player.military.length}장) — 방향은 나만 볼 수 있습니다</summary>
+          <div className="unit-row">
             {player.military.map((c) => (
-              <div key={c.uid} className="row">
-                <span>{cardText(c)}</span>
-                {player.civId === 'india' && <button onClick={() => dispatch({ type: 'sacrificeCard', uid: c.uid })}>공용 덱에 돌려 파괴 (식량 +2)</button>}
+              <div key={c.uid} className="policy-pick">
+                <UnitCard card={c} width={130} />
+                {player.civId === 'india' && <button onClick={() => dispatch({ type: 'sacrificeCard', uid: c.uid })}>파괴 (식량 +2)</button>}
               </div>
             ))}
           </div>

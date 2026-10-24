@@ -206,3 +206,19 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .policy-card.active-policy { outline: 3px solid var(--accent); }
 .policy-card:disabled { opacity: 0.55; }
 .policy-pick { display: inline-flex; flex-direction: column; gap: 6px; align-items: center; vertical-align: top; }
+
+/* 군사 카드 */
+.unit-card { --card-bg: #efe3cf; --card-line: #b9a07a; }
+.unit-card.selected { outline: 3px solid var(--accent); }
+.unit-card.dim { opacity: 0.55; }
+.unit-card .overlay { position: absolute; left: 4px; right: 4px; bottom: 4px; background: rgba(0, 0, 0, 0.72); color: #fff; font-size: 0.72rem; border-radius: 6px; padding: 2px 4px; }
+.unit-card .unit-face { padding-top: 4cqw; }
+.unit-card .stars { position: relative; width: 100%; height: 12cqw; flex: none; }
+.unit-card .star { position: absolute; top: 0; transform: translateX(-50%); width: 11cqw; height: 11cqw; line-height: 11cqw; border-radius: 50%; background: #b18a3c; color: #fff; font-weight: 700; font-size: 7cqw; text-align: center; }
+.unit-card .face-title small { display: block; font-weight: 400; font-size: 0.7em; color: #7a6a55; }
+.unit-card .unit-foot { display: flex; justify-content: space-between; width: 100%; margin-top: auto; font-size: 0.95em; }
+.unit-card .unit-foot .hp { color: #a02020; font-weight: 700; }
+.unit-card .unit-foot .def { color: #5a4a30; font-weight: 700; }
+.unit-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start; }
+.unit-group { display: flex; flex-direction: column; gap: 4px; padding: 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme='light']) .unit-card:not(.has-img) { --card-bg: #4a3f2e; --card-line: #7d6a4a; color: #f0e4cc; } }

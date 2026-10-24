@@ -33,6 +33,8 @@ export type UniqueEffect =
 /** 고유 유닛: 카드에 적힌 능력치. 기초 카드(괄호 안)는 효과를 적용할 때만 쓴다 (예: 케식텐은 기사 취급). */
 export interface UniqueUnitDef {
   name: string
+  /** 카드 그림 파일 이름에 쓰는 영문 id (예: jaguar) */
+  id: string
   base: string
   tech?: string
   cost: number

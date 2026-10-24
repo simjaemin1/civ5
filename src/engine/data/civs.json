@@ -13,6 +13,7 @@
   "uniques": [
    {
     "name": "화차",
+    "id": "hwacha",
     "base": "hwacha",
     "cost": 6,
     "hp": 2,
@@ -50,6 +51,7 @@
   "uniques": [
    {
     "name": "팬저",
+    "id": "panzer",
     "base": "tank",
     "cost": 8,
     "hp": 5,
@@ -71,6 +73,7 @@
   "uniques": [
    {
     "name": "총사대",
+    "id": "musketeer",
     "base": "musketman",
     "cost": 6,
     "hp": 5,
@@ -104,6 +107,7 @@
   "uniques": [
    {
     "name": "연노병",
+    "id": "chu_ko_nu",
     "base": "crossbowman",
     "cost": 6,
     "hp": 4,
@@ -142,6 +146,7 @@
   "uniques": [
    {
     "name": "장궁병",
+    "id": "longbowman",
     "base": "crossbowman",
     "cost": 6,
     "hp": 4,
@@ -185,6 +190,7 @@
   "uniques": [
    {
     "name": "코사크",
+    "id": "cossack",
     "base": "cavalry",
     "cost": 7,
     "hp": 5,
@@ -207,6 +213,7 @@
   "uniques": [
    {
     "name": "전투 코끼리",
+    "id": "war_elephant",
     "base": "chariot",
     "cost": 3,
     "hp": 3,
@@ -239,6 +246,7 @@
   "uniques": [
    {
     "name": "제고이센",
+    "id": "zeijoisen",
     "base": "zeijoisen",
     "cost": 6,
     "hp": 6,
@@ -289,6 +297,7 @@
   "uniques": [
    {
     "name": "낙타궁수",
+    "id": "camel_archer",
     "base": "knight",
     "cost": 6,
     "hp": 3,
@@ -313,6 +322,7 @@
   "uniques": [
    {
     "name": "불멸자",
+    "id": "immortal",
     "base": "spearman",
     "cost": 3,
     "hp": 5,
@@ -348,6 +358,7 @@
   "uniques": [
    {
     "name": "테르시오",
+    "id": "tercio",
     "base": "musketman",
     "cost": 7,
     "hp": 5,
@@ -381,6 +392,7 @@
   "uniques": [
    {
     "name": "장갑보병",
+    "id": "hoplite",
     "base": "spearman",
     "cost": 3,
     "hp": 3,
@@ -400,6 +412,7 @@
    },
    {
     "name": "헤타이로이",
+    "id": "companion",
     "base": "horseman",
     "cost": 5,
     "hp": 4,
@@ -431,6 +444,7 @@
   "uniques": [
    {
     "name": "사무라이",
+    "id": "samurai",
     "base": "longswordsman",
     "cost": 5,
     "hp": 4,
@@ -466,6 +480,7 @@
   "uniques": [
    {
     "name": "전투 전차",
+    "id": "war_chariot",
     "base": "chariot",
     "cost": 3,
     "hp": 4,
@@ -499,6 +514,7 @@
   "uniques": [
    {
     "name": "투석병사",
+    "id": "slinger",
     "base": "archer",
     "cost": 3,
     "hp": 2,
@@ -535,6 +551,7 @@
   "uniques": [
    {
     "name": "예니체리",
+    "id": "janissary",
     "base": "musketman",
     "cost": 6,
     "hp": 5,
@@ -568,6 +585,7 @@
   "uniques": [
    {
     "name": "캐롤리언",
+    "id": "carolean",
     "base": "rifleman",
     "cost": 8,
     "hp": 5,
@@ -611,6 +629,7 @@
   "uniques": [
    {
     "name": "재규어",
+    "id": "jaguar",
     "base": "warrior",
     "cost": 3,
     "hp": 4,
@@ -644,6 +663,7 @@
   "uniques": [
    {
     "name": "프라싱야",
+    "id": "pracinha",
     "base": "infantry",
     "cost": 10,
     "hp": 6,
@@ -685,6 +705,7 @@
   "uniques": [
    {
     "name": "모호크족 전사",
+    "id": "mohawk",
     "base": "warrior",
     "cost": 3,
     "hp": 3,
@@ -720,6 +741,7 @@
   "uniques": [
    {
     "name": "광전사",
+    "id": "berserker",
     "base": "longswordsman",
     "cost": 5,
     "hp": 4,
@@ -739,6 +761,7 @@
    },
    {
     "name": "스키 보병",
+    "id": "ski_infantry",
     "base": "rifleman",
     "cost": 8,
     "hp": 5,
@@ -772,6 +795,7 @@
   "uniques": [
    {
     "name": "임피",
+    "id": "impi",
     "base": "pikeman",
     "cost": 4,
     "hp": 3,
@@ -805,6 +829,7 @@
   "uniques": [
    {
     "name": "공성추",
+    "id": "battering_ram",
     "base": "spearman",
     "cost": 3,
     "hp": 2,
@@ -814,6 +839,7 @@
    },
    {
     "name": "궁기병",
+    "id": "horse_archer",
     "base": "chariot",
     "cost": 3,
     "hp": 3,
@@ -836,6 +862,7 @@
   "uniques": [
    {
     "name": "케식텐",
+    "id": "keshik",
     "base": "knight",
     "cost": 6,
     "hp": 4,
