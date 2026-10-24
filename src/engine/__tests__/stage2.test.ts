@@ -111,12 +111,12 @@ describe('정책', () => {
     expect(tourism(me(s))).toBe(2)
   })
 
-  it('세계화: 문화 2당 관광 1, 냉각기술: 평등일 때만 문화 2당 관광 1', () => {
+  it('세계화·냉각기술: 문화 3당 관광 1씩', () => {
     let s = mod(solo(), (c) => c.players[0].techs.push('globalization', 'refrigeration'))
-    const half = Math.floor(culture(me(s)) / 2)
-    expect(tourism(me(s))).toBe(half)
+    const third = Math.floor(culture(me(s)) / 3)
+    expect(tourism(me(s))).toBe(2 * third)
     s = mod(s, (c) => (c.players[0].policy = 'equality'))
-    expect(tourism(me(s))).toBe(2 * half + Math.floor(totalWorkers(me(s)) / 2))
+    expect(tourism(me(s))).toBe(2 * third + Math.floor(totalWorkers(me(s)) / 2))
   })
 })
 
@@ -299,8 +299,8 @@ describe('불가사의 완성 효과', () => {
   })
 
   it('관광: 루브르 +2, 에펠탑 +3, 프랑스는 불가사의 관광 2배', () => {
-    expect(tourism(me(owning('denmark', ['louvre', 'eiffel_tower'])))).toBe(5)
-    expect(tourism(me(owning('france', ['louvre', 'eiffel_tower'])))).toBe(10)
+    expect(tourism(me(owning('denmark', ['louvre', 'eiffel_tower'])))).toBe(7)
+    expect(tourism(me(owning('france', ['louvre', 'eiffel_tower'])))).toBe(14)
   })
 
   it('페트라: 사막 타일 식량 +1', () => {
@@ -485,6 +485,20 @@ describe('시작 타일 엘도라도', () => {
       expect(s.eldoradoFound).toBe(true)
       s = found(s)
       expect(culture(me(s))).toBe(6)
+    }
+    expect(hit).toBeGreaterThan(0)
+  })
+  it('시작 손이 이미 5장인 문명(시작 문화 1)은 발견 타일을 도시를 세운 뒤 영토로 받는다', () => {
+    let hit = 0
+    for (let seed = 1; seed <= 600 && hit < 2; seed++) {
+      let s = createGame({ seed, civIds: ['persia', 'greece'] })
+      const p = s.players[s.order[0]]
+      if (p.civId !== 'persia' || !eldoradoIn(p.hand)) continue
+      hit++
+      expect(p.hand).toHaveLength(5)
+      expect(p.startExtras).toHaveLength(1)
+      s = found(s)
+      expect(culture(me(s))).toBe(7)
     }
     expect(hit).toBeGreaterThan(0)
   })

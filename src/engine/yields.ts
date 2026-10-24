@@ -127,14 +127,14 @@ export function happiness(player: Player): number {
   return civ.happiness + luxuries.size + bonus
 }
 
-/** 턴당 관광: 평등(일꾼 2개당 1), 세계화(문화 2당 1), 냉각기술(평등일 때만 문화 2당 1), 루브르 +2, 에펠탑 +4 (프랑스는 불가사의 관광 2배). */
+/** 턴당 관광: 평등(일꾼 2개당 1), 세계화·냉각기술(문화 3당 1), 루브르 +3, 에펠탑 +4 (프랑스는 불가사의 관광 2배). */
 export function tourism(player: Player): number {
   let t = 0
   if (player.policy === 'equality') t += Math.floor(totalWorkers(player) / 2)
   for (const tech of TECHS) {
     if (!player.techs.includes(tech.id)) continue
     for (const e of tech.effects) {
-      if (e.kind === 'tourismPerCulture' && (!e.onlyPolicy || player.policy === e.onlyPolicy)) t += Math.floor(culture(player) / 2)
+      if (e.kind === 'tourismPerCulture') t += Math.floor(culture(player) / e.per)
     }
   }
   const mult = player.civId === 'france' ? 2 : 1

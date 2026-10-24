@@ -178,7 +178,7 @@
         },
         {
           "kind": "tourism",
-          "amount": 2
+          "amount": 3
         }
       ],
       "progressNeeded": 2
@@ -211,7 +211,7 @@
         },
         {
           "kind": "tourism",
-          "amount": 3
+          "amount": 4
         },
         {
           "kind": "happiness",

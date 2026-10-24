@@ -89,7 +89,7 @@ function missingFor(p: Player, goals: string[]): Set<string> {
   return missing
 }
 const apolloMissing = (p: Player): Set<string> => missingFor(p, ['apollo'])
-/** 문화 승리: 세계화와 냉각기술 (관광 = 문화 2당 1씩 두 번) */
+/** 문화 승리: 세계화와 냉각기술 (관광 = 문화 3당 1씩 두 번) */
 const cultureMissing = (p: Player): Set<string> => missingFor(p, ['globalization', 'refrigeration'])
 
 /**
@@ -104,7 +104,7 @@ function lateGame(p: Player, s?: GameState): 'apollo' | 'culture' | null {
   let viable = true
   if (s) {
     const rivals = s.players.filter((o) => o.id !== p.id && !o.eliminated && o.cities.length > 0)
-    const reach = culture(p) + Math.floor(totalWorkers(p) / 2) + AI_TUNE.cultureSlack
+    const reach = 2 * Math.floor(culture(p) / 3) + Math.floor(totalWorkers(p) / 2) + AI_TUNE.cultureSlack
     viable = rivals.length > 0 && Math.max(...rivals.map((o) => culture(o))) < reach
   }
   const cultureOk = AI_TUNE.cultureRush > 0 && culturePath <= AI_TUNE.cultureRush && viable

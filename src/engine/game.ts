@@ -98,8 +98,10 @@ function beginTurn(s: GameState): void {
         const w = p.hand[i].wonder ? WONDERS[p.hand[i].wonder!] : undefined
         if (!w?.cultureOnDiscover || s.eldoradoFound) continue
         s.eldoradoFound = true
-        p.hand.push(...drawTiles(s, 1))
-        say(s, `${civ.name} 엘도라도 발견 (문화 +1, 손의 타일 ${p.hand.length}장)`)
+        // 도시는 도시 타일 1장 + 사방 4장까지만 세울 수 있으므로, 손이 이미 5장이면 도시를 세운 뒤 영토로 붙인다
+        if (p.hand.length < 5) p.hand.push(...drawTiles(s, 1))
+        else p.startExtras = [...(p.startExtras ?? []), ...drawTiles(s, 1)]
+        say(s, `${civ.name} 엘도라도 발견 (문화 +1)`)
       }
     }
   } else {
@@ -351,6 +353,8 @@ function buildCity(
   const city = foundCity(p.hand, a, 0, 1)
   p.cities.push(city)
   p.hand = []
+  for (const card of p.startExtras ?? []) city.tiles.push({ card, role: 'extra' })
+  p.startExtras = undefined
   for (const t of city.tiles) if (t.card.wonder) onTileGained(s, p, t.card) // 시작 타일에 자연경관이 있어도 문화 효과를 받는다 (킬리만자로 등)
   if (p.civId === 'china') p.generals += 1 // 중국: 위대한 장군 1개로 시작
   say(s, `${civById(p.civId).name} 도시 건설 (타일 ${city.tiles.length}장)`)

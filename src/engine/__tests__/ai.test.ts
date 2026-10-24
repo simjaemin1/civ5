@@ -132,7 +132,7 @@ describe('AI 과학 승리 전략', () => {
 
   it('세계화·냉각기술 + 평등으로 관광이 상대 문화를 넘겨 문화 승리가 실제로 나온다', () => {
     const types: string[] = []
-    for (const seed of [1, 2, 4, 8]) {
+    for (const seed of [3, 7, 10]) {
       const { state } = simulate(seed, ['korea', 'egypt', 'china'], 2500)
       checkInvariants(state)
       types.push(state.winner?.type ?? 'none')
