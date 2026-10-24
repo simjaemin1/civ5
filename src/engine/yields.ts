@@ -104,7 +104,8 @@ export function computeYields(player: Player): TurnYields {
 }
 
 export function culture(player: Player): number {
-  return player.cities.reduce((n, c) => n + c.tiles.length, 0)
+  // 붙이기를 기다리는 타일도 이미 얻은 문화다
+  return player.cities.reduce((n, c) => n + c.tiles.length, 0) + (player.pendingTiles?.length ?? 0)
 }
 
 export function happiness(player: Player): number {

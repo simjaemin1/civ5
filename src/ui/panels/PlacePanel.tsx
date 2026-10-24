@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
 import type { Placement } from '../../engine'
-import { apply, civById, totalWorkers, RuleError } from '../../engine'
+import { apply, civById, declarationTargets, totalWorkers, RuleError } from '../../engine'
 import { Board } from '../Board'
-import { TileView } from '../TileView'
+import { ScoutBox } from './ScoutBox'
 import { ICON } from '../format'
 import type { PanelProps } from './types'
 import { ConfirmButton } from '../ConfirmButton'
@@ -87,7 +87,28 @@ export function PlacePanel({ game, player, dispatch, lastTiles }: PanelProps & {
     0,
   )
   const idle = Math.min(total - reserved - used, Math.max(0, freeTiles))
-  const idleWarn = idle > 0 ? `일꾼 ${idle}개가 놀고 있습니다. 선전포고·정찰에 쓸 일꾼이 아니면 빈 타일에 올리세요.` : null
+  const left = total - reserved - used
+  // 선전포고(내정 5단계)에는 타일에 올리지 않은 일꾼 1개가 필요하다. 일꾼을 다 올리면 그 단계가 열리지 않는다.
+  const targets = declarationTargets(game, player)
+  const canWar = targets.length > 0
+  const retakeOnly = canWar && targets.every((t) => t.kind === 'retake')
+  const warHint = !canWar
+    ? null
+    : left >= 1
+      ? `${retakeOnly ? '탈환 ' : ''}선전포고하려면 타일에 올리지 않은 일꾼 1개를 남겨 두세요 (지금 남는 일꾼 ${left}${retakeOnly ? '' : `, 장군 ${player.generals}`}).`
+      : `일꾼을 모두 올리면 이번 차례에는 선전포고할 수 없습니다. ${retakeOnly ? '탈환 ' : ''}선전포고하려면 일꾼 1개를 남기세요.`
+  const idleWarn =
+    idle <= 0
+      ? null
+      : canWar && left === 1
+        ? null // 선전포고용으로 1개 남긴 것으로 본다
+        : `일꾼 ${idle}개가 놀고 있습니다${canWar ? ' (선전포고에는 1개면 충분)' : ''}. 빈 타일에 올리지 않으면 산출이 없습니다.`
+  const canScout =
+    game.deck.length === 0
+      ? { ok: false, why: '타일 덱이 비어 정찰할 수 없습니다' }
+      : left < 1
+        ? { ok: false, why: '정찰하려면 올린 일꾼을 1개 내리세요' }
+        : { ok: true }
 
   // 몽골: 내 장군이 올라간 상대 타일
   const enemyTiles =
@@ -143,31 +164,8 @@ export function PlacePanel({ game, player, dispatch, lastTiles }: PanelProps & {
             })}
           </div>
         )}
-        <div className="row">
-          {!player.scouting && !player.held && (
-            <button onClick={() => dispatch({ type: 'scout' })} title="일꾼 1개로 타일 덱 맨 위 카드 1장을 봅니다">
-              🔭 정찰
-            </button>
-          )}
-          {player.scouted && (
-            <span className="row">
-              <b>정찰한 타일:</b>
-              <div style={{ width: 120 }}>
-                <TileView card={player.scouted} player={player} />
-              </div>
-              {player.techs.includes('compass') && <button onClick={() => dispatch({ type: 'holdScouted' })}>🧭 맡아두기</button>}
-            </span>
-          )}
-          {player.held && (
-            <span className="row">
-              <b>맡아둔 타일:</b>
-              <div style={{ width: 120 }}>
-                <TileView card={player.held} player={player} />
-              </div>
-              <button onClick={() => dispatch({ type: 'releaseHeld' })}>돌려보내기</button>
-            </span>
-          )}
-        </div>
+        <ScoutBox game={game} player={player} dispatch={dispatch} canScout={canScout} />
+        {warHint && <p className="war-hint">⚔ {warHint}</p>}
         <div className="row">
           {preview.ok ? (
             <span>

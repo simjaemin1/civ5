@@ -11,7 +11,16 @@ const ORDER: PolicyId[] = ['tradition', 'aesthetics', 'despotism', 'regime', 'li
 
 /** 연구나 불가사의로 생긴 선택(정책, 두 번째 도시, 독일의 무료 카드)을 먼저 처리한다 */
 export function PendingPanel({ game, player, dispatch }: PanelProps) {
-  const [dismiss, setDismiss] = useState('')
+  // 외교로 파괴할 상대 장군: 있으면 첫 번째를 기본으로 골라 둔다 (고르지 않고 외교를 골라 효과를 날리지 않게)
+  const [dismiss, setDismiss] = useState(() => {
+    for (const c of player.cities) for (const t of c.tiles) if (t.occupiedBy !== undefined && t.occupiedBy !== player.id) return `${c.id}:${t.card.id}`
+    return ''
+  })
+  // 전통으로 버릴 일꾼 3개 중 첫 도시에서 버릴 개수 (도시가 둘일 때)
+  const [c1, c2] = player.cities
+  const minFirst = c2 ? Math.max(0, 3 - c2.workers) : 3
+  const maxFirst = c1 ? Math.min(3, c1.workers) : 0
+  const [firstCount, setFirstCount] = useState(() => Math.min(maxFirst, Math.max(minFirst, 3)))
   const enemyTiles = player.cities.flatMap((c) =>
     c.tiles.filter((t) => t.occupiedBy !== undefined && t.occupiedBy !== player.id).map((t) => ({ cityId: c.id, tile: t })),
   )
@@ -21,13 +30,10 @@ export function PendingPanel({ game, player, dispatch }: PanelProps) {
     const [cityId, tileId] = dismiss ? dismiss.split(':').map(Number) : []
     let take: { cityId: number; count: number }[] | undefined
     if (id === 'tradition' && discard) {
-      let left = 3
-      take = []
-      for (const c of player.cities) {
-        const n = Math.min(left, c.workers)
-        if (n > 0) take.push({ cityId: c.id, count: n })
-        left -= n
-      }
+      // 도시가 둘이면 첫 도시에서 버릴 개수를 고른다 (규칙: 버릴 일꾼은 플레이어가 고른다)
+      const [c1, c2] = player.cities
+      const n1 = c2 ? Math.min(c1.workers, Math.max(firstCount, 3 - c2.workers)) : 3
+      take = [{ cityId: c1.id, count: n1 }, ...(c2 && 3 - n1 > 0 ? [{ cityId: c2.id, count: 3 - n1 }] : [])].filter((x) => x.count > 0)
     }
     dispatch({ type: 'choosePolicy', policy: id, discard: take, dismiss: id === 'diplomacy' && dismiss ? { cityId, tileId } : undefined })
   }
@@ -65,12 +71,29 @@ export function PendingPanel({ game, player, dispatch }: PanelProps) {
           <div className="cardgrid">
             {ORDER.map((id) => (
               <div key={id} className="policy-pick">
-                <PolicyCard policy={id} width={150} active={player.policy === id} onClick={() => choose(id, false)} />
+                <PolicyCard
+                  policy={id}
+                  width={150}
+                  active={player.policy === id}
+                  onClick={() => choose(id, false)}
+                />
                 {id === 'tradition' && (
                   <button disabled={workers < 3} onClick={() => choose(id, true)} title={workers < 3 ? '일꾼이 3개 이상일 때만 버릴 수 있습니다' : ''}>
                     <b>전통 + 일꾼 3개 버리고 문화 2</b>
                     <small>{workers < 3 ? `지금 일꾼 ${workers}개라 불가능` : ` 일꾼 ${workers}개 → ${workers - 3}개, 타일 2장 추가`}</small>
                   </button>
+                )}
+                {id === 'tradition' && c2 && workers >= 3 && minFirst < maxFirst && (
+                  <label className="small">
+                    버릴 일꾼: 도시1에서{' '}
+                    <select value={Math.min(maxFirst, Math.max(minFirst, firstCount))} onChange={(e) => setFirstCount(Number(e.target.value))}>
+                      {Array.from({ length: maxFirst - minFirst + 1 }, (_, i) => minFirst + i).map((n) => (
+                        <option key={n} value={n}>
+                          {n}개 · 도시2에서 {3 - n}개
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                 )}
               </div>
             ))}

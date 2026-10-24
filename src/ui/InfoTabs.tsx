@@ -5,7 +5,7 @@ import { TechCard } from './cards/TechCard'
 import { PolicyCard } from './cards/PolicyCard'
 import { UnitCard } from './cards/UnitCard'
 import { WonderCard } from './cards/WonderCard'
-import { ICON } from './format'
+import { ICON, josa } from './format'
 
 /** 기술 트리: 열(과학 비용)별로 카드를 늘어놓고, 보유·연구 가능·잠김을 테두리로 보여 준다. 카드를 누르면 크게 본다. */
 export function TechTree({ player }: { player: Player }) {
@@ -71,7 +71,7 @@ export function InfoTabs({ game, viewer }: { game: GameState; viewer: number }) 
                   note={`${w.name} — ${TECHS.find((t) => t.id === w.tech)?.name} 필요`}
                   caption={
                     owner !== undefined ? (
-                      <>🏛 {civById(game.players[owner].civId).name}이(가) 완성</>
+                      <>🏛 {josa(civById(game.players[owner].civId).name, '이', '가')} 완성</>
                     ) : (
                       <>
                         필요 진척도 {w.progressNeeded} · {game.players.map((p) => `${civById(p.civId).name} ${prog[p.id] ?? 0}`).join(' / ')}

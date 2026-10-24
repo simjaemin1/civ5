@@ -4,8 +4,10 @@ import { createContext, useContext } from 'react'
 export interface Prefs {
   help: boolean
   autoSkip: boolean
+  /** AI 한 행동 사이 간격 (ms) */
+  aiSpeed: number
 }
-export const DEFAULT_PREFS: Prefs = { help: true, autoSkip: false }
+export const DEFAULT_PREFS: Prefs = { help: true, autoSkip: false, aiSpeed: 300 }
 
 export const PrefsCtx = createContext<{ prefs: Prefs; set: (p: Partial<Prefs>) => void }>({ prefs: DEFAULT_PREFS, set: () => {} })
 

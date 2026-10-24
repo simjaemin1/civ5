@@ -50,7 +50,7 @@ export function WonderCard({ wonder, caption, width = 260, owned, dim, note }: P
       {face(width, true)}
       {caption && <figcaption>{caption}</figcaption>}
       {zoom && (
-        <div className="modal-backdrop" onClick={() => setZoom(false)} role="dialog" aria-modal="true" aria-label={wonder.name}>
+        <div className="modal-backdrop" onClick={() => setZoom(false)} onKeyDown={(e) => e.key === 'Escape' && setZoom(false)} role="dialog" aria-modal="true" aria-label={wonder.name}>
           <div className="zoom" onClick={(e) => e.stopPropagation()}>
             {face(Math.min(720, window.innerWidth - 48), false)}
             {caption && <div className="muted">{caption}</div>}

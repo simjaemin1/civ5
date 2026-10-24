@@ -81,7 +81,7 @@ export function CityBuilder({ hand, player, label, onBuild, extra }: Props) {
         <div className="cross">{CELLS.map((k) => <div key={k} style={{ display: 'contents' }}>{renderCell(k)}</div>)}</div>
         {held !== null && (
           <p className="muted">
-            <b>{card(held)?.terrains.join('·') || '타일'}</b>을(를) 집었습니다. 놓을 칸을 누르세요.{' '}
+            <b>{card(held)?.terrains.join('·') || '타일'}</b> 타일을 집었습니다. 놓을 칸을 누르세요.{' '}
             <button className="link" onClick={() => setHeld(null)}>
               내려놓기
             </button>

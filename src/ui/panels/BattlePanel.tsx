@@ -74,8 +74,8 @@ function Arrange({ game, me, enemy, dispatch }: { game: GameState; me: Player; e
   return (
     <>
       <h4>{civById(me.civId).name}: 카드 놓기 (상대에게 보이지 않게)</h4>
-      <EnemyIntel game={game} enemy={enemy} />
-      <Help>카드를 눌러 집은 뒤 자리를 누르거나, 카드를 자리로 끌어다 놓으세요. 놓인 카드를 누르면 다시 집어 옮길 수 있습니다. 화살표는 그 카드가 공격할 상대 자리입니다.</Help>
+      <EnemyIntel game={game} enemy={enemy} mine={usable.length} />
+      <Help>카드를 눌러 집은 뒤 자리를 누르거나, 카드를 자리로 끌어다 놓으세요. 놓인 카드를 누르면 다시 집어 옮길 수 있습니다. 화살표는 그 카드가 공격할 상대 자리입니다 (전투력은 카드에 적힌 값, 해안·고유 유닛 효과는 빼고 보여 줍니다).</Help>
       <div className="hand">
         {usable.length === 0 && <p className="muted">쓸 수 있는 카드가 없습니다.</p>}
         {usable.map((c) => (
@@ -254,7 +254,7 @@ function Choose({ game, me, enemy, dispatch }: { game: GameState; me: Player; en
 }
 
 /** 상대가 이 전투에 낼 수 있는 카드 (공개 정보: 종류와 장수. 공격 방향은 비공개라 보여 주지 않는다) */
-function EnemyIntel({ game, enemy }: { game: GameState; enemy: Player }) {
+function EnemyIntel({ game, enemy, mine }: { game: GameState; enemy: Player; mine?: number }) {
   const b = game.battle!
   const usable = enemy.military.filter((c) => usableInBattle(game, b, enemy, c))
   const groups = new Map<string, { n: number; hp?: number; def: number }>()
@@ -269,6 +269,7 @@ function EnemyIntel({ game, enemy }: { game: GameState; enemy: Player }) {
       <b>
         상대({civById(enemy.civId).name})가 낼 수 있는 카드 {usable.length}장
       </b>
+      {mine !== undefined && <span> · 내 카드 {mine}장 (동점이면 수비 승)</span>}
       {usable.length > 4 && <span className="muted"> (최대 4장 배치)</span>}:{' '}
       {[...groups].map(([name, g]) => `${name} ×${g.n} (♥${g.hp ?? '-'} 🛡${g.def})`).join(' · ') || '없음'}
       <small className="muted"> · 방향은 비공개</small>

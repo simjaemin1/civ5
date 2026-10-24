@@ -1,5 +1,5 @@
 import { Icon } from './icons'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Action, GameState } from '../engine'
 import { RuleError, actorOf, aiStep, apply, civById, culture, happiness, totalWorkers, tourism } from '../engine'
 import { Board } from './Board'
@@ -19,6 +19,10 @@ import { PlacePanel } from './panels/PlacePanel'
 import { ProducePanel } from './panels/ProducePanel'
 import { ResearchPanel } from './panels/ResearchPanel'
 import { SetupPanel } from './panels/SetupPanel'
+import { ScoutBox } from './panels/ScoutBox'
+import { TilePlacer } from './panels/TilePlacer'
+import { TurnSteps } from './TurnSteps'
+import { turnKey } from './gameInfo'
 
 const PHASE: Record<GameState['phase'], string> = {
   setup: '게임 준비',
@@ -29,37 +33,38 @@ const PHASE: Record<GameState['phase'], string> = {
   battle: '정산: 전투',
   over: '게임 종료',
 }
-const LAST_PLACE_KEY = 'civ5-ui-last-place'
 const WIN = { science: '과학 승리', culture: '문화 승리', conquest: '정복 승리' } as const
+
+/** 저장 파일에 게임과 함께 남기는 화면 상태 (게임마다 따로) */
+export interface UiSave {
+  /** 사람마다 지난 차례에 일꾼을 올린 타일 */
+  lastPlace?: Record<number, number[]>
+}
 
 interface Props {
   initial: GameState
   seats: Seat[]
+  initialUi?: UiSave
   onExit: () => void
 }
 
-export function GameScreen({ initial, seats, onExit }: Props) {
+export function GameScreen({ initial, seats, initialUi, onExit }: Props) {
   const [game, setGame] = useState(initial)
   const [history, setHistory] = useState<GameState[]>([])
   const [error, setError] = useState('')
   const [notice, setNotice] = useState<string[]>([])
-  const [speed, setSpeed] = useState(300)
   const [revealed, setRevealed] = useState('')
   const [autoNote, setAutoNote] = useState('')
   const { prefs, set: setPrefs } = usePrefs()
-  // 사람마다 지난 차례 일꾼 배치 (같은 배치 다시 쓰기용, 이 브라우저에만 저장)
-  const [lastPlace, setLastPlace] = useState<Record<number, number[]>>(() => {
-    try {
-      return JSON.parse(localStorage.getItem(LAST_PLACE_KEY) ?? '{}')
-    } catch {
-      return {}
-    }
-  })
+  const speed = prefs.aiSpeed
+  const [saveFailed, setSaveFailed] = useState(false)
+  // 사람마다 지난 차례 일꾼 배치 (같은 배치 다시 쓰기용, 게임 저장에 함께 남긴다)
+  const [lastPlace, setLastPlace] = useState<Record<number, number[]>>(() => initialUi?.lastPlace ?? {})
   // 전투 결과 장면: 아직 확인하지 않은 가장 최근 전투가 있으면 띄운다 (되돌리기·불러오기로 줄어들면 다시 띄우지 않는다)
+  // 한 번에 전투가 여러 개 끝나도 하나씩 차례로 보여 준다 (가장 오래된 것부터)
   const reports = game.battleReports ?? []
-  const latest = reports.length ? reports[reports.length - 1] : null
-  const [seenBattle, setSeenBattle] = useState(latest?.seq ?? 0)
-  const pendingReport = latest && latest.seq > seenBattle && seats.some((s) => !s.ai) ? latest : null
+  const [seenBattle, setSeenBattle] = useState(() => (reports.length ? reports[reports.length - 1].seq : 0))
+  const pendingReport = seats.some((s) => !s.ai) ? (reports.find((r) => r.seq > seenBattle) ?? null) : null
 
   const actor = actorOf(game)
   const actorSeat = seats[actor]
@@ -75,22 +80,17 @@ export function GameScreen({ initial, seats, onExit }: Props) {
   const curtainKey = `${actor}:${game.round}:${game.battle ? `${game.battle.decl.attackerId}-${game.battle.decl.defenderId}-${game.battle.step}` : game.phase === 'battle' ? 'b' : 't'}`
   const curtain = humans > 1 && !actorSeat.ai && !over && revealed !== curtainKey
 
+  // 되돌린 직후에는 자동 넘기기를 멈춘다 (되돌리자마자 다시 넘어가지 않게)
+  const autoPaused = useRef(false)
   const dispatch = useCallback(
     (a: Action) => {
+      autoPaused.current = false
       setError('')
       try {
         const next = apply(game, a)
         if (a.type === 'placeWorkers') {
           const tiles = a.placements.filter((x) => !x.general && !x.enemy).map((x) => x.tileId)
-          setLastPlace((m) => {
-            const out = { ...m, [game.players[actorOf(game)].id]: tiles }
-            try {
-              localStorage.setItem(LAST_PLACE_KEY, JSON.stringify(out))
-            } catch {
-              /* 무시 */
-            }
-            return out
-          })
+          setLastPlace((m) => ({ ...m, [game.players[actorOf(game)].id]: tiles }))
         }
         setAutoNote('')
         const added = Math.min(next.logSeq - game.logSeq, next.log.length)
@@ -121,17 +121,18 @@ export function GameScreen({ initial, seats, onExit }: Props) {
   useEffect(() => {
     const t = setTimeout(() => {
       try {
-        localStorage.setItem('civ5-save-v1', JSON.stringify({ game, seats }))
+        localStorage.setItem('civ5-save-v1', JSON.stringify({ game, seats, ui: { lastPlace } satisfies UiSave }))
+        setSaveFailed(false)
       } catch {
-        /* 저장 불가 환경이면 무시 */
+        setSaveFailed(true) // 저장 공간이 없거나 막힌 환경: 이어하기가 안 된다고 알린다
       }
     }, 600)
     return () => clearTimeout(t)
-  }, [game, seats])
+  }, [game, seats, lastPlace])
 
   // 할 일 없는 단계 자동 넘기기 (설정)
   useEffect(() => {
-    if (!prefs.autoSkip || over || actorSeat.ai || curtain || pendingReport) return
+    if (!prefs.autoSkip || autoPaused.current || over || actorSeat.ai || curtain || pendingReport) return
     const skip = autoSkipAction(game, player)
     if (!skip) return
     const t = setTimeout(() => {
@@ -153,9 +154,10 @@ export function GameScreen({ initial, seats, onExit }: Props) {
   // Enter: 이 단계의 확정 버튼 (입력칸·버튼에 초점이 있거나 창이 떠 있으면 무시)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Enter' || e.isComposing) return
+      // 누르고 있으면 반복 입력이 들어와 여러 단계가 한꺼번에 확정되므로 반복은 무시한다
+      if (e.key !== 'Enter' || e.isComposing || e.repeat || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return
       const el = e.target as HTMLElement
-      if (el.closest('input, select, textarea, button, [role="button"]') || document.querySelector('.modal-backdrop')) return
+      if (el.closest('input, select, textarea, button, summary, a, [role="button"]') || document.querySelector('.modal-backdrop')) return
       const btn = document.querySelector<HTMLButtonElement>('.main [data-hotkey]:not(:disabled)')
       if (btn) {
         e.preventDefault()
@@ -165,6 +167,24 @@ export function GameScreen({ initial, seats, onExit }: Props) {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [])
+
+  /** history[index] 상태로 돌아간다 (그 뒤 기록은 버린다) */
+  const restore = (index: number, curtainAgain: boolean) => {
+    autoPaused.current = true
+    setGame(history[index])
+    setHistory(history.slice(0, index))
+    setError('')
+    setNotice([])
+    setAutoNote('')
+    if (curtainAgain) setRevealed('') // 되돌린 자리가 다른 사람 차례일 수 있으니 가림막을 다시 띄운다
+  }
+  // 이번 차례에 한 행동들: 같은 차례 열쇠를 가진 기록이 끝에서부터 이어진 만큼 (AI 행동은 기록에 없다)
+  const key = actorSeat.ai || curtain ? null : turnKey(game)
+  let turnStart = history.length
+  while (key && turnStart > 0 && turnKey(history[turnStart - 1]) === key) turnStart--
+  const turnHistory = history.slice(turnStart)
+  const undoInTurn = () => turnHistory.length && restore(history.length - 1, false)
+  const jumpInTurn = (i: number) => restore(turnStart + i, false)
 
   const yields = player.turn?.yields
   const skipsFood = !!player.turn?.skipFoodSettle
@@ -203,10 +223,13 @@ export function GameScreen({ initial, seats, onExit }: Props) {
         </button>
       </div>
     )
+  } else if (player.pendingTiles?.length && ['place', 'research', 'produce', 'declare'].includes(game.phase)) {
+    // 문화로 얻은 타일을 먼저 붙인다
+    main = <TilePlacer game={game} player={player} dispatch={dispatch} />
   } else if (game.phase === 'setup') {
     main = <SetupPanel game={game} player={player} dispatch={dispatch} />
   } else if (game.phase === 'battle' && game.battle) {
-    main = <BattlePanel game={game} player={player} dispatch={dispatch} />
+    main = <BattlePanel key={`${game.round}:${game.battle.decl.attackerId}:${game.battle.decl.tileId}:${game.battle.step}:${actor}`} game={game} player={player} dispatch={dispatch} />
   } else if (game.phase === 'place') {
     main = <PlacePanel key={`${player.id}-${game.round}`} game={game} player={player} dispatch={dispatch} lastTiles={lastPlace[player.id]} />
   } else if (game.phase === 'research') {
@@ -214,6 +237,7 @@ export function GameScreen({ initial, seats, onExit }: Props) {
       <>
         <PendingPanel game={game} player={player} dispatch={dispatch} />
         <ChoicesPanel game={game} player={player} dispatch={dispatch} />
+        <ScoutBox game={game} player={player} dispatch={dispatch} />
         <ResearchPanel game={game} player={player} dispatch={dispatch} />
       </>
     )
@@ -222,6 +246,7 @@ export function GameScreen({ initial, seats, onExit }: Props) {
       <>
         <PendingPanel game={game} player={player} dispatch={dispatch} />
         <ChoicesPanel game={game} player={player} dispatch={dispatch} />
+        <ScoutBox game={game} player={player} dispatch={dispatch} />
         <ProducePanel game={game} player={player} dispatch={dispatch} />
       </>
     )
@@ -229,11 +254,12 @@ export function GameScreen({ initial, seats, onExit }: Props) {
     main = <DeclarePanel game={game} player={player} dispatch={dispatch} />
   }
 
-  const showBoard = !over && !curtain && game.phase !== 'setup' && game.phase !== 'place' && game.phase !== 'battle'
+  const placingTile = !!player.pendingTiles?.length && !actorSeat.ai
+  const showBoard = !over && !curtain && !placingTile && game.phase !== 'setup' && game.phase !== 'place' && game.phase !== 'battle'
 
   return (
     <div className="game">
-      {pendingReport && <BattleReportModal game={game} report={pendingReport} onClose={() => setSeenBattle(pendingReport.seq)} />}
+      {pendingReport && <BattleReportModal key={pendingReport.seq} game={game} report={pendingReport} viewer={viewer} onClose={() => setSeenBattle(pendingReport.seq)} />}
       <header className="top">
         <div>
           <b>라운드 {game.round}</b> · {PHASE[game.phase]} ·{' '}
@@ -255,28 +281,34 @@ export function GameScreen({ initial, seats, onExit }: Props) {
               {yields.gold}
             </span>
           )}
-          <label title="패널의 안내문을 보이거나 숨깁니다">
-            <input type="checkbox" checked={prefs.help} onChange={(e) => setPrefs({ help: e.target.checked })} /> 안내문
-          </label>
-          <label title="연구·생산에서 고를 것이 전혀 없으면 자동으로 넘깁니다">
-            <input type="checkbox" checked={prefs.autoSkip} onChange={(e) => setPrefs({ autoSkip: e.target.checked })} /> 할 일 없으면 넘기기
-          </label>
-          <label>
-            AI 속도{' '}
-            <select value={speed} onChange={(e) => setSpeed(Number(e.target.value))}>
-              <option value={30}>매우 빠름</option>
-              <option value={150}>빠름</option>
-              <option value={300}>보통</option>
-              <option value={800}>느림</option>
-            </select>
-          </label>
-          <button disabled={history.length === 0} onClick={() => { setGame(history[history.length - 1]); setHistory(history.slice(0, -1)); setError('') }}>
-            ↶ 되돌리기
-          </button>
+          <details className="settings">
+            <summary>⚙ 설정</summary>
+            <div className="settings-menu">
+            <label title="패널의 안내문을 보이거나 숨깁니다">
+              <input type="checkbox" checked={prefs.help} onChange={(e) => setPrefs({ help: e.target.checked })} /> 안내문
+            </label>
+            <label title="연구·생산에서 고를 것이 전혀 없으면 자동으로 넘깁니다">
+              <input type="checkbox" checked={prefs.autoSkip} onChange={(e) => setPrefs({ autoSkip: e.target.checked })} /> 할 일 없으면 넘기기
+            </label>
+            <label>
+              AI 속도{' '}
+              <select value={speed} onChange={(e) => setPrefs({ aiSpeed: Number(e.target.value) })}>
+                <option value={30}>매우 빠름</option>
+                <option value={150}>빠름</option>
+                <option value={300}>보통</option>
+                <option value={800}>느림</option>
+              </select>
+            </label>
+              <button disabled={history.length === 0} onClick={() => restore(history.length - 1, true)} title="규칙 검증용: 다른 사람·AI 차례를 넘어 마지막 사람 행동 전으로 돌아갑니다. 상대에게 공개된 정보도 되돌아갑니다.">
+                ↶ 차례를 넘어 되돌리기 (검증용)
+              </button>
+            </div>
+          </details>
           <button onClick={onExit}>나가기</button>
         </div>
       </header>
       {error && <div className="error banner-error">⚠ {error}</div>}
+      {saveFailed && <div className="error banner-error">⚠ 자동 저장에 실패했습니다 (브라우저 저장 공간이 없거나 막힘). 창을 닫으면 이어하기를 할 수 없습니다.</div>}
       {!error && notice.length > 0 && !actorSeat.ai && (
         <div className="notice">
           <b>방금 일어난 일</b>
@@ -297,6 +329,7 @@ export function GameScreen({ initial, seats, onExit }: Props) {
               </span>
             )}
           </div>
+          {key && !over && <TurnSteps game={game} turnHistory={turnHistory} onJump={jumpInTurn} onUndo={undoInTurn} />}
           {main}
           {showBoard && <Board game={game} player={player} />}
           {actorSeat.ai && !over && <Board game={game} player={player} />}

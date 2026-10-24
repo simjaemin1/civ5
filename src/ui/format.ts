@@ -122,3 +122,11 @@ export function techCardLines(t: TechDef): string[] {
   if (TECH_EXTRA[t.id]) lines.push(TECH_EXTRA[t.id])
   return lines
 }
+
+/** 받침에 맞춰 조사를 붙인다: josa('러시아', '이', '가') → '러시아가', josa('한국', '은', '는') → '한국은' */
+export function josa(word: string, withBatchim: string, without: string): string {
+  const last = word.charCodeAt(word.length - 1)
+  const isHangul = last >= 0xac00 && last <= 0xd7a3
+  const batchim = isHangul ? (last - 0xac00) % 28 !== 0 : /[0136781LMNR]$/i.test(word)
+  return word + (batchim ? withBatchim : without)
+}

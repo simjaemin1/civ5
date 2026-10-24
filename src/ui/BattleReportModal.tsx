@@ -63,11 +63,17 @@ function stepsOf(report: BattleReport): Step[] {
 }
 
 /** 전투가 끝나면 한 번 띄우는 전투 장면. 확인을 눌러야 다음으로 넘어간다. */
-export function BattleReportModal({ game, report, onClose }: { game: GameState; report: BattleReport; onClose: () => void }) {
+export function BattleReportModal({ game, report, viewer, onClose }: { game: GameState; report: BattleReport; viewer?: number; onClose: () => void }) {
   const att = game.players[report.attackerId]
   const def = game.players[report.defenderId]
   const unitAt = (pid: number, slot: number) => report.units.find((u) => u.owner === pid && u.slot === slot) ?? null
   const cols = [1, 2, 3, 4]
+  // 보는 사람이 수비 측이면 자기 카드가 아래에 오도록 뒤집는다
+  const flip = viewer === report.defenderId
+  const top = flip ? att : def
+  const bottom = flip ? def : att
+  const topRole = flip ? '공격' : '수비'
+  const bottomRole = flip ? '수비' : '공격'
   const winnerName = civById((report.winner === 'attacker' ? att : def).civId).name
   const kind = { normal: '일반 선전포고', retake: '탈환 선전포고', city: '도시 공격' }[report.kind]
   const hits = [...report.hits].sort((a, b) => a.from.pid - b.from.pid || a.from.slot - b.from.slot)
@@ -115,12 +121,16 @@ export function BattleReportModal({ game, report, onClose }: { game: GameState; 
           {report.coastal ? ' (해안 타일 전투)' : ''} · 라운드 {report.round}
         </p>
         <div className="scene">
-          <div className="side-label">{civById(def.civId).name} (수비)</div>
+          <div className="side-label">
+            {civById(top.civId).name} ({topRole})
+          </div>
           <div className="scene-row">
             {cols.map((c) => (
               <div key={`d${c}`} className="cell">
-                <small>수비 {5 - c}번</small>
-                <Unit u={unitAt(report.defenderId, 5 - c)} live={liveOf(report.defenderId, 5 - c)} dir="down" final={done} />
+                <small>
+                  {topRole} {5 - c}번
+                </small>
+                <Unit u={unitAt(top.id, 5 - c)} live={liveOf(top.id, 5 - c)} dir="down" final={done} />
               </div>
             ))}
           </div>
@@ -134,12 +144,16 @@ export function BattleReportModal({ game, report, onClose }: { game: GameState; 
           <div className="scene-row">
             {cols.map((c) => (
               <div key={`a${c}`} className="cell">
-                <small>공격 {c}번</small>
-                <Unit u={unitAt(report.attackerId, c)} live={liveOf(report.attackerId, c)} dir="up" final={done} />
+                <small>
+                  {bottomRole} {c}번
+                </small>
+                <Unit u={unitAt(bottom.id, c)} live={liveOf(bottom.id, c)} dir="up" final={done} />
               </div>
             ))}
           </div>
-          <div className="side-label">{civById(att.civId).name} (공격)</div>
+          <div className="side-label">
+            {civById(bottom.civId).name} ({bottomRole})
+          </div>
         </div>
         <div className="row anim-bar">
           {!done && (

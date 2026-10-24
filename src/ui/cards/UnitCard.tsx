@@ -92,7 +92,7 @@ export function UnitCard({ card, width = 150, selected, dim, onClick, zoomable =
     <>
       {face(width, onClick ?? (zoomable ? () => setZoom(true) : undefined))}
       {zoom && (
-        <div className="modal-backdrop" onClick={() => setZoom(false)} role="dialog" aria-modal="true" aria-label={st.name}>
+        <div className="modal-backdrop" onClick={() => setZoom(false)} onKeyDown={(e) => e.key === 'Escape' && setZoom(false)} role="dialog" aria-modal="true" aria-label={st.name}>
           <div className="zoom" onClick={(e) => e.stopPropagation()}>
             {face(Math.min(360, window.innerWidth - 48))}
             <button className="primary" autoFocus onClick={() => setZoom(false)}>

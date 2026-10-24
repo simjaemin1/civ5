@@ -316,3 +316,56 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
   .ghost-slot { padding: 3px 4px; font-size: 0.75rem; }
   .top label { font-size: 0.85rem; }
 }
+
+/* 선전포고: 상대 영토에서 목표 고르기 */
+.declare-body { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+.declare-board { flex: 1 1 420px; min-width: 0; }
+.target-card { flex: 1 1 300px; max-width: 520px; position: sticky; top: 8px; background: var(--surface); border: 2px solid var(--err-line); border-radius: 10px; padding: 10px 12px; }
+.target-head { display: flex; gap: 12px; align-items: flex-start; }
+.target-head h4 { margin: 0 0 6px; }
+.target-card .warn, .confirm-bar .warn { color: var(--err); font-weight: 600; }
+.city-note { font-weight: 400; }
+.tile.unpickable { opacity: 0.45; filter: grayscale(0.6); }
+.tile.has-img.pickable img { outline: 3px solid var(--err); outline-offset: 1px; }
+.tile.pickable:not(.has-img) { outline: 3px solid var(--err); }
+.tile.has-img.pickable.selected img { outline: 4px solid var(--accent-2); }
+@media (max-width: 760px) { .target-card { position: static; max-width: none; } .target-head { flex-direction: column; } }
+
+.confirm-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: var(--now); border: 1px solid var(--accent-2); border-radius: 8px; padding: 8px 10px; margin: 8px 0; }
+.war-hint { margin: 4px 0; font-size: 0.9rem; color: var(--err); }
+.scout-box { margin: 6px 0; }
+.prod-row { margin: 2px 0; }
+.prod-row.blocked { opacity: 0.6; }
+.prod-row button { white-space: nowrap; }
+.tile.unpickable, .tile.ro.unpickable:disabled { opacity: 0.45; filter: grayscale(0.6); }
+.settings { position: relative; margin: 0; }
+.settings > summary { list-style: none; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; font-weight: 400; }
+.settings > summary::-webkit-details-marker { display: none; }
+.settings-menu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; min-width: 220px; box-shadow: 0 4px 14px rgba(0,0,0,0.25); }
+@media (max-width: 760px) { .settings-menu { right: auto; left: 0; } }
+
+/* 선전포고 목표 타일: 타일 위에 띠로 표시 */
+.tile.targeted img, .tile.targeted:not(.has-img) { outline: 3px solid var(--err); outline-offset: 1px; }
+.tile-target { position: absolute; left: 0; right: 0; top: 38%; background: rgba(179, 38, 30, 0.92); color: #fff; font-weight: 700; font-size: 0.78rem; text-align: center; padding: 3px 2px; pointer-events: none; box-shadow: 0 1px 4px rgba(0,0,0,0.4); }
+.tile.ro.targeted:disabled { opacity: 1; }
+
+/* 문화로 얻은 타일 붙이기 */
+.city.drop-zone { border: 2px dashed var(--accent); }
+.city.drop-zone.over { background: var(--now); border-style: solid; }
+.gained { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-start; }
+.gained-tile { width: 150px; cursor: grab; }
+.gained-tile:active { cursor: grabbing; }
+.gained-actions { display: flex; flex-direction: column; gap: 6px; }
+
+/* 이번 차례 단계 막대 */
+.turn-steps { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 6px 8px; margin: 8px 0; }
+.turn-steps ol { list-style: none; display: flex; flex-wrap: wrap; gap: 4px; margin: 0; padding: 0; }
+.turn-steps li { display: flex; align-items: center; font-size: 0.85rem; }
+.turn-steps li + li::before { content: '›'; color: var(--muted); margin: 0 4px 0 0; }
+.turn-steps .step-btn { border-radius: 999px; padding: 3px 10px; border: 1px solid var(--line); background: var(--surface); }
+.turn-steps li.done .step-btn { color: var(--ok); }
+.turn-steps li.done button.step-btn:hover { border-color: var(--accent); background: var(--active-bg); }
+.turn-steps li.done .back { margin-left: 4px; opacity: 0.7; }
+.turn-steps li.now .step-btn { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; }
+.turn-steps li.next .step-btn { color: var(--muted); border-style: dashed; }
+.turn-steps .undo { font-size: 0.85rem; }

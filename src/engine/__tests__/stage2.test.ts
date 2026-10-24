@@ -448,10 +448,24 @@ describe('도시 선택 (식량·망치 변환, 문화 타일, 일꾼 버리기)
       s = mod(apply(s, { type: 'placeWorkers', placements: [] }), (c) => (c.players[0].turn!.yields.science = acoustics.cost))
       return apply(s, { type: 'research', techId: 'acoustics' })
     }
+    // 도시가 둘이면 얻은 타일은 바로 붙지 않고 기다린다 (문화에는 바로 들어간다)
     const base = run(false)
-    const picked = run(true)
-    expect(me(base).cities.map((c) => c.tiles.length)).toEqual([5, 4])
-    expect(me(picked).cities.map((c) => c.tiles.length)).toEqual([4, 5])
+    expect(me(base).cities.map((c) => c.tiles.length)).toEqual([4, 4])
+    expect(me(base).pendingTiles).toHaveLength(1)
+    expect(culture(me(base))).toBe(9)
+    // 타일을 보고 붙일 도시를 고른다
+    const placed = apply(base, { type: 'placeGainedTile', cityId: 1 })
+    expect(me(placed).cities.map((c) => c.tiles.length)).toEqual([4, 5])
+    expect(me(placed).pendingTiles).toHaveLength(0)
+    expect(() => apply(placed, { type: 'placeGainedTile', cityId: 1 })).toThrow(RuleError)
+    expect(() => apply(base, { type: 'placeGainedTile', cityId: 9 })).toThrow(RuleError)
+    // 붙이지 않고 차례를 끝내면 기본 도시(설정 → 열린 면이 있는 첫 도시)에 붙는다
+    const finish = (s: GameState) => {
+      s = apply(s, { type: 'endProduction' })
+      return s.phase === 'declare' ? apply(s, { type: 'endTurn' }) : s
+    }
+    expect(me(finish(base)).cities.map((c) => c.tiles.length)).toEqual([5, 4])
+    expect(me(finish(run(true))).cities.map((c) => c.tiles.length)).toEqual([4, 5])
     expect(() => apply(two(), { type: 'setChoices', cultureCity: 9 })).toThrow(RuleError)
   })
 

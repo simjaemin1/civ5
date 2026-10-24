@@ -31,15 +31,12 @@ export function ChoicesPanel({ player, dispatch }: PanelProps) {
         {player.cities.length > 1 && (
           <>
             <label>
-              얻은 타일 붙일 도시 {cityOptions(ch.cultureCity, (v) => dispatch({ type: 'setChoices', cultureCity: v }))}
-            </label>
-            <label>
               일꾼을 버릴 도시 {cityOptions(ch.discardCity, (v) => dispatch({ type: 'setChoices', discardCity: v }))}
             </label>
           </>
         )}
       </div>
-      <Help>문화를 얻기 전에 골라 두세요. 한 번 고르면 다시 바꿀 때까지 유지됩니다.</Help>
+      <Help>한 번 고르면 다시 바꿀 때까지 유지됩니다. 문화로 얻은 타일은 얻을 때마다 타일을 보고 붙일 도시를 고릅니다.</Help>
     </div>
   )
 }
