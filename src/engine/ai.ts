@@ -104,7 +104,7 @@ function lateGame(p: Player, s?: GameState): 'apollo' | 'culture' | null {
   let viable = true
   if (s) {
     const rivals = s.players.filter((o) => o.id !== p.id && !o.eliminated && o.cities.length > 0)
-    const reach = 2 * Math.floor(culture(p) / 3) + Math.floor(totalWorkers(p) / 2) + AI_TUNE.cultureSlack
+    const reach = 3 * Math.floor(culture(p) / 3) + AI_TUNE.cultureSlack // 세계화·냉각기술·평등이 각각 문화 3당 1
     viable = rivals.length > 0 && Math.max(...rivals.map((o) => culture(o))) < reach
   }
   const cultureOk = AI_TUNE.cultureRush > 0 && culturePath <= AI_TUNE.cultureRush && viable
@@ -249,7 +249,7 @@ function policyOrder(s: GameState, p: Player): Policy[] {
   const need = Math.max(cheapest, AI_TUNE.policyNeed)
   // 평등 한 번으로 관광이 상대의 문화를 넘어 탈락시킬 수 있으면 (아폴로 질주 중이어도) 평등
   if (p.policy !== 'equality') {
-    const gain = Math.floor(totalWorkers(p) / 2)
+    const gain = Math.floor(culture(p) / 3)
     const now = tourism(p)
     if (s.players.some((o) => o.id !== p.id && !o.eliminated && o.cities.length > 0 && culture(o) >= now && culture(o) < now + gain)) return ['equality', ...POLICY_PREFERENCE]
   }

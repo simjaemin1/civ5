@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { apply, createGame, culture, happiness, tourism, computeYields, totalWorkers, RuleError, WONDER_CARDS, TECHS } from '..'
+import { apply, createGame, culture, happiness, tourism, computeYields, RuleError, WONDER_CARDS, TECHS } from '..'
 import type { GameState, TileCard } from '..'
 import { found, me, play, startGame, tile } from './helpers'
 
@@ -103,12 +103,11 @@ describe('정책', () => {
     expect(computeYields(me(kp)).science - computeYields(me(k)).science).toBe(5)
   })
 
-  it('평등: 일꾼 2개당 관광 1', () => {
+  it('평등: 문화 3당 관광 1', () => {
     const s = mod(solo(), (c) => {
       c.players[0].policy = 'equality'
-      c.players[0].cities[0].workers = 5
     })
-    expect(tourism(me(s))).toBe(2)
+    expect(tourism(me(s))).toBe(Math.floor(culture(me(s)) / 3))
   })
 
   it('세계화·냉각기술: 문화 3당 관광 1씩', () => {
@@ -116,7 +115,7 @@ describe('정책', () => {
     const third = Math.floor(culture(me(s)) / 3)
     expect(tourism(me(s))).toBe(2 * third)
     s = mod(s, (c) => (c.players[0].policy = 'equality'))
-    expect(tourism(me(s))).toBe(2 * third + Math.floor(totalWorkers(me(s)) / 2))
+    expect(tourism(me(s))).toBe(3 * third)
   })
 })
 
