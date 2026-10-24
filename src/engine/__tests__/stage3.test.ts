@@ -968,12 +968,12 @@ describe('문명 능력 (전쟁·군사 관련)', () => {
     ).toThrow(RuleError)
   })
 
-  it('일본: 물고기 타일은 망치 +1 (식량은 그대로)', () => {
+  it('일본: 물고기 타일은 식량 +1 (망치는 그대로)', () => {
     const fish = tile(['해안'], { resource: 'fish' })
     const jp = tileYield(fish, ctxOf(found(startGame(['japan'], [hand4()])).players[0]))
     const kr = tileYield(fish, ctxOf(found(startGame(['korea'], [hand4()])).players[0]))
-    expect(jp.hammer - kr.hammer).toBe(1)
-    expect(jp.food - kr.food).toBe(0)
+    expect(jp.food - kr.food).toBe(1)
+    expect(jp.hammer - kr.hammer).toBe(0)
   })
 
   it('일본: 물고기 타일을 얻을 때마다 문화 1 (연쇄)', () => {

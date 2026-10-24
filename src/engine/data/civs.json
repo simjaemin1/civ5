@@ -99,7 +99,7 @@
   "priority": 88,
   "happiness": 4,
   "bonus": {
-   "gold": 3
+   "gold": 2
   },
   "startCulture": 0,
   "ability": "위대한 장군 1개로 시작",
@@ -431,13 +431,13 @@
    "food": 1
   },
   "startCulture": 0,
-  "ability": "물고기 타일을 얻을 때마다 문화 1, 물고기 타일 망치 +1",
+  "ability": "물고기 타일을 얻을 때마다 문화 1, 물고기 타일 식량 +1",
   "unique": "사무라이 (장검사)",
   "tileMods": [
    {
     "resource": "fish",
     "yield": {
-     "hammer": 1
+     "food": 1
     }
    }
   ],
@@ -543,7 +543,7 @@
   "priority": 17,
   "happiness": 4,
   "bonus": {
-   "gold": 2
+   "gold": 3
   },
   "startCulture": 0,
   "ability": "상대의 해안 전용 군사 카드를 파괴하면 전투 후 그 카드를 가져옴",
