@@ -187,7 +187,19 @@ export function apply(prev: GameState, action: Action): GameState {
       releaseHeld(s, p)
       return s
     case 'placeWorkers': return placeWorkers(s, p, action.placements)
-    case 'research': return research(s, p, action.techId, action.foodToScience ?? 0, action.hammerToScience ?? 0)
+    case 'research': return research(s, p, action.techId, action.foodToScience ?? 0, action.hammerToScience ?? 0, action.foodByCity, action.hammerByCity)
+    case 'setChoices': {
+      p.choices = { ...p.choices }
+      if (action.useHeld !== undefined) p.choices.useHeld = action.useHeld
+      for (const key of ['cultureCity', 'discardCity'] as const) {
+        const v = action[key]
+        if (v === undefined) continue
+        if (v === null) delete p.choices[key]
+        else if (!p.cities.some((c) => c.id === v)) throw new RuleError('내 도시가 아닙니다')
+        else p.choices[key] = v
+      }
+      return s
+    }
     case 'skipResearch':
       expectPhase(s, 'research')
       s.phase = 'produce'
@@ -418,9 +430,10 @@ function placeWorkers(s: GameState, p: Player, placements: Placement[]): GameSta
 function recomputeYields(p: Player) {
   const y = computeYields(p)
   if (y.cities.length) y.cities[0].food += p.turn!.extraFood
+  const by = p.turn!.hammerByCity
   let left = p.turn!.hammerToScience
   for (const c of y.cities) {
-    const take = Math.min(left, c.hammer)
+    const take = by ? Math.min(by[c.cityId] ?? 0, c.hammer) : Math.min(left, c.hammer)
     c.hammer -= take
     left -= take
   }
@@ -433,12 +446,28 @@ function research(
   techId: string,
   foodToScience: number,
   hammerToScience: number,
+  foodByCity?: Record<number, number>,
+  hammerByCity?: Record<number, number>,
 ): GameState {
   expectPhase(s, 'research')
   const tech = techById(techId)
   if (!researchableTechs(s).some((t) => t.id === techId)) throw new RuleError('지금 연구할 수 없는 기술입니다')
   const turn = p.turn!
   const food = turn.yields.cities.reduce((n, c) => n + c.food, 0)
+  // 도시를 골라 바꾸면 도시별 합이 바꾸는 양이다
+  const byCity = (by: Record<number, number> | undefined, key: 'food' | 'hammer', what: string): number | undefined => {
+    if (!by) return undefined
+    let sum = 0
+    for (const [id, n] of Object.entries(by)) {
+      const y = turn.yields.cities.find((c) => c.cityId === Number(id))
+      if (!y) throw new RuleError('내 도시가 아닙니다')
+      if (!Number.isInteger(n) || n < 0 || n > y[key]) throw new RuleError(`그 도시의 ${what}이 모자랍니다`)
+      sum += n
+    }
+    return sum
+  }
+  foodToScience = byCity(foodByCity, 'food', '식량') ?? foodToScience
+  hammerToScience = byCity(hammerByCity, 'hammer', '망치') ?? hammerToScience
   if (foodToScience > 0 && !p.techs.includes('writing')) throw new RuleError('문자를 연구해야 식량을 과학으로 바꿀 수 있습니다')
   if (foodToScience < 0 || foodToScience > food) throw new RuleError('바꿀 식량이 잘못되었습니다')
   const hammers = turn.yields.cities.reduce((n, c) => n + c.hammer, 0)
@@ -452,6 +481,8 @@ function research(
 
   turn.foodToScience = foodToScience
   turn.hammerToScience = hammerToScience
+  turn.foodByCity = foodByCity
+  turn.hammerByCity = hammerByCity
   turn.researched = true
   p.techs.push(tech.id)
   p.freshTechs.push(tech.id)
@@ -500,7 +531,7 @@ function foodSettlement(s: GameState, p: Player): void {
     let converted = turn.foodToScience
     for (const c of p.cities) {
       let food = turn.yields.cities.find((y) => y.cityId === c.id)!.food
-      const take = Math.min(converted, food)
+      const take = turn.foodByCity ? Math.min(turn.foodByCity[c.id] ?? 0, food) : Math.min(converted, food)
       food -= take
       converted -= take
       if (food < c.workers) {
@@ -513,7 +544,8 @@ function foodSettlement(s: GameState, p: Player): void {
   }
   // 어떤 이유로든 일꾼이 행복을 넘으면 넘친 만큼 버린다 (가장 많은 도시부터)
   while (totalWorkers(p) > cap) {
-    const biggest = p.cities.reduce((a, b) => (b.workers > a.workers ? b : a))
+    const chosen = p.cities.find((c) => c.id === p.choices?.discardCity && c.workers > 0)
+    const biggest = chosen ?? p.cities.reduce((a, b) => (b.workers > a.workers ? b : a))
     biggest.workers--
   }
   say(s, `${civById(p.civId).name} 일꾼 ${totalWorkers(p)} / 행복 ${cap}`)

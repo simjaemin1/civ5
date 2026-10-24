@@ -231,3 +231,4 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .icon { vertical-align: middle; border-radius: 50%; }
 .tile-badges { display: flex; gap: 2px; align-items: center; }
 .tile-city-token { position: absolute; left: 4px; top: 4px; line-height: 0; }
+.conv { border-collapse: collapse; margin: 6px 0 10px; } .conv th, .conv td { padding: 3px 10px; text-align: left; }

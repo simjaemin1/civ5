@@ -408,3 +408,63 @@ describe('시작 타일·음향학 문화', () => {
     expect(culture(s.players[0])).toBe(before + 1)
   })
 })
+
+describe('도시 선택 (식량·망치 변환, 문화 타일, 일꾼 버리기)', () => {
+  /** 도시 둘: 둘째 도시는 첫 도시를 복사해 id 1로 */
+  function two(): GameState {
+    return mod(solo('korea'), (c) => {
+      const p = c.players[0]
+      const second = structuredClone(p.cities[0])
+      second.id = 1
+      second.tiles = second.tiles.map((t, i) => ({ ...t, card: { ...t.card, id: 500 + i } }))
+      second.workers = 3
+      p.cities.push(second)
+      p.techs.push('writing', 'scientific_theory')
+    })
+  }
+  const withYields = (s: GameState) =>
+    mod(apply(s, { type: 'placeWorkers', placements: [] }), (c) => {
+      const y = c.players[0].turn!.yields
+      y.cities[0].food = 3; y.cities[0].hammer = 2
+      y.cities[1].food = 4; y.cities[1].hammer = 2
+      y.science = 5
+    })
+
+  it('식량·망치를 도시별로 골라 과학으로 바꾼다', () => {
+    let s = withYields(two())
+    expect(() => apply(s, { type: 'research', techId: 'writing', foodByCity: { 1: 5 } })).toThrow(RuleError)
+    expect(() => apply(s, { type: 'research', techId: 'writing', hammerByCity: { 1: 2, 0: 1 } })).toThrow(RuleError)
+    s = apply(s, { type: 'research', techId: 'agriculture', foodByCity: { 1: 2 }, hammerByCity: { 1: 1 } })
+    const turn = me(s).turn!
+    expect(turn.foodToScience).toBe(2)
+    expect(turn.hammerToScience).toBe(1)
+  })
+
+  it('문화로 얻는 타일을 붙일 도시를 고른다 (기본은 열린 면이 있는 첫 도시)', () => {
+    const acoustics = TECHS.find((t) => t.id === 'acoustics')!
+    const run = (choose: boolean) => {
+      let s = mod(two(), (c) => c.players[0].techs.push('education'))
+      if (choose) s = apply(s, { type: 'setChoices', cultureCity: 1 })
+      s = mod(apply(s, { type: 'placeWorkers', placements: [] }), (c) => (c.players[0].turn!.yields.science = acoustics.cost))
+      return apply(s, { type: 'research', techId: 'acoustics' })
+    }
+    const base = run(false)
+    const picked = run(true)
+    expect(me(base).cities.map((c) => c.tiles.length)).toEqual([5, 4])
+    expect(me(picked).cities.map((c) => c.tiles.length)).toEqual([4, 5])
+    expect(() => apply(two(), { type: 'setChoices', cultureCity: 9 })).toThrow(RuleError)
+  })
+
+  it('맡아둔 타일을 쓰지 않고 새로 뽑기를 고를 수 있다', () => {
+    const acoustics = TECHS.find((t) => t.id === 'acoustics')!
+    const held = tile(['산'], { wonder: 'kilimanjaro' })
+    const run = (useHeld: boolean) => {
+      let s = mod(two(), (c) => { c.players[0].techs.push('education'); c.players[0].held = held })
+      s = apply(s, { type: 'setChoices', useHeld })
+      s = mod(apply(s, { type: 'placeWorkers', placements: [] }), (c) => (c.players[0].turn!.yields.science = acoustics.cost))
+      return apply(s, { type: 'research', techId: 'acoustics' })
+    }
+    expect(me(run(true)).held).toBeNull()
+    expect(me(run(false)).held?.id).toBe(held.id)
+  })
+})
