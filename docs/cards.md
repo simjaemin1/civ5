@@ -3,7 +3,7 @@
 화면의 카드는 **그림 파일이 있으면 그 그림**을, 없으면 데이터로 그린 대체 카드를 보여 준다.
 그림만 넣으면 코드를 고칠 필요가 없다.
 
-## 기술 카드
+## 기술 카드 (52장 모두 등록됨)
 - 위치: `src/assets/cards/tech/<기술 id>.webp` (png, jpg도 됨)
 - 예: 농업 → `src/assets/cards/tech/agriculture.webp`
 - 기술 id는 `src/engine/data/techs.json`의 `id`다. 등록 현황과 빠진 카드는 아래 명령으로 본다.
