@@ -369,3 +369,13 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
 .turn-steps li.now .step-btn { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; }
 .turn-steps li.next .step-btn { color: var(--muted); border-style: dashed; }
 .turn-steps .undo { font-size: 0.85rem; }
+
+/* 타일 하단 산출 아이콘 줄 다시 그리기 (카드 그림에서 딴 아이콘) */
+.tile.has-img { container-type: inline-size; }
+.yield-row { position: absolute; inset: 0; pointer-events: none; }
+.yield-patch { position: absolute; left: 50%; transform: translateX(-50%); top: 85.6%; height: 11.4%; background: #f4e9d6; border-radius: 6px; }
+.yield-icons { position: absolute; left: 0; right: 0; top: 91.4%; height: 0; }
+.yield-ic { position: absolute; top: 0; transform: translate(-50%, -50%); height: auto; }
+.yield-ic.plus { filter: drop-shadow(0 0 1.5px #fff) drop-shadow(0 0 2px #2f9d38) drop-shadow(0 0 1px #2f9d38); }
+.yield-ic.minus { opacity: 0.28; filter: grayscale(1); }
+.tile.has-img img.yield-ic { display: block; outline: none !important; box-shadow: none; border-radius: 0; max-width: none; }

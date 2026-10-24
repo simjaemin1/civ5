@@ -1,5 +1,6 @@
 import type { Player, TileCard } from '../engine'
-import { RESOURCES, WONDERS, ctxOf, tileYield } from '../engine'
+import { REAL_TILES, RESOURCES, WONDERS, ctxOf, tileYield } from '../engine'
+import { YieldRow } from './cards/YieldRow'
 import { cardImage } from './cards/cardImages'
 import { Icon } from './icons'
 import { TERRAIN_COLOR, tileTitle, yieldText } from './format'
@@ -27,7 +28,8 @@ interface Props {
 
 /**
  * 타일 카드 한 장: 지형, 자원, 산출, 일꾼·점령·선전포고 표시.
- * 그림 카드는 산출 아이콘이 카드에 그려져 있으므로 따로 겹쳐 쓰지 않고, 기술·문명 효과를 반영한 산출은 마우스를 올리면 보여 준다.
+ * 그림 카드는 산출 아이콘이 카드에 그려져 있으므로 이모티콘을 겹쳐 쓰지 않는다. 기술·문명 효과로 산출이 달라진 타일만
+ * 카드 그림에서 딴 아이콘으로 하단 줄을 다시 그린다 (YieldRow).
  */
 export function TileView({ card, player, badge, selected, disabled, onClick, hint, selectableMark }: Props) {
   const mark = selectableMark === undefined ? '' : selectableMark ? ' pickable' : ' unpickable'
@@ -36,6 +38,8 @@ export function TileView({ card, player, badge, selected, disabled, onClick, hin
   const wonder = card.wonder ? WONDERS[card.wonder] : undefined
   const primary = card.terrains[0]
   const img = cardImage('tile', String(card.id))
+  // 카드에 인쇄된 산출 (실제 카드 덱일 때만): 기술 효과 등으로 달라지면 아이콘 줄을 다시 그린다
+  const printed = img ? REAL_TILES[card.id]?.printed : undefined
   const cls = `${selected ? ' selected' : ''}${badge?.city ? ' city' : ''}${onClick ? '' : ' ro'}${badge?.target ? ' targeted' : ''}${mark}`
   const badges = (
     <div className="tile-badges">
@@ -53,6 +57,7 @@ export function TileView({ card, player, badge, selected, disabled, onClick, hin
     return (
       <button type="button" className={`tile has-img${cls}`} disabled={disabled || !onClick} onClick={onClick} title={hint ?? `${tileTitle(card)} — 산출 ${yieldText(y)}`}>
         <img src={img} alt={tileTitle(card)} draggable={false} />
+        {printed && <YieldRow printed={printed} actual={y} />}
         {badge?.city && (
           <div className="tile-city-token">
             <Icon name="city" size={30} title="도시" />
