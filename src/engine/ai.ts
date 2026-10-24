@@ -209,6 +209,9 @@ function cardOptions(p: Player): { def: (typeof MILITARY_CARDS)[number]; unique?
  * 정책 고르기: 과학이 모자라 기술을 못 연구할 지경이면 합리주의·자유로, 아니면 미학·전통으로 번성한다.
  * 과학 가능량 = 기본 과학 + (식량을 과학으로 바꿀 수 있으면) 남는 식량. 자유는 식량 전부, 합리주의는 +3(한국 +5).
  */
+/** 이 정도 타일(영토)이 있으면 문화보다 과학을 챙긴다 */
+const TERRITORY_OK = 10
+
 function policyOrder(s: GameState, p: Player): Policy[] {
   const turn = p.turn
   const food = turn ? turn.yields.cities.reduce((n, c) => n + c.food, 0) : 0
@@ -216,13 +219,21 @@ function policyOrder(s: GameState, p: Player): Policy[] {
   const writing = p.techs.includes('writing')
   const cheapest = Math.min(...researchableTechs(s).map((t) => t.cost), 99)
   const withNone = base + (writing ? Math.max(0, food - totalWorkers(p)) : 0)
-  const withRational = base + (p.civId === 'korea' ? 5 : 3) + (writing ? Math.max(0, food - totalWorkers(p)) : 0)
-  const withLiberty = base + (writing ? food : 0)
   // 앞으로 만날 비용 10대 기술을 감당할 수 있는지 (번성 뒤에도 막히지 않도록 여유 있게)
   const need = Math.max(cheapest, AI_TUNE.policyNeed)
+  // 초반: 미학으로 문화(= 새 타일)를 늘려 영토를 넓히는 게 먼저. 자유만 고집하면 영토가 안 늘고 일꾼도 안 늘어 막힌다.
+  // 식량이 넉넉해 일꾼 3개쯤은 금방 되살아나면 전통, 아니면 미학. 후반(아폴로 질주)에는 자유.
   if (rushingApollo(p)) return ['liberty', 'rationalism', ...POLICY_PREFERENCE]
-  if (withNone >= need) return [...POLICY_PREFERENCE]
-  return withLiberty >= withRational ? ['liberty', 'rationalism', ...POLICY_PREFERENCE] : ['rationalism', 'liberty', ...POLICY_PREFERENCE]
+  const surplus = food - totalWorkers(p)
+  const tiles = p.cities.reduce((n, c) => n + c.tiles.length, 0)
+  const recovers = surplus >= 3 && totalWorkers(p) >= 6
+  const starved = withNone < need
+  if (starved && tiles >= TERRITORY_OK) {
+    const withRational = base + (p.civId === 'korea' ? 5 : 3) + (writing ? Math.max(0, food - totalWorkers(p)) : 0)
+    const withLiberty = base + (writing ? food : 0)
+    return withLiberty >= withRational ? ['liberty', 'rationalism', ...POLICY_PREFERENCE] : ['rationalism', 'liberty', ...POLICY_PREFERENCE]
+  }
+  return recovers ? ['tradition', 'aesthetics', ...POLICY_PREFERENCE] : ['aesthetics', 'tradition', ...POLICY_PREFERENCE]
 }
 
 function pendingCandidates(s: GameState, p: Player): Action[] {
