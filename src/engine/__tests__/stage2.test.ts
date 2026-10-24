@@ -390,3 +390,21 @@ describe('레이더', () => {
     expect(s.players[0].policy).toBe('despotism')
   })
 })
+
+describe('시작 타일·음향학 문화', () => {
+  it('시작 타일이 킬리만자로면 문화 +1 (타일 1장을 더 얻는다)', () => {
+    const s = solo('denmark', [tile(['산'], { wonder: 'kilimanjaro' }), tile(['숲']), tile(['언덕']), tile(['해안'])])
+    expect(culture(s.players[0])).toBe(5)
+  })
+  it('음향학을 연구하면 문화 +1', () => {
+    let s = solo()
+    s = mod(s, (c) => {
+      c.players[0].techs.push('education')
+    })
+    const acoustics = TECHS.find((t) => t.id === 'acoustics')!
+    s = mod(toResearch(s), (c) => (c.players[0].turn!.yields.science = acoustics.cost))
+    const before = culture(s.players[0])
+    s = apply(s, { type: 'research', techId: 'acoustics' })
+    expect(culture(s.players[0])).toBe(before + 1)
+  })
+})

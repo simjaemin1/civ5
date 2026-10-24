@@ -5,7 +5,7 @@ import type { TechDef } from './data'
 import { shuffle } from './rng'
 import { computeYields, happiness, totalWorkers } from './yields'
 import { makeTileDeck } from './tileDeck'
-import { currentPlayer, drawTiles, gainCulture, say } from './core'
+import { currentPlayer, drawTiles, gainCulture, onTileGained, say } from './core'
 import { choosePolicy } from './policies'
 import { invest, settleWonders } from './wonders'
 import {
@@ -331,6 +331,7 @@ function buildCity(
   const city = foundCity(p.hand, a, 0, 1)
   p.cities.push(city)
   p.hand = []
+  for (const t of city.tiles) if (t.card.wonder) onTileGained(s, p, t.card) // 시작 타일에 자연경관이 있어도 문화 효과를 받는다 (킬리만자로 등)
   if (p.civId === 'china') p.generals += 1 // 중국: 위대한 장군 1개로 시작
   say(s, `${civById(p.civId).name} 도시 건설 (타일 ${city.tiles.length}장)`)
   s.phase = 'place'

@@ -44,7 +44,7 @@ export function gainCulture(s: GameState, p: Player, n: number): void {
 }
 
 /** 타일을 영토로 얻을 때 붙는 효과: 자연경관, 스페인, 일본 */
-function onTileGained(s: GameState, p: Player, card: TileCard): void {
+export function onTileGained(s: GameState, p: Player, card: TileCard): void {
   if (card.wonder) {
     const w = WONDERS[card.wonder]
     if (w.cultureOnClaim) gainCulture(s, p, w.cultureOnClaim)
