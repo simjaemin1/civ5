@@ -4,7 +4,7 @@ import { MILITARY_CARDS, RESOURCES, TECHS, WONDERS, cardById, civById } from './
 import { cardStats } from './cardstats'
 import type { TechDef } from './data'
 import { apply, researchableTechs } from './game'
-import { ctxOf, culture, tileYield, totalWorkers } from './yields'
+import { ctxOf, culture, tileYield, totalWorkers, tourism } from './yields'
 import { investableWonders, minHammers } from './wonders'
 import { cardCost, producible, uniqueOf, upgradeTargets } from './military'
 import { declarationTargets, occupiedTiles } from './war'
@@ -131,6 +131,7 @@ function techPriority(t: TechDef, rush?: Set<string>, p?: Player): number {
     if (e.kind === 'foodToScience') v += 5
     else if (e.kind === 'secondCity') v += 8
     else if (e.kind === 'culture') v += 4
+    else if (e.kind === 'tourismPerCulture') v += rush ? 0 : 60 // 관광이 상대 문화를 넘으면 문화 승리
     else if (e.kind === 'policy') v += 3
     else if (e.kind === 'hammerToScience') v += 3
     else if (e.kind === 'general') v += 2
@@ -221,6 +222,12 @@ function policyOrder(s: GameState, p: Player): Policy[] {
   const withNone = base + (writing ? Math.max(0, food - totalWorkers(p)) : 0)
   // 앞으로 만날 비용 10대 기술을 감당할 수 있는지 (번성 뒤에도 막히지 않도록 여유 있게)
   const need = Math.max(cheapest, AI_TUNE.policyNeed)
+  // 평등 한 번으로 관광이 상대의 문화를 넘어 탈락시킬 수 있으면 (아폴로 질주 중이어도) 평등
+  if (p.policy !== 'equality') {
+    const gain = Math.floor(totalWorkers(p) / 2)
+    const now = tourism(p)
+    if (s.players.some((o) => o.id !== p.id && !o.eliminated && o.cities.length > 0 && culture(o) >= now && culture(o) < now + gain)) return ['equality', ...POLICY_PREFERENCE]
+  }
   // 초반: 미학으로 문화(= 새 타일)를 늘려 영토를 넓히는 게 먼저. 자유만 고집하면 영토가 안 늘고 일꾼도 안 늘어 막힌다.
   // 식량이 넉넉해 일꾼 3개쯤은 금방 되살아나면 전통, 아니면 미학. 후반(아폴로 질주)에는 자유.
   if (rushingApollo(p)) return ['liberty', 'rationalism', ...POLICY_PREFERENCE]
