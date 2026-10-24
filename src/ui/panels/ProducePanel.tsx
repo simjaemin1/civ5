@@ -130,7 +130,7 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
                 </details>
                 <details open>
                   <summary>군사 카드 생산</summary>
-                  <Help>방향이 있는 카드는 생산할 때 무작위로 정해지고, 고유 유닛은 3장만 존재합니다.</Help>
+                  <Help>방향이 있는 카드는 생산할 때 무작위로 정해지고, 고유 유닛은 3장만 존재합니다. 방향이 정해지면 그 전으로 되돌릴 수 없습니다.</Help>
                   {(() => {
                     const rows = MILITARY_CARDS.flatMap((def) =>
                       [...(def.uniqueOnly ? [] : [undefined]), ...civ.uniques.filter((u) => u.base === def.id).map((u) => u.name)]

@@ -89,13 +89,15 @@ export function PlacePanel({ game, player, dispatch, lastTiles }: PanelProps & {
   const idle = Math.min(total - reserved - used, Math.max(0, freeTiles))
   const left = total - reserved - used
   // 선전포고(내정 5단계)에는 타일에 올리지 않은 일꾼 1개가 필요하다. 일꾼을 다 올리면 그 단계가 열리지 않는다.
-  const targets = declarationTargets(game, player)
+  // 스웨덴: 이번에 타일에 올리려는 장군은 선전포고에 쓸 수 없다
+  const freeGenerals = player.generals - generals.size
+  const targets = declarationTargets(game, player).filter((t) => t.kind === 'retake' || freeGenerals >= 1)
   const canWar = targets.length > 0
   const retakeOnly = canWar && targets.every((t) => t.kind === 'retake')
   const warHint = !canWar
     ? null
     : left >= 1
-      ? `${retakeOnly ? '탈환 ' : ''}선전포고하려면 타일에 올리지 않은 일꾼 1개를 남겨 두세요 (지금 남는 일꾼 ${left}${retakeOnly ? '' : `, 장군 ${player.generals}`}).`
+      ? `${retakeOnly ? '탈환 ' : ''}선전포고하려면 타일에 올리지 않은 일꾼 1개를 남겨 두세요 (지금 남는 일꾼 ${left}${retakeOnly ? '' : `, 장군 ${freeGenerals}`}).`
       : `일꾼을 모두 올리면 이번 차례에는 선전포고할 수 없습니다. ${retakeOnly ? '탈환 ' : ''}선전포고하려면 일꾼 1개를 남기세요.`
   const idleWarn =
     idle <= 0

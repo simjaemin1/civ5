@@ -22,7 +22,7 @@ import { SetupPanel } from './panels/SetupPanel'
 import { ScoutBox } from './panels/ScoutBox'
 import { TilePlacer } from './panels/TilePlacer'
 import { TurnSteps } from './TurnSteps'
-import { turnKey } from './gameInfo'
+import { revealsInfo, turnKey } from './gameInfo'
 
 const PHASE: Record<GameState['phase'], string> = {
   setup: '게임 준비',
@@ -51,6 +51,8 @@ interface Props {
 export function GameScreen({ initial, seats, initialUi, onExit }: Props) {
   const [game, setGame] = useState(initial)
   const [history, setHistory] = useState<GameState[]>([])
+  // 되돌릴 수 없는 지점: 무작위 결과를 보여 준 행동 직전 상태들 (이 상태와 그 이전으로는 차례 안 되돌리기 불가)
+  const [locked, setLocked] = useState<ReadonlySet<GameState>>(() => new Set())
   const [error, setError] = useState('')
   const [notice, setNotice] = useState<string[]>([])
   const [revealed, setRevealed] = useState('')
@@ -96,6 +98,7 @@ export function GameScreen({ initial, seats, initialUi, onExit }: Props) {
         const added = Math.min(next.logSeq - game.logSeq, next.log.length)
         setNotice(added > 0 ? next.log.slice(-added) : [])
         setHistory((h) => [...h.slice(-99), game])
+        if (revealsInfo(game, next)) setLocked((l) => new Set(l).add(game))
         setGame(next)
       } catch (e) {
         setError(e instanceof RuleError ? e.message : String(e))
@@ -172,7 +175,9 @@ export function GameScreen({ initial, seats, initialUi, onExit }: Props) {
   const restore = (index: number, curtainAgain: boolean) => {
     autoPaused.current = true
     setGame(history[index])
-    setHistory(history.slice(0, index))
+    const kept = history.slice(0, index)
+    setHistory(kept)
+    setLocked((l) => new Set([...l].filter((g) => kept.includes(g))))
     setError('')
     setNotice([])
     setAutoNote('')
@@ -181,7 +186,14 @@ export function GameScreen({ initial, seats, initialUi, onExit }: Props) {
   // 이번 차례에 한 행동들: 같은 차례 열쇠를 가진 기록이 끝에서부터 이어진 만큼 (AI 행동은 기록에 없다)
   const key = actorSeat.ai || curtain ? null : turnKey(game)
   let turnStart = history.length
-  while (key && turnStart > 0 && turnKey(history[turnStart - 1]) === key) turnStart--
+  let lockedInTurn = false
+  while (key && turnStart > 0 && turnKey(history[turnStart - 1]) === key) {
+    if (locked.has(history[turnStart - 1])) {
+      lockedInTurn = true
+      break
+    }
+    turnStart--
+  }
   const turnHistory = history.slice(turnStart)
   const undoInTurn = () => turnHistory.length && restore(history.length - 1, false)
   const jumpInTurn = (i: number) => restore(turnStart + i, false)
@@ -329,7 +341,7 @@ export function GameScreen({ initial, seats, initialUi, onExit }: Props) {
               </span>
             )}
           </div>
-          {key && !over && <TurnSteps game={game} turnHistory={turnHistory} onJump={jumpInTurn} onUndo={undoInTurn} />}
+          {key && !over && <TurnSteps game={game} turnHistory={turnHistory} locked={lockedInTurn} onJump={jumpInTurn} onUndo={undoInTurn} />}
           {main}
           {showBoard && <Board game={game} player={player} />}
           {actorSeat.ai && !over && <Board game={game} player={player} />}

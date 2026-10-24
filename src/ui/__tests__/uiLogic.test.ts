@@ -10,13 +10,14 @@ import {
   createGame,
   declarationTargets,
   findTile,
+  culture,
   investableWonders,
   minHammers,
   researchableTechs,
 } from '../../engine'
 import { autoSkipAction, cityCanProduce, maxSciencePool, sciencePlan } from '../autoSkip'
 import { plannedAttacks } from '../battleView'
-import { declTileName, produceBlock, roundBids } from '../gameInfo'
+import { declTileName, produceBlock, revealsInfo, roundBids } from '../gameInfo'
 import { josa } from '../format'
 
 /** 화면 판단이 엔진과 맞는지 보려고, AI끼리 게임을 진행하며 매 상태를 넘겨준다 */
@@ -186,5 +187,30 @@ describe('화면 판단과 엔진이 맞는지 (AI 게임 진행 중 모든 상�
       })
     }
     expect(retakes).toBeGreaterThan(0)
+  }, 120_000)
+
+  it('되돌리기 잠금: 무작위 결과·덱 카드를 보여 주는 행동만 잠그고, 고르기만 하는 행동은 잠그지 않는다', () => {
+    const seen: Record<string, { locked: number; free: number }> = {}
+    for (const seed of [21, 23]) {
+      let s = createGame({ seed, civIds: ['germany', 'korea', 'netherlands'] })
+      for (let i = 0; i < 2500 && s.phase !== 'over'; i++) {
+        const { state, action } = aiStep(s)
+        const sameTurn = state.round === s.round && state.turnIdx === s.turnIdx && state.phase !== 'battle'
+        if (sameTurn) {
+          const r = revealsInfo(s, state)
+          const k = action.type === 'produce' ? `produce:${MILITARY_CARDS.find((c) => c.id === action.defId)?.variantDirs || action.unique ? 'random' : 'fixed'}` : action.type
+          seen[k] ??= { locked: 0, free: 0 }
+          seen[k][r ? 'locked' : 'free']++
+          // 고르기만 하는 행동은 절대 잠그지 않는다
+          if (['placeWorkers', 'invest', 'skipResearch', 'setChoices', 'holdScouted', 'placeGainedTile', 'recallGeneral'].includes(action.type) || k === 'produce:fixed')
+            expect(r, `${k} 잠금`).toBe(action.type === 'placeGainedTile' && culture(state.players[actorOf(s)]) > culture(s.players[actorOf(s)]))
+          // 무작위로 방향이 정해지는 생산·정찰은 반드시 잠근다
+          if (k === 'produce:random' || action.type === 'scout') expect(r, `${k} 잠금`).toBe(true)
+        }
+        s = state
+      }
+    }
+    expect(seen['produce:random']?.locked).toBeGreaterThan(0)
+    expect(seen['placeWorkers']?.free).toBeGreaterThan(0)
   }, 120_000)
 })

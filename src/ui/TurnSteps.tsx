@@ -14,15 +14,18 @@ interface Props {
   game: GameState
   /** 이번 차례에 한 행동 직전 상태들 (오래된 것부터) */
   turnHistory: GameState[]
+  /** 이번 차례에 무작위 결과를 보여 준 행동이 있어 그 전으로는 되돌릴 수 없는지 */
+  locked?: boolean
   onJump: (index: number) => void
   onUndo: () => void
 }
 
 /**
  * 이번 차례의 단계 막대: 지난 단계 · 지금 단계 · 남은 단계.
- * 지난 단계를 누르면 그 단계를 시작할 때로 되돌아간다. 되돌리기는 이번 차례 안에서만 된다.
+ * 지난 단계를 누르면 그 단계를 시작할 때로 되돌아간다. 되돌리기는 이번 차례 안에서만 되고,
+ * 무작위 결과나 덱의 카드를 보여 준 행동(생산·승급·정찰·타일 뽑기) 뒤로는 되돌릴 수 없다 (gameInfo.revealsInfo).
  */
-export function TurnSteps({ game, turnHistory, onJump, onUndo }: Props) {
+export function TurnSteps({ game, turnHistory, locked, onJump, onUndo }: Props) {
   const steps = STEPS.filter((s) => s.phase !== 'setup' || game.phase === 'setup' || turnHistory.some((h) => h.phase === 'setup'))
   const cur = steps.findIndex((s) => s.phase === game.phase)
   return (
@@ -38,9 +41,10 @@ export function TurnSteps({ game, turnHistory, onJump, onUndo }: Props) {
                   ✓ {s.label} <span className="back">↶</span>
                 </button>
               ) : (
-                <span className="step-btn">
+                <span className="step-btn" title={state === 'done' && locked ? '무작위 결과(카드 방향·뽑은 타일)를 본 뒤라 이 단계로 되돌릴 수 없습니다' : undefined}>
                   {state === 'done' ? '✓ ' : state === 'now' ? '▶ ' : ''}
                   {s.label}
+                  {state === 'done' && locked ? ' 🔒' : ''}
                   {s.note && state !== 'done' && <small> ({s.note})</small>}
                 </span>
               )}
@@ -48,9 +52,16 @@ export function TurnSteps({ game, turnHistory, onJump, onUndo }: Props) {
           )
         })}
       </ol>
-      <button className="undo" disabled={turnHistory.length === 0} onClick={onUndo} title="이번 차례에 한 마지막 행동을 되돌립니다">
-        ↶ 한 단계 되돌리기{turnHistory.length > 0 ? ` (${turnHistory.length})` : ''}
-      </button>
+      <span className="row undo-box">
+        {locked && (
+          <small className="muted" title="생산·승급(카드 방향), 정찰, 문화 타일 뽑기처럼 무작위 결과나 덱의 카드를 보여 준 행동 뒤로는 되돌릴 수 없습니다">
+            🔒 무작위 결과를 본 뒤라 그 전으로는 되돌릴 수 없음
+          </small>
+        )}
+        <button className="undo" disabled={turnHistory.length === 0} onClick={onUndo} title="이번 차례에 한 마지막 행동을 되돌립니다">
+          ↶ 한 단계 되돌리기{turnHistory.length > 0 ? ` (${turnHistory.length})` : ''}
+        </button>
+      </span>
     </nav>
   )
 }

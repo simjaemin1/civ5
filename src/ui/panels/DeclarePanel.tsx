@@ -36,6 +36,7 @@ function terrainNotes(game: GameState, t: DeclTarget, attacker: Player): string[
 
 export function DeclarePanel({ game, player, dispatch }: PanelProps) {
   const targets = declarationTargets(game, player)
+  const freeGenerals = player.generals - player.generalWorkers
   const retakes = targets.filter((t) => t.kind === 'retake')
   const opponents = game.order.filter((id) => id !== player.id && !game.players[id].eliminated)
   type Group = 'retake' | number
@@ -52,7 +53,8 @@ export function DeclarePanel({ game, player, dispatch }: PanelProps) {
       <h3>⑤ 선전포고 (한 차례에 1번)</h3>
       <p className="summary">
         <span>
-          장군 <b>{player.generals}</b>
+          장군 <b>{freeGenerals}</b>
+          {player.generalWorkers > 0 && <small className="muted"> (타일에 올린 {player.generalWorkers}개 제외)</small>}
         </span>
         <span>
           남은 일꾼 <b>{freeWorkers(player)}</b>
@@ -79,7 +81,11 @@ export function DeclarePanel({ game, player, dispatch }: PanelProps) {
           </button>
         ))}
       </div>
-      {player.generals < 1 && opponents.length > 0 && <p className="muted">장군이 없어 상대 타일에는 선전포고할 수 없습니다. 점령당한 내 타일 탈환만 할 수 있습니다.</p>}
+      {freeGenerals < 1 && opponents.length > 0 && (
+        <p className="muted">
+          {player.generalWorkers > 0 ? '장군을 모두 타일에 올려서' : '장군이 없어'} 상대 타일에는 선전포고할 수 없습니다. 점령당한 내 타일 탈환만 할 수 있습니다.
+        </p>
+      )}
 
       <div className="declare-body">
         <div className="declare-board">

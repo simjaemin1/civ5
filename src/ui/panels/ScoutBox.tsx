@@ -11,7 +11,7 @@ export function ScoutBox({ game, player, dispatch, canScout }: PanelProps & { ca
   return (
     <div className="row scout-box">
       {placePhase && !player.scouting && !player.held && (
-        <button disabled={!canScout?.ok} onClick={() => dispatch({ type: 'scout' })} title={canScout?.why ?? '일꾼 1개로 타일 덱 맨 위 카드 1장을 봅니다'}>
+        <button disabled={!canScout?.ok} onClick={() => dispatch({ type: 'scout' })} title={canScout?.why ?? '일꾼 1개로 타일 덱 맨 위 카드 1장을 봅니다. 본 뒤에는 그 전으로 되돌릴 수 없습니다.'}>
           🔭 정찰
         </button>
       )}
