@@ -40,3 +40,21 @@ status('문명 카드', civs.civs ?? civs, 'src/assets/cards/civ')
   if (bad.length) console.log('  ⚠ 이름이 맞지 않는 파일:', bad.join(', '))
 }
 
+// 일반 군사 카드: 카드마다 방향별 한 장씩 (variantDirs가 없으면 x 한 장). 고유 유닛 전용 카드(화차·제고이센)는 위 고유 유닛으로 센다.
+{
+  const cards = JSON.parse(readFileSync('src/engine/data/militaryCards.json', 'utf8')).cards.filter((c) => !c.uniqueOnly)
+  const files = existsSync('src/assets/cards/unit') ? readdirSync('src/assets/cards/unit').map((f) => f.replace(/\.[^.]+$/, '')) : []
+  const have = new Set(files)
+  const missing = []
+  let need = 0
+  for (const c of cards) {
+    const keys = c.variantDirs ? c.variantDirs : ['x']
+    for (const k of keys) {
+      need++
+      if (!have.has(`${c.id}.${k}`)) missing.push(`${c.name}(${c.id}.${k})`)
+    }
+  }
+  console.log(`일반 군사 카드 ${need - missing.length}/${need}장 등록`)
+  if (missing.length) console.log('  아직 없음:', missing.join(', '))
+}
+
