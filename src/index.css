@@ -227,3 +227,6 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .unit-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start; }
 .unit-group { display: flex; flex-direction: column; gap: 4px; padding: 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme='light']) .unit-card:not(.has-img) { --card-bg: #4a3f2e; --card-line: #7d6a4a; color: #f0e4cc; } }
+
+.icon { vertical-align: middle; border-radius: 50%; }
+.tile-badges { display: flex; gap: 2px; align-items: center; }

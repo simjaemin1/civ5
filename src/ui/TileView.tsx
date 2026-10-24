@@ -1,6 +1,7 @@
 import type { Player, TileCard } from '../engine'
 import { RESOURCES, WONDERS, ctxOf, tileYield } from '../engine'
 import { cardImage } from './cards/cardImages'
+import { Icon } from './icons'
 import { TERRAIN_COLOR, tileTitle, yieldText } from './format'
 
 export interface TileBadge {
@@ -39,8 +40,8 @@ export function TileView({ card, player, badge, selected, disabled, onClick, hin
         <img src={img} alt={tileTitle(card)} draggable={false} />
         <div className="tile-yield-chip">{yieldText(y)}</div>
         <div className="tile-badges">
-          {badge?.worker && <span title="일꾼">👷</span>}
-          {badge?.general && <span title="위대한 장군(스웨덴)">⭐</span>}
+          {badge?.worker && <Icon name="worker" size={24} title="일꾼" />}
+          {badge?.general && <Icon name="general" size={24} title="위대한 장군(스웨덴)" />}
           {badge?.occupiedBy && <span title="점령됨">🚩{badge.occupiedBy}</span>}
         </div>
       </button>
@@ -64,8 +65,8 @@ export function TileView({ card, player, badge, selected, disabled, onClick, hin
       {card.historic && <div className="tile-res">🏺 사적지</div>}
       <div className="tile-yield">{yieldText(y)}</div>
       <div className="tile-badges">
-        {badge?.worker && <span title="일꾼">👷</span>}
-        {badge?.general && <span title="위대한 장군(스웨덴)">⭐</span>}
+        {badge?.worker && <Icon name="worker" size={24} title="일꾼" />}
+        {badge?.general && <Icon name="general" size={24} title="위대한 장군(스웨덴)" />}
         {badge?.occupiedBy && <span title="점령됨">🚩{badge.occupiedBy}</span>}
       </div>
     </button>
