@@ -4,7 +4,10 @@ import type { Action, GameState } from '../engine'
 import { RuleError, actorOf, aiStep, apply, civById, culture, happiness, totalWorkers, tourism } from '../engine'
 import { Board } from './Board'
 import { CivInspector } from './CivInspector'
-import { InfoTabs, PlayersTable } from './InfoTabs'
+import { InfoTabs } from './InfoTabs'
+import { SidePanel } from './SidePanel'
+import { usePrefs } from './prefsStore'
+import { autoSkipAction } from './autoSkip'
 import type { Seat } from './SetupScreen'
 import { ICON } from './format'
 import { BattleReportModal } from './BattleReportModal'
@@ -26,6 +29,7 @@ const PHASE: Record<GameState['phase'], string> = {
   battle: '정산: 전투',
   over: '게임 종료',
 }
+const LAST_PLACE_KEY = 'civ5-ui-last-place'
 const WIN = { science: '과학 승리', culture: '문화 승리', conquest: '정복 승리' } as const
 
 interface Props {
@@ -41,6 +45,16 @@ export function GameScreen({ initial, seats, onExit }: Props) {
   const [notice, setNotice] = useState<string[]>([])
   const [speed, setSpeed] = useState(300)
   const [revealed, setRevealed] = useState('')
+  const [autoNote, setAutoNote] = useState('')
+  const { prefs, set: setPrefs } = usePrefs()
+  // 사람마다 지난 차례 일꾼 배치 (같은 배치 다시 쓰기용, 이 브라우저에만 저장)
+  const [lastPlace, setLastPlace] = useState<Record<number, number[]>>(() => {
+    try {
+      return JSON.parse(localStorage.getItem(LAST_PLACE_KEY) ?? '{}')
+    } catch {
+      return {}
+    }
+  })
   // 전투 결과 장면: 아직 확인하지 않은 가장 최근 전투가 있으면 띄운다 (되돌리기·불러오기로 줄어들면 다시 띄우지 않는다)
   const reports = game.battleReports ?? []
   const latest = reports.length ? reports[reports.length - 1] : null
@@ -52,6 +66,10 @@ export function GameScreen({ initial, seats, onExit }: Props) {
   const humans = seats.filter((s) => !s.ai).length
   const over = game.phase === 'over'
   const player = game.players[actor]
+  // 핫시트에서 "나"는 지금 입력하는 사람. AI 차례에는 마지막으로 입력한 사람 기준으로 위협을 강조한다.
+  const [lastHuman, setLastHuman] = useState(() => seats.findIndex((x) => !x.ai))
+  if (!actorSeat.ai && lastHuman !== actor) setLastHuman(actor)
+  const viewer = !actorSeat.ai || lastHuman < 0 ? actor : lastHuman
 
   // 비공개 정보(손에 든 타일, 군사 카드)가 있으므로 사람 자리가 바뀌면 가림막을 보여 준다
   const curtainKey = `${actor}:${game.round}:${game.battle ? `${game.battle.decl.attackerId}-${game.battle.decl.defenderId}-${game.battle.step}` : game.phase === 'battle' ? 'b' : 't'}`
@@ -62,6 +80,19 @@ export function GameScreen({ initial, seats, onExit }: Props) {
       setError('')
       try {
         const next = apply(game, a)
+        if (a.type === 'placeWorkers') {
+          const tiles = a.placements.filter((x) => !x.general && !x.enemy).map((x) => x.tileId)
+          setLastPlace((m) => {
+            const out = { ...m, [game.players[actorOf(game)].id]: tiles }
+            try {
+              localStorage.setItem(LAST_PLACE_KEY, JSON.stringify(out))
+            } catch {
+              /* 무시 */
+            }
+            return out
+          })
+        }
+        setAutoNote('')
         const added = Math.min(next.logSeq - game.logSeq, next.log.length)
         setNotice(added > 0 ? next.log.slice(-added) : [])
         setHistory((h) => [...h.slice(-99), game])
@@ -98,6 +129,43 @@ export function GameScreen({ initial, seats, onExit }: Props) {
     return () => clearTimeout(t)
   }, [game, seats])
 
+  // 할 일 없는 단계 자동 넘기기 (설정)
+  useEffect(() => {
+    if (!prefs.autoSkip || over || actorSeat.ai || curtain || pendingReport) return
+    const skip = autoSkipAction(game, player)
+    if (!skip) return
+    const t = setTimeout(() => {
+      dispatch(skip.action)
+      setAutoNote(skip.reason)
+    }, 250)
+    return () => clearTimeout(t)
+  }, [game, prefs.autoSkip, over, actorSeat.ai, curtain, pendingReport, player, dispatch])
+
+  // 탭 제목으로 차례를 알린다 (다른 창을 보고 있어도 보이게)
+  useEffect(() => {
+    const name = civById(player.civId).name
+    document.title = over ? '게임 종료 · 문명 보드게임' : actorSeat.ai ? `${name} 진행 중… · 문명 보드게임` : `▶ ${name} 차례 · 문명 보드게임`
+    return () => {
+      document.title = '문명 보드게임'
+    }
+  }, [player.civId, actorSeat.ai, over])
+
+  // Enter: 이 단계의 확정 버튼 (입력칸·버튼에 초점이 있거나 창이 떠 있으면 무시)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Enter' || e.isComposing) return
+      const el = e.target as HTMLElement
+      if (el.closest('input, select, textarea, button, [role="button"]') || document.querySelector('.modal-backdrop')) return
+      const btn = document.querySelector<HTMLButtonElement>('.main [data-hotkey]:not(:disabled)')
+      if (btn) {
+        e.preventDefault()
+        btn.click()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
   const yields = player.turn?.yields
   const skipsFood = !!player.turn?.skipFoodSettle
 
@@ -113,9 +181,16 @@ export function GameScreen({ initial, seats, onExit }: Props) {
     )
   } else if (actorSeat.ai) {
     main = (
-      <div className="panel">
-        <h3>🤖 {civById(player.civId).name} (AI) 진행 중…</h3>
-        <p className="muted">AI가 자동으로 행동합니다. 아래에서 판 상황을 볼 수 있습니다.</p>
+      <div className="panel waiting">
+        <h3>
+          🤖 {civById(player.civId).name} (AI) — {PHASE[game.phase]} 진행 중…
+        </h3>
+        <div className="log small">
+          {game.log.slice(-6).reverse().map((l, i) => (
+            <div key={i}>{l.replace(/^\[R\d+\] /, '')}</div>
+          ))}
+        </div>
+        <small className="muted">오른쪽에서 차례 순서·선전포고·불가사의 경쟁을 볼 수 있고, 내 차례가 오면 탭 제목에 ▶ 표시가 붙습니다.</small>
       </div>
     )
   } else if (curtain) {
@@ -133,7 +208,7 @@ export function GameScreen({ initial, seats, onExit }: Props) {
   } else if (game.phase === 'battle' && game.battle) {
     main = <BattlePanel game={game} player={player} dispatch={dispatch} />
   } else if (game.phase === 'place') {
-    main = <PlacePanel key={`${player.id}-${game.round}`} game={game} player={player} dispatch={dispatch} />
+    main = <PlacePanel key={`${player.id}-${game.round}`} game={game} player={player} dispatch={dispatch} lastTiles={lastPlace[player.id]} />
   } else if (game.phase === 'research') {
     main = (
       <>
@@ -166,7 +241,7 @@ export function GameScreen({ initial, seats, onExit }: Props) {
           {actorSeat.ai ? ' 🤖' : ' 👤'}
         </div>
         <div className="row">
-          {yields && !actorSeat.ai && (
+          {yields && !actorSeat.ai && game.phase !== 'battle' && (
             <span className="yields">
               {yields.cities.map((c) => (
                 <span key={c.cityId}>
@@ -180,6 +255,12 @@ export function GameScreen({ initial, seats, onExit }: Props) {
               {yields.gold}
             </span>
           )}
+          <label title="패널의 안내문을 보이거나 숨깁니다">
+            <input type="checkbox" checked={prefs.help} onChange={(e) => setPrefs({ help: e.target.checked })} /> 안내문
+          </label>
+          <label title="연구·생산에서 고를 것이 전혀 없으면 자동으로 넘깁니다">
+            <input type="checkbox" checked={prefs.autoSkip} onChange={(e) => setPrefs({ autoSkip: e.target.checked })} /> 할 일 없으면 넘기기
+          </label>
           <label>
             AI 속도{' '}
             <select value={speed} onChange={(e) => setSpeed(Number(e.target.value))}>
@@ -204,18 +285,24 @@ export function GameScreen({ initial, seats, onExit }: Props) {
           ))}
         </div>
       )}
+      {autoNote && <div className="notice">⏭ {autoNote}</div>}
       {skipsFood && !actorSeat.ai && <div className="notice">📜 이번 차례는 식량 정산을 하지 않습니다 (전통/체제). 일꾼 수는 그대로입니다.</div>}
-      <div className="stats">
-        {player.cities.length > 0 && (
-          <span>
-            문화 {culture(player)} · 관광 {tourism(player)} · <Icon name="worker" size={16} /> {totalWorkers(player)}/{happiness(player)} · <Icon name="general" size={16} /> {player.generals}
-          </span>
-        )}
+      <div className="game-body">
+        <div className="main">
+          <div className="stats">
+            {player.cities.length > 0 && (
+              <span>
+                문화 {culture(player)} · 관광 {tourism(player)} · <Icon name="worker" size={16} /> {totalWorkers(player)}/{happiness(player)} · <Icon name="general" size={16} /> {player.generals}
+                {!actorSeat.ai && !over && game.phase !== 'setup' && <span className="muted"> · Enter: 이 단계 확정</span>}
+              </span>
+            )}
+          </div>
+          {main}
+          {showBoard && <Board game={game} player={player} />}
+          {actorSeat.ai && !over && <Board game={game} player={player} />}
+        </div>
+        <SidePanel game={game} seats={seats} actor={actor} viewer={viewer} />
       </div>
-      {main}
-      {showBoard && <Board game={game} player={player} />}
-      {actorSeat.ai && !over && <Board game={game} player={player} />}
-      <PlayersTable game={game} seats={seats} actor={actor} />
       <CivInspector game={game} seats={seats} actor={actor} />
       <InfoTabs game={game} viewer={player.id} />
     </div>

@@ -9,6 +9,8 @@ export interface TileBadge {
   general?: boolean
   occupiedBy?: string
   city?: boolean
+  /** 이번 라운드 선전포고 목표: 공격하는 문명 이름 */
+  target?: string
 }
 
 interface Props {
@@ -48,6 +50,7 @@ export function TileView({ card, player, badge, selected, disabled, onClick, hin
           {badge?.worker && <Icon name="worker" size={24} title="일꾼" />}
           {badge?.general && <Icon name="general" size={24} title="위대한 장군(스웨덴)" />}
           {badge?.occupiedBy && <span title="점령됨">🚩{badge.occupiedBy}</span>}
+          {badge?.target && <span className="target-badge" title="이번 라운드 선전포고 목표">⚔{badge.target}</span>}
         </div>
       </button>
     )
@@ -73,6 +76,7 @@ export function TileView({ card, player, badge, selected, disabled, onClick, hin
         {badge?.worker && <Icon name="worker" size={24} title="일꾼" />}
         {badge?.general && <Icon name="general" size={24} title="위대한 장군(스웨덴)" />}
         {badge?.occupiedBy && <span title="점령됨">🚩{badge.occupiedBy}</span>}
+        {badge?.target && <span className="target-badge" title="이번 라운드 선전포고 목표">⚔{badge.target}</span>}
       </div>
     </button>
   )

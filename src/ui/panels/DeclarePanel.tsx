@@ -1,5 +1,6 @@
 import { civById, declarationTargets } from '../../engine'
 import type { PanelProps } from './types'
+import { Help } from '../prefs'
 
 const KIND = { normal: '선전포고', retake: '탈환 선전포고 (일꾼 1개만)', city: '도시 공격 선전포고' } as const
 
@@ -14,7 +15,7 @@ export function DeclarePanel({ game, player, dispatch }: PanelProps) {
   return (
     <div className="panel">
       <h3>선전포고 (한 차례에 1번)</h3>
-      <p className="muted">장군 1개와 타일에 올리지 않은 일꾼 1개를 걸고 상대 타일 1장을 목표로 합니다. 전투는 라운드 정산에서 진행됩니다. 탈환은 일꾼 1개만 필요합니다.</p>
+      <Help>장군 1개와 타일에 올리지 않은 일꾼 1개를 걸고 상대 타일 1장을 목표로 합니다. 전투는 라운드 정산에서 진행됩니다. 탈환은 일꾼 1개만 필요합니다.</Help>
       <div className="list">
         {targets.map((t) => {
           const tile = tileOf(t.defenderId, t.cityId, t.tileId)
@@ -26,7 +27,7 @@ export function DeclarePanel({ game, player, dispatch }: PanelProps) {
           )
         })}
       </div>
-      <button className="primary" onClick={() => dispatch({ type: 'endTurn' })}>
+      <button className="primary" data-hotkey="" onClick={() => dispatch({ type: 'endTurn' })}>
         선전포고하지 않고 차례 끝내기 (식량 정산)
       </button>
     </div>

@@ -7,6 +7,7 @@ export function SetupPanel({ game, player, dispatch }: PanelProps) {
   const canWasteland = game.round === 1 && !player.wastelandPending
   return (
     <CityBuilder
+      key={player.hand.map((c) => c.id).join(',')}
       hand={player.hand}
       player={player}
       label="게임 준비: 첫 도시 세우기"

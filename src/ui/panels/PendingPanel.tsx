@@ -5,6 +5,7 @@ import { PolicyCard } from '../cards/PolicyCard'
 import { CityBuilder } from './CityBuilder'
 import type { PanelProps } from './types'
 import { cardText, policyName } from '../format'
+import { Help } from '../prefs'
 
 const ORDER: PolicyId[] = ['tradition', 'aesthetics', 'despotism', 'regime', 'liberty', 'rationalism', 'equality', 'diplomacy']
 
@@ -34,6 +35,7 @@ export function PendingPanel({ game, player, dispatch }: PanelProps) {
     <>
       {player.pendingCity && (
         <CityBuilder
+          key={player.pendingCity.map((c) => c.id).join(',')}
           hand={player.pendingCity}
           player={player}
           label="인쇄기술: 두 번째 도시 세우기 (문화 4)"
@@ -43,8 +45,8 @@ export function PendingPanel({ game, player, dispatch }: PanelProps) {
       {player.pendingPolicies > 0 && (
         <div className="panel">
           <h3>정책 선택 ({player.pendingPolicies}회) <small className="muted">현재 정책: {policyName(player.policy)}</small></h3>
+          <Help>정책은 하나만 시행합니다. 새로 고르면 기존 정책은 끝나고, 지금 정책을 다시 골라도 "고를 때마다" 효과가 다시 발동합니다.</Help>
           <p className="muted">
-            정책은 하나만 시행합니다. 새로 고르면 기존 정책은 끝나고, 지금 정책을 다시 골라도 "고를 때마다" 효과가 다시 발동합니다.
             일꾼 {workers}개 · 행복 한도 {cap}.
           </p>
           {enemyTiles.length > 0 && (
@@ -73,7 +75,7 @@ export function PendingPanel({ game, player, dispatch }: PanelProps) {
               </div>
             ))}
           </div>
-          <p className="muted">카드를 누르면 그 정책을 고릅니다.</p>
+          <Help>카드를 누르면 그 정책을 고릅니다.</Help>
         </div>
       )}
       {player.pendingFreeCards > 0 && (

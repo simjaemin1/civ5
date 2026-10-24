@@ -4,6 +4,10 @@ import type { CardInst, GameState, Player } from '../../engine'
 import { UnitCard } from '../cards/UnitCard'
 import { cardText } from '../format'
 import type { PanelProps } from './types'
+import { ConfirmButton } from '../ConfirmButton'
+import { Help } from '../prefs'
+import { DIR_ARROW, plannedAttacks } from '../battleView'
+import { DIR_LABEL } from '../format'
 
 const label = (_p: Player, c: CardInst) => cardText(c, false)
 
@@ -23,16 +27,17 @@ export function BattlePanel({ game, player, dispatch }: PanelProps) {
       <h3>
         전투 — {civById(game.players[b.decl.attackerId].civId).name}(공격) vs {civById(game.players[b.decl.defenderId].civId).name}(수비)
       </h3>
-      <p className="muted">
-        {kindLabel} · 목표 타일: {tile ? tile.card.terrains.join('·') : '?'}
-        {b.coastal ? ' (해안 타일 전투)' : ''} · 남은 카드가 많은 쪽이 이기고, 같으면 수비 측이 이깁니다. 내 1번은 상대 4번과 마주 봅니다.
+      <p>
+        {kindLabel} · 목표 타일: <b>{tile ? tile.card.terrains.join('·') || '자연경관' : '?'}</b>
+        {b.coastal ? ' (해안 타일 전투)' : ''} · 나는 <b>{me.id === b.decl.attackerId ? '공격' : '수비'}</b> 측
       </p>
-      {b.step === 'arrange' ? <Arrange game={game} me={me} dispatch={dispatch} /> : <Choose game={game} me={me} enemy={enemy} dispatch={dispatch} />}
+      <Help>남은 카드가 많은 쪽이 이기고, 같으면 수비 측이 이깁니다. 내 1번은 상대 4번과 마주 봅니다.</Help>
+      {b.step === 'arrange' ? <Arrange game={game} me={me} enemy={enemy} dispatch={dispatch} /> : <Choose game={game} me={me} enemy={enemy} dispatch={dispatch} />}
     </div>
   )
 }
 
-function Arrange({ game, me, dispatch }: { game: GameState; me: Player; dispatch: PanelProps['dispatch'] }) {
+function Arrange({ game, me, enemy, dispatch }: { game: GameState; me: Player; enemy: Player; dispatch: PanelProps['dispatch'] }) {
   const b = game.battle!
   const usable = me.military.filter((c) => usableInBattle(game, b, me, c))
   const [slots, setSlots] = useState<(number | null)[]>([null, null, null, null])
@@ -54,6 +59,12 @@ function Arrange({ game, me, dispatch }: { game: GameState; me: Player; dispatch
     if (held !== null) put(held, i)
     else if (slots[i] !== null) setHeld(slots[i]) // 놓인 카드를 집어 다른 자리로 옮긴다
   }
+  const attacks = slots.flatMap((uid, i) => {
+    const c = inst(uid)
+    return c ? plannedAttacks(c, i + 1).map((a) => ({ ...a, from: i + 1 })) : []
+  })
+  const canPlace = Math.min(4, usable.length)
+  const leftWarn = placed.size < canPlace ? `빈 자리가 있는데 카드 ${usable.length - placed.size}장이 손에 남아 있습니다. 남은 카드가 많은 쪽이 이깁니다.` : null
   const clear = (i: number) => {
     const next = [...slots]
     next[i] = null
@@ -63,7 +74,8 @@ function Arrange({ game, me, dispatch }: { game: GameState; me: Player; dispatch
   return (
     <>
       <h4>{civById(me.civId).name}: 카드 놓기 (상대에게 보이지 않게)</h4>
-      <p className="muted">카드를 눌러 집은 뒤 자리를 누르거나, 카드를 자리로 끌어다 놓으세요. 내 1번 자리는 상대 4번 자리와 마주 봅니다. 놓인 카드를 누르면 다시 집어 옮길 수 있습니다.</p>
+      <EnemyIntel game={game} enemy={enemy} />
+      <Help>카드를 눌러 집은 뒤 자리를 누르거나, 카드를 자리로 끌어다 놓으세요. 놓인 카드를 누르면 다시 집어 옮길 수 있습니다. 화살표는 그 카드가 공격할 상대 자리입니다.</Help>
       <div className="hand">
         {usable.length === 0 && <p className="muted">쓸 수 있는 카드가 없습니다.</p>}
         {usable.map((c) => (
@@ -87,7 +99,38 @@ function Arrange({ game, me, dispatch }: { game: GameState; me: Player; dispatch
           </div>
         ))}
       </div>
-      <div className="slot-row">
+      <div className="slot-row ghost-row" aria-label="상대 자리 (마주 보는 순서)">
+        {[4, 3, 2, 1].map((j) => {
+          const incoming = attacks.filter((a) => a.enemySlot === j)
+          return (
+            <div key={j} className={`ghost-slot${incoming.length ? ' hit' : ''}`}>
+              <b>상대 {j}번</b>
+              {incoming.length ? (
+                <small>
+                  ⚔{incoming.reduce((n, a) => n + a.power, 0)} 받음 ({incoming.map((a) => `내 ${a.from}번`).join(', ')})
+                </small>
+              ) : (
+                <small className="muted">공격 안 함</small>
+              )}
+            </div>
+          )
+        })}
+      </div>
+      <svg className="arrows" viewBox="0 0 400 36" preserveAspectRatio="none" aria-hidden="true">
+        {attacks
+          .filter((a) => a.enemySlot !== null)
+          .map((a, k) => {
+            const x1 = (a.from - 0.5) * 100
+            const x2 = (4 - a.enemySlot! + 0.5) * 100
+            return (
+              <g key={k}>
+                <line x1={x1} y1={36} x2={x2} y2={3} vectorEffect="non-scaling-stroke" />
+                <circle cx={x2} cy={3} r={3} />
+              </g>
+            )
+          })}
+      </svg>
+      <div className="slot-row battle-row">
         {slots.map((s, i) => {
           const c = inst(s)
           return (
@@ -106,8 +149,19 @@ function Arrange({ game, me, dispatch }: { game: GameState; me: Player; dispatch
               }}
             >
               <b>{i + 1}번</b>
-              <small className="muted">상대 {4 - i}번과 마주 봄</small>
+              <small className="muted facing">상대 {4 - i}번과 마주 봄</small>
               <div className="slot-card">{c ? <UnitCard card={c} width={120} zoomable={false} /> : <span className="muted">(비어 있음)</span>}</div>
+              {c && (
+                <small className="aim">
+                  {plannedAttacks(c, i + 1)
+                    .map((a) =>
+                      a.dir === 'choose'
+                        ? `⚔${a.power} 대상은 공개 후 고름`
+                        : `${DIR_ARROW[a.dir]} ${DIR_LABEL[a.dir]} ⚔${a.power} → ${a.enemySlot ? `상대 ${a.enemySlot}번` : '빈 공간 (공격 없음)'}`,
+                    )
+                    .join(' · ') || '공격 없음'}
+                </small>
+              )}
               {c && (
                 <button
                   className="link"
@@ -123,9 +177,9 @@ function Arrange({ game, me, dispatch }: { game: GameState; me: Player; dispatch
           )
         })}
       </div>
-      <button className="primary" onClick={() => dispatch({ type: 'arrangeBattle', playerId: me.id, slots })}>
+      <ConfirmButton hotkey warn={leftWarn} onClick={() => dispatch({ type: 'arrangeBattle', playerId: me.id, slots })}>
         확정 ({placed.size}장 배치)
-      </button>
+      </ConfirmButton>
     </>
   )
 }
@@ -168,38 +222,56 @@ function Choose({ game, me, enemy, dispatch }: { game: GameState; me: Player; en
         const mine = me.military.find((m) => m.uid === uid)!
         const must = cardStats(mine).baseId === 'tank' && hasAT
         return (
-          <label key={uid} className="row">
+          <div key={uid} className="row">
             <span>{label(me, mine)} →</span>
-            <select
-              value={picks[uid] === undefined ? '' : picks[uid] === null ? 'empty' : picks[uid]!}
-              onChange={(e) => {
-                const v = e.target.value
-                const next = { ...picks }
-                if (v === '') delete next[uid]
-                else next[uid] = v === 'empty' ? null : Number(v)
-                setPicks(next)
-              }}
-            >
-              <option value="">(선택)</option>
-              <option value="empty">
-                빈칸 (일부러 아무도 공격하지 않음 — 대미지도 반격도 없음)
-              </option>
+            <span className="chips" role="radiogroup">
+              <button className={picks[uid] === null ? 'active' : ''} onClick={() => setPicks({ ...picks, [uid]: null })} title="대미지도 반격도 없음">
+                빈칸 (공격 안 함)
+              </button>
               {enemyBoard.map(({ u, i }) => {
                 const c = enemy.military.find((m) => m.uid === u)!
                 return (
-                  <option key={u} value={u} disabled={must && cardStats(c).baseId !== 'anti_tank_gun'}>
+                  <button
+                    key={u}
+                    className={picks[uid] === u ? 'active' : ''}
+                    disabled={must && cardStats(c).baseId !== 'anti_tank_gun'}
+                    onClick={() => setPicks({ ...picks, [uid]: u })}
+                  >
                     상대 {i + 1}번 {label(enemy, c)}
-                  </option>
+                  </button>
                 )
               })}
-            </select>
+            </span>
             {must && <small className="muted">탱크가 카드를 고른다면 대전차포를 골라야 합니다 (빈칸은 가능)</small>}
-          </label>
+          </div>
         )
       })}
-      <button className="primary" disabled={head.uids.some((u) => picks[u] === undefined)} onClick={() => dispatch({ type: 'chooseTargets', playerId: me.id, picks })}>
+      <ConfirmButton hotkey disabled={head.uids.some((u) => picks[u] === undefined)} onClick={() => dispatch({ type: 'chooseTargets', playerId: me.id, picks })}>
         확정
-      </button>
+      </ConfirmButton>
     </>
+  )
+}
+
+/** 상대가 이 전투에 낼 수 있는 카드 (공개 정보: 종류와 장수. 공격 방향은 비공개라 보여 주지 않는다) */
+function EnemyIntel({ game, enemy }: { game: GameState; enemy: Player }) {
+  const b = game.battle!
+  const usable = enemy.military.filter((c) => usableInBattle(game, b, enemy, c))
+  const groups = new Map<string, { n: number; hp?: number; def: number }>()
+  for (const c of usable) {
+    const st = cardStats({ ...c, dirs: undefined })
+    const g = groups.get(st.name) ?? { n: 0, hp: st.hp, def: st.def }
+    g.n++
+    groups.set(st.name, g)
+  }
+  return (
+    <div className="intel">
+      <b>
+        상대({civById(enemy.civId).name})가 낼 수 있는 카드 {usable.length}장
+      </b>
+      {usable.length > 4 && <span className="muted"> (최대 4장 배치)</span>}:{' '}
+      {[...groups].map(([name, g]) => `${name} ×${g.n} (♥${g.hp ?? '-'} 🛡${g.def})`).join(' · ') || '없음'}
+      <small className="muted"> · 방향은 비공개</small>
+    </div>
   )
 }

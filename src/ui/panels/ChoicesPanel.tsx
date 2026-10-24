@@ -1,4 +1,5 @@
 import type { PanelProps } from './types'
+import { Help } from '../prefs'
 
 /** 문화로 얻는 타일을 어디에 붙일지, 맡아둔 타일을 쓸지, 일꾼을 버릴 때 어느 도시에서 버릴지 고른다. */
 export function ChoicesPanel({ player, dispatch }: PanelProps) {
@@ -38,7 +39,7 @@ export function ChoicesPanel({ player, dispatch }: PanelProps) {
           </>
         )}
       </div>
-      <small className="muted">문화를 얻기 전에 골라 두세요. 한 번 고르면 다시 바꿀 때까지 유지됩니다.</small>
+      <Help>문화를 얻기 전에 골라 두세요. 한 번 고르면 다시 바꿀 때까지 유지됩니다.</Help>
     </div>
   )
 }

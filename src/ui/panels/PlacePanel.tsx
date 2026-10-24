@@ -5,9 +5,11 @@ import { Board } from '../Board'
 import { TileView } from '../TileView'
 import { ICON } from '../format'
 import type { PanelProps } from './types'
+import { ConfirmButton } from '../ConfirmButton'
+import { Help } from '../prefs'
 
 /** 일꾼 배치 단계: 타일을 눌러 일꾼을 올리고, 산출 미리보기를 보고 확정한다. */
-export function PlacePanel({ game, player, dispatch }: PanelProps) {
+export function PlacePanel({ game, player, dispatch, lastTiles }: PanelProps & { lastTiles?: number[] }) {
   const [placed, setPlaced] = useState<Set<number>>(new Set())
   const [generals, setGenerals] = useState<Set<number>>(new Set())
   const [enemy, setEnemy] = useState<Placement[]>([])
@@ -56,6 +58,37 @@ export function PlacePanel({ game, player, dispatch }: PanelProps) {
     setPlaced(next)
   }
 
+  // 지난 차례 배치 다시 쓰기: 지금도 내 타일이고 점령되지 않았으며 도시별 일꾼 수 안에 드는 타일만
+  const lastSet = new Set(lastTiles ?? [])
+  const reuseLast = () => {
+    const next = new Set<number>()
+    let left = total - reserved - enemy.length
+    for (const city of player.cities) {
+      let room = city.workers - enemy.filter((e) => e.cityId === city.id).length
+      for (const t of city.tiles) {
+        if (left <= 0 || room <= 0) break
+        if (!lastSet.has(t.card.id) || t.role === 'city' || generals.has(t.card.id)) continue
+        if (t.occupiedBy !== undefined && t.occupiedBy !== player.id) continue
+        next.add(t.card.id)
+        left--
+        room--
+      }
+    }
+    setPlaced(next)
+  }
+  // 놀고 있는 일꾼이 있는데 빈 타일도 있으면 확정 전에 한 번 묻는다
+  const freeTiles = player.cities.reduce(
+    (n, c) =>
+      n +
+      Math.min(
+        c.workers - [...placed].filter((id) => cityOf(id).id === c.id).length - enemy.filter((e) => e.cityId === c.id).length,
+        c.tiles.filter((t) => t.role !== 'city' && !placed.has(t.card.id) && !generals.has(t.card.id) && (t.occupiedBy === undefined || t.occupiedBy === player.id)).length,
+      ),
+    0,
+  )
+  const idle = Math.min(total - reserved - used, Math.max(0, freeTiles))
+  const idleWarn = idle > 0 ? `일꾼 ${idle}개가 놀고 있습니다. 선전포고·정찰에 쓸 일꾼이 아니면 빈 타일에 올리세요.` : null
+
   // 몽골: 내 장군이 올라간 상대 타일
   const enemyTiles =
     civ.id === 'mongolia'
@@ -68,9 +101,16 @@ export function PlacePanel({ game, player, dispatch }: PanelProps) {
     <div>
       <div className="panel">
         <h3>일꾼 배치</h3>
-        <p className="muted">
-          타일을 눌러 일꾼을 올립니다 (도시 타일에는 올릴 수 없고, 도시 타일은 일꾼 없이도 항상 산출합니다). 일꾼 {used}/{total - reserved} 사용
-          {reserved > 0 && ` · 정찰/선전포고/맡아둔 타일에 묶인 일꾼 ${reserved}`}
+        <Help>타일을 눌러 일꾼을 올립니다. 도시 타일에는 올릴 수 없고, 도시 타일은 일꾼 없이도 항상 산출합니다.</Help>
+        <p>
+          일꾼 <b>{used}/{total - reserved}</b> 사용
+          {reserved > 0 && <span className="muted"> · 정찰/선전포고/맡아둔 타일에 묶인 일꾼 {reserved}</span>}{' '}
+          {lastSet.size > 0 && (
+            <button onClick={reuseLast} title="지난 차례에 일꾼을 올렸던 타일에 그대로 올립니다 (지금 올릴 수 없는 타일은 빼고)">
+              ↻ 지난 차례와 같은 배치
+            </button>
+          )}
+          {placed.size > 0 && <button onClick={() => setPlaced(new Set())}>모두 내리기</button>}
         </p>
         {civ.id === 'sweden' && (
           <p>
@@ -146,9 +186,9 @@ export function PlacePanel({ game, player, dispatch }: PanelProps) {
           ) : (
             <span className="error">{preview.msg}</span>
           )}
-          <button className="primary" disabled={!preview.ok} onClick={() => dispatch({ type: 'placeWorkers', placements })}>
+          <ConfirmButton hotkey disabled={!preview.ok} warn={idleWarn} onClick={() => dispatch({ type: 'placeWorkers', placements })}>
             배치 확정
-          </button>
+          </ConfirmButton>
         </div>
       </div>
       <Board

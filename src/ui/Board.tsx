@@ -40,7 +40,13 @@ function CityBoard({ game, player, city, placed, generalPlaced, onTileClick, isD
     worker: placed ? placed.has(t.card.id) : city.placed.includes(t.card.id),
     general: generalPlaced ? generalPlaced.has(t.card.id) : city.generalPlaced?.includes(t.card.id),
     occupiedBy: t.occupiedBy !== undefined ? civById(game.players[t.occupiedBy].civId).name : undefined,
+    target: targetBy(t.card.id),
   })
+  // 이 도시 타일을 노리는 선전포고 (탈환은 공격 측의 원래 타일)
+  const targetBy = (tileId: number) => {
+    const d = game.declarations.find((x) => (x.kind === 'retake' ? x.attackerId : x.defenderId) === player.id && x.cityId === city.id && x.tileId === tileId)
+    return d ? civById(game.players[d.attackerId].civId).name : undefined
+  }
   const render = (t: City['tiles'][number] | undefined, label?: string) => {
     if (!t) return <div className="tile empty">{label ? `${label} 비어 있음` : ''}</div>
     return (

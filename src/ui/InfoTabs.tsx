@@ -1,56 +1,11 @@
 import { useState } from 'react'
 import type { GameState, PolicyId, Player } from '../engine'
-import { POLICIES, prereqsMet, CIVS, MILITARY_CARDS, TECHS, WONDER_CARDS, civById, culture, happiness, totalWorkers, tourism } from '../engine'
+import { POLICIES, prereqsMet, CIVS, MILITARY_CARDS, TECHS, WONDER_CARDS, civById } from '../engine'
 import { TechCard } from './cards/TechCard'
 import { PolicyCard } from './cards/PolicyCard'
 import { UnitCard } from './cards/UnitCard'
 import { WonderCard } from './cards/WonderCard'
-import { ICON, policyName } from './format'
-
-export function PlayersTable({ game, seats, actor }: { game: GameState; seats: { ai: boolean }[]; actor: number }) {
-  return (
-    <div className="scroll">
-    <table className="table">
-      <thead>
-        <tr>
-          <th>문명</th>
-          <th>문화</th>
-          <th>관광</th>
-          <th>일꾼/행복</th>
-          <th>기술</th>
-          <th>정책</th>
-          <th>장군</th>
-          <th>군사</th>
-          <th>불가사의</th>
-        </tr>
-      </thead>
-      <tbody>
-        {game.order.map((id) => {
-          const p = game.players[id]
-          const isNow = game.phase !== 'over' && actor === id
-          return (
-            <tr key={id} className={`${p.eliminated ? 'out' : ''}${isNow ? ' now' : ''}`}>
-              <td>
-                {civById(p.civId).name} {seats[id]?.ai ? '🤖' : '👤'} {p.eliminated ? '(탈락)' : ''}
-              </td>
-              <td>{culture(p)}</td>
-              <td>{tourism(p)}</td>
-              <td>
-                {totalWorkers(p)}/{p.cities.length ? happiness(p) : '-'}
-              </td>
-              <td>{p.techs.length}</td>
-              <td>{policyName(p.policy)}</td>
-              <td>{p.generals}</td>
-              <td>{p.military.length}</td>
-              <td>{p.wonders.map((w) => WONDER_CARDS.find((x) => x.id === w)?.name).join(', ') || '-'}</td>
-            </tr>
-          )
-        })}
-      </tbody>
-    </table>
-    </div>
-  )
-}
+import { ICON } from './format'
 
 /** 기술 트리: 열(과학 비용)별로 카드를 늘어놓고, 보유·연구 가능·잠김을 테두리로 보여 준다. 카드를 누르면 크게 본다. */
 export function TechTree({ player }: { player: Player }) {

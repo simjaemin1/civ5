@@ -3,6 +3,9 @@ import { happiness, researchableTechs, totalWorkers } from '../../engine'
 import { TechCard } from '../cards/TechCard'
 import { ICON } from '../format'
 import type { PanelProps } from './types'
+import { ConfirmButton } from '../ConfirmButton'
+import { Help } from '../prefs'
+import { maxSciencePool } from '../autoSkip'
 
 export function ResearchPanel({ game, player, dispatch }: PanelProps) {
   const turn = player.turn!
@@ -32,6 +35,11 @@ export function ResearchPanel({ game, player, dispatch }: PanelProps) {
   }
   const techs = researchableTechs(game).sort((a, b) => a.cost - b.cost || a.column - b.column)
   const pool = turn.yields.science + foodConv + hammerConv
+  const maxPool = maxSciencePool(player)
+  const best = techs.filter((t) => t.cost <= maxPool).sort((a, b) => b.cost - a.cost)[0]
+  const skipWarn = best
+    ? `${best.cost > pool ? '식량·망치를 과학으로 바꾸면 ' : ''}${best.name}(과학 ${best.cost})을(를) 연구할 수 있습니다. 쓰지 않은 과학은 사라집니다.`
+    : null
 
   return (
     <div className="panel">
@@ -92,8 +100,10 @@ export function ResearchPanel({ game, player, dispatch }: PanelProps) {
         ))}
         {techs.length === 0 && <p className="muted">연구할 수 있는 기술이 없습니다.</p>}
       </div>
-      <p className="muted">카드를 누르면 바로 연구합니다. 과학이 모자란 카드는 흐리게 보입니다.</p>
-      <button onClick={() => dispatch({ type: 'skipResearch' })}>이번 차례는 연구하지 않음</button>
+      <Help>카드를 누르면 바로 연구합니다. 과학이 모자란 카드는 흐리게 보입니다.</Help>
+      <ConfirmButton className="" hotkey warn={skipWarn} onClick={() => dispatch({ type: 'skipResearch' })}>
+        이번 차례는 연구하지 않음
+      </ConfirmButton>
     </div>
   )
 }
