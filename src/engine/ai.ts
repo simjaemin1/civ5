@@ -4,7 +4,7 @@ import { MILITARY_CARDS, RESOURCES, TECHS, WONDERS, cardById, civById } from './
 import { cardStats } from './cardstats'
 import type { TechDef } from './data'
 import { apply, researchableTechs } from './game'
-import { ctxOf, culture, tileYield, totalWorkers } from './yields'
+import { ctxOf, culture, happiness, tileYield, totalWorkers, tourism } from './yields'
 import { investableWonders, minHammers } from './wonders'
 import { cardCost, producible, uniqueOf, upgradeTargets } from './military'
 import { declarationTargets, occupiedTiles } from './war'
@@ -20,7 +20,7 @@ export const setAiStyle = (style: 'default' | 'hammer'): void => {
 
 /** 튜닝값 (시뮬레이션으로 조정) */
 /** 시뮬레이션(30판)으로 고른 값: 정책은 과학 12 미만이면 합리주의·자유로, 과학이론 우선도 +60, 아폴로 질주는 남은 기술 8개부터 (더 일찍 달리면 오히려 판이 길어진다) */
-export const AI_TUNE = { scienceWeight: 1.3, apolloRush: 8, policyNeed: 12, theoryBonus: 60, coalition: true }
+export const AI_TUNE = { scienceWeight: 1.3, apolloRush: 8, policyNeed: 12, theoryBonus: 60, coalition: true, cultureRush: 9, cultureSlack: 2 }
 
 const weight = (y: { food: number; hammer: number; science: number; gold: number }) =>
   y.food * 1.6 + y.hammer * 1.1 + y.science * AI_TUNE.scienceWeight + y.gold * 0.4
@@ -47,7 +47,7 @@ function tileScore(p: Player, card: TileCard): number {
   if (aiStyle === 'hammer') return y.hammer * 4 + y.food * 1.5 + y.science * 0.3
   // 아폴로 질주·과학 기아: 식량이 곧 과학이므로 식량과 과학을 크게 친다
   if (defending) return y.food * 1.6 + y.hammer * 3 + y.science * 0.8 + y.gold * 0.2
-  if (rushingApollo(p) || starving) return y.food * 3 + y.science * 3 + y.hammer * 0.5 + y.gold * 0.2
+  if (rushingApollo(p) || rushingCulture(p) || starving) return y.food * 3 + y.science * 3 + y.hammer * 0.5 + y.gold * 0.2
   return weight(y)
 }
 
@@ -77,20 +77,45 @@ function placements(p: Player, reserveFree: number): { cityId: number; tileId: n
   return out
 }
 
-/** 아폴로 프로젝트까지 아직 연구하지 못한 선행 기술(아폴로 포함) 목록 */
-function apolloMissing(p: Player): Set<string> {
+/** 목표 기술들까지 아직 연구하지 못한 선행 기술(목표 포함) 목록 */
+function missingFor(p: Player, goals: string[]): Set<string> {
   const missing = new Set<string>()
   const visit = (id: string) => {
     if (p.techs.includes(id) || missing.has(id)) return
     missing.add(id)
     for (const pre of TECHS.find((t) => t.id === id)?.prereqs ?? []) visit(pre)
   }
-  visit('apollo')
+  for (const g of goals) visit(g)
   return missing
 }
+const apolloMissing = (p: Player): Set<string> => missingFor(p, ['apollo'])
+/** 문화 승리: 세계화와 냉각기술 (관광 = 문화 2당 1씩 두 번) */
+const cultureMissing = (p: Player): Set<string> => missingFor(p, ['globalization', 'refrigeration'])
 
-/** 극후반: 아폴로까지 남은 기술이 이 정도면 과학 승리를 향해 달린다 (자유 정책 + 식량 전부를 과학으로) */
-const rushingApollo = (p: Player): boolean => aiStyle === 'default' && apolloMissing(p).size <= AI_TUNE.apolloRush
+/**
+ * 극후반 계획: 아폴로까지 남은 기술이 적으면 과학 승리(자유 + 식량 전부를 과학으로),
+ * 세계화·냉각기술까지 남은 기술이 적고 내 관광이 상대 문화를 넘을 가망이 있으면 문화 승리(평등 + 관광 기술 연속).
+ * 둘 다 가까우면 더 가까운 쪽(같으면 문화)으로 간다.
+ */
+function lateGame(p: Player, s?: GameState): 'apollo' | 'culture' | null {
+  if (aiStyle !== 'default') return null
+  const apollo = apolloMissing(p).size
+  const culturePath = cultureMissing(p).size
+  let viable = true
+  if (s) {
+    const rivals = s.players.filter((o) => o.id !== p.id && !o.eliminated && o.cities.length > 0)
+    const reach = culture(p) + Math.floor(totalWorkers(p) / 2) + AI_TUNE.cultureSlack
+    viable = rivals.length > 0 && Math.max(...rivals.map((o) => culture(o))) < reach
+  }
+  const cultureOk = AI_TUNE.cultureRush > 0 && culturePath <= AI_TUNE.cultureRush && viable
+  const apolloOk = apollo <= AI_TUNE.apolloRush
+  if (cultureOk && (!apolloOk || culturePath <= apollo)) return 'culture'
+  return apolloOk ? 'apollo' : null
+}
+/** 지금 행동을 정하는 문명의 계획 (aiCandidates가 매번 정한다) */
+let plan: 'apollo' | 'culture' | null = null
+const rushingApollo = (_p: Player): boolean => plan === 'apollo'
+const rushingCulture = (_p: Player): boolean => plan === 'culture'
 
 /** 번성형 기술 순서: 나침반 → 과학·식량 산출을 키우는 기술과 행복(일꾼 상한) 기술 → 인쇄기술(두 번째 도시) → 나머지는 싼 것부터 넓게 */
 const COMPASS_CHAIN = new Set(['sailing', 'optics', 'compass'])
@@ -131,6 +156,7 @@ function techPriority(t: TechDef, rush?: Set<string>, p?: Player): number {
     if (e.kind === 'foodToScience') v += 5
     else if (e.kind === 'secondCity') v += 8
     else if (e.kind === 'culture') v += 4
+    else if (e.kind === 'tourismPerCulture') v += rush ? 0 : 60 // 관광이 상대 문화를 넘으면 문화 승리
     else if (e.kind === 'policy') v += 3
     else if (e.kind === 'hammerToScience') v += 3
     else if (e.kind === 'general') v += 2
@@ -144,7 +170,7 @@ function researchCandidates(s: GameState, p: Player): Action[] {
   const food = turn.yields.cities.reduce((n, c) => n + c.food, 0)
   const hammers = turn.yields.cities.reduce((n, c) => n + c.hammer, 0)
   const out: Action[] = []
-  const rush = rushingApollo(p) ? apolloMissing(p) : undefined
+  const rush = rushingCulture(p) ? cultureMissing(p) : rushingApollo(p) ? apolloMissing(p) : undefined
   const techs = researchableTechs(s).sort((a, b) => techPriority(b, rush, p) - techPriority(a, rush, p))
   for (const t of techs) {
     let need = t.cost - turn.yields.science
@@ -209,6 +235,9 @@ function cardOptions(p: Player): { def: (typeof MILITARY_CARDS)[number]; unique?
  * 정책 고르기: 과학이 모자라 기술을 못 연구할 지경이면 합리주의·자유로, 아니면 미학·전통으로 번성한다.
  * 과학 가능량 = 기본 과학 + (식량을 과학으로 바꿀 수 있으면) 남는 식량. 자유는 식량 전부, 합리주의는 +3(한국 +5).
  */
+/** 이 정도 타일(영토)이 있으면 문화보다 과학을 챙긴다 */
+const TERRITORY_OK = 10
+
 function policyOrder(s: GameState, p: Player): Policy[] {
   const turn = p.turn
   const food = turn ? turn.yields.cities.reduce((n, c) => n + c.food, 0) : 0
@@ -216,13 +245,34 @@ function policyOrder(s: GameState, p: Player): Policy[] {
   const writing = p.techs.includes('writing')
   const cheapest = Math.min(...researchableTechs(s).map((t) => t.cost), 99)
   const withNone = base + (writing ? Math.max(0, food - totalWorkers(p)) : 0)
-  const withRational = base + (p.civId === 'korea' ? 5 : 3) + (writing ? Math.max(0, food - totalWorkers(p)) : 0)
-  const withLiberty = base + (writing ? food : 0)
   // 앞으로 만날 비용 10대 기술을 감당할 수 있는지 (번성 뒤에도 막히지 않도록 여유 있게)
   const need = Math.max(cheapest, AI_TUNE.policyNeed)
+  // 평등 한 번으로 관광이 상대의 문화를 넘어 탈락시킬 수 있으면 (아폴로 질주 중이어도) 평등
+  if (p.policy !== 'equality') {
+    const gain = Math.floor(totalWorkers(p) / 2)
+    const now = tourism(p)
+    if (s.players.some((o) => o.id !== p.id && !o.eliminated && o.cities.length > 0 && culture(o) >= now && culture(o) < now + gain)) return ['equality', ...POLICY_PREFERENCE]
+  }
+  // 초반: 미학으로 문화(= 새 타일)를 늘려 영토를 넓히는 게 먼저. 자유만 고집하면 영토가 안 늘고 일꾼도 안 늘어 막힌다.
+  // 식량이 넉넉해 일꾼 3개쯤은 금방 되살아나면 전통, 아니면 미학. 후반(아폴로 질주)에는 자유.
+  // 문화 질주: 평등으로는 식량→과학 변환이 줄어든다. 남은 관광 기술을 평등 아래서도 한 차례에 연구할 수 있을 때만 평등,
+  // 아니면 자유로 과학부터 몰아 올린다 (평등에 갇혀 과학이 멈추는 일 방지)
+  if (rushingCulture(p)) {
+    const costs = [...cultureMissing(p)].map((id) => TECHS.find((t) => t.id === id)!.cost)
+    return withNone >= Math.max(0, ...costs) ? ['equality', ...POLICY_PREFERENCE] : ['liberty', 'rationalism', ...POLICY_PREFERENCE]
+  }
   if (rushingApollo(p)) return ['liberty', 'rationalism', ...POLICY_PREFERENCE]
-  if (withNone >= need) return [...POLICY_PREFERENCE]
-  return withLiberty >= withRational ? ['liberty', 'rationalism', ...POLICY_PREFERENCE] : ['rationalism', 'liberty', ...POLICY_PREFERENCE]
+  const surplus = food - totalWorkers(p)
+  const tiles = p.cities.reduce((n, c) => n + c.tiles.length, 0)
+  const recovers = surplus >= 3 && totalWorkers(p) >= 6
+  // 발판(미학·전통)이 다져졌으면(영토가 충분하고 일꾼이 행복 한계에 가깝다) 스퍼트: 자유·합리주의로 과학을 몰아 올린다
+  const foundationDone = tiles >= TERRITORY_OK && totalWorkers(p) >= happiness(p) - 1
+  if (foundationDone || withNone < Math.min(need, 4)) {
+    const withRational = base + (p.civId === 'korea' ? 5 : 3) + (writing ? Math.max(0, food - totalWorkers(p)) : 0)
+    const withLiberty = base + (writing ? food : 0)
+    return withLiberty >= withRational ? ['liberty', 'rationalism', ...POLICY_PREFERENCE] : ['rationalism', 'liberty', ...POLICY_PREFERENCE]
+  }
+  return recovers ? ['tradition', 'aesthetics', ...POLICY_PREFERENCE] : ['aesthetics', 'tradition', ...POLICY_PREFERENCE]
 }
 
 function pendingCandidates(s: GameState, p: Player): Action[] {
@@ -252,7 +302,7 @@ const HOLD_THRESHOLD = 7
 
 /** 정찰은 3라운드에 한 번만 (일꾼 1개가 그 차례 쉬므로) */
 function scoutCandidates(s: GameState, p: Player): Action[] {
-  if (aiStyle === 'hammer' || !p.techs.includes('compass') || rushingApollo(p)) return []
+  if (aiStyle === 'hammer' || !p.techs.includes('compass') || rushingApollo(p) || rushingCulture(p)) return []
   if (p.held || p.scouting || p.scouted || totalWorkers(p) < 4 || s.round % 3 !== 0) return []
   return [{ type: 'scout' }]
 }
@@ -386,6 +436,7 @@ function battleCandidates(s: GameState): Action[] {
 export function aiCandidates(s: GameState): Action[] {
   if (s.phase === 'battle' && s.battle) return battleCandidates(s)
   const p = currentPlayer(s)
+  plan = p.cities.length ? lateGame(p, s) : null
   switch (s.phase) {
     case 'setup':
       return [foundAction(p, p.hand)]
