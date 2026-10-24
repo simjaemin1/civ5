@@ -57,6 +57,9 @@ export interface TurnData {
   foodToScience: number
   /** 과학이론: 망치를 과학으로 바꾼 개수 (최대 2) */
   hammerToScience: number
+  /** 도시별로 과학에 쓴 식량·망치 (없으면 도시 순서대로 자동) */
+  foodByCity?: Record<number, number>
+  hammerByCity?: Record<number, number>
   researched: boolean
   /** 이번 차례에 이미 생산을 한 도시 */
   produced: number[]
@@ -69,6 +72,13 @@ export interface TurnData {
   skipFoodSettle: boolean
   /** 이번 차례에 장군을 점령지에서 불러들였는가 (차례당 1개) */
   recalled: boolean
+}
+
+export interface PlayerChoices {
+  /** false면 맡아둔 타일을 두고 덱에서 새로 뽑는다 */
+  useHeld?: boolean
+  cultureCity?: number
+  discardCity?: number
 }
 
 export interface Player {
@@ -103,6 +113,8 @@ export interface Player {
   held: TileCard | null
   eliminated: boolean
   greatWallUsed: boolean
+  /** 선택 사항: 문화로 얻는 타일을 맡아둔 타일로 받을지(기본), 붙일 도시, 일꾼을 버릴 도시 */
+  choices?: PlayerChoices
   /** 독일: 장군을 얻어서 생기는 무료 군사 카드 선택권 */
   pendingFreeCards: number
 }
@@ -214,7 +226,8 @@ export type Action =
   | { type: 'buildCity'; cityTileId: number; sideTiles: Partial<Record<Side, number>> }
   | { type: 'wasteland'; discardTileId: number }
   | { type: 'placeWorkers'; placements: Placement[] }
-  | { type: 'research'; techId: string; foodToScience?: number; hammerToScience?: number }
+  | { type: 'research'; techId: string; foodToScience?: number; hammerToScience?: number; foodByCity?: Record<number, number>; hammerByCity?: Record<number, number> }
+  | { type: 'setChoices'; useHeld?: boolean; cultureCity?: number | null; discardCity?: number | null }
   | { type: 'skipResearch' }
   | { type: 'endProduction' }
   | { type: 'choosePolicy'; policy: PolicyId; discard?: { cityId: number; count: number }[]; dismiss?: { cityId: number; tileId: number } }
