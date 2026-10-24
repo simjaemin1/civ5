@@ -9,7 +9,8 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",
-    "build:single": "node scripts/build-single.mjs"
+    "build:single": "node scripts/build-single.mjs",
+    "cards:status": "node scripts/cards-status.mjs"
   },
   "dependencies": {
     "react": "^19.2.8",

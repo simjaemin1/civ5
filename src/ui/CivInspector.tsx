@@ -3,6 +3,8 @@ import type { GameState } from '../engine'
 import { WONDER_CARDS, civById, culture, happiness, totalWorkers, tourism } from '../engine'
 import { Board } from './Board'
 import { TechTree } from './InfoTabs'
+import { CivCard } from './cards/CivCard'
+import { PolicyCard } from './cards/PolicyCard'
 import { policyName } from './format'
 
 interface Props {
@@ -48,6 +50,11 @@ export function CivInspector({ game, seats, actor }: Props) {
         <span>군사 카드 <b>{p.military.length}장</b> <small className="muted">(방향은 비공개, 생산 내역은 로그)</small></span>
         <span>불가사의 <b>{p.wonders.map((w) => WONDER_CARDS.find((x) => x.id === w)?.name).join(', ') || '없음'}</b></span>
       </p>
+      <div className="row">
+        <CivCard civId={p.civId} width={260} />
+        {p.policy && <PolicyCard policy={p.policy} width={110} active />}
+        {p.policy && <small className="muted">시행 중인 정책</small>}
+      </div>
       {(held.length > 0 || occupying.length > 0) && (
         <p className="muted">
           {held.map(({ t, by }) => `${t.card.terrains.join('·')} 타일이 ${civById(by.civId).name}에게 점령당함`).join(' · ')}

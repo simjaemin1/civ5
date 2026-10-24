@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { apply, cardById, culture, RuleError, MILITARY_CARDS, declarationTargets, freeWorkers } from '..'
+import { apply, cardById, culture, ctxOf, RuleError, MILITARY_CARDS, declarationTargets, freeWorkers, tileYield } from '..'
 import type { GameState, TileCard } from '..'
 import { found, me, play, startGame, tile } from './helpers'
 
@@ -966,6 +966,14 @@ describe('문명 능력 (전쟁·군사 관련)', () => {
     expect(() =>
       apply(notMine, { type: 'placeWorkers', placements: [{ cityId: 0, tileId: hill.card.id, enemy: { playerId: rus, cityId: 0 } }] }),
     ).toThrow(RuleError)
+  })
+
+  it('일본: 물고기 타일은 망치 +1 (식량은 그대로)', () => {
+    const fish = tile(['해안'], { resource: 'fish' })
+    const jp = tileYield(fish, ctxOf(found(startGame(['japan'], [hand4()])).players[0]))
+    const kr = tileYield(fish, ctxOf(found(startGame(['korea'], [hand4()])).players[0]))
+    expect(jp.hammer - kr.hammer).toBe(1)
+    expect(jp.food - kr.food).toBe(0)
   })
 
   it('일본: 물고기 타일을 얻을 때마다 문화 1 (연쇄)', () => {

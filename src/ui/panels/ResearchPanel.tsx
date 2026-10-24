@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { researchableTechs } from '../../engine'
+import { TechCard } from '../cards/TechCard'
 import { ICON } from '../format'
 import type { PanelProps } from './types'
 
@@ -37,23 +38,21 @@ export function ResearchPanel({ game, player, dispatch }: PanelProps) {
           </label>
         )}
       </div>
-      <div className="grid">
+      <div className="cardgrid">
         {techs.map((t) => (
-          <button
+          <TechCard
             key={t.id}
+            tech={t}
+            width={150}
+            state={pool >= t.cost ? 'available' : 'idle'}
             disabled={pool < t.cost}
+            note={pool < t.cost ? `${t.name} — 과학이 모자랍니다 (${pool}/${t.cost})` : `${t.name} — 눌러서 연구`}
             onClick={() => dispatch({ type: 'research', techId: t.id, foodToScience: foodConv, hammerToScience: hammerConv })}
-            title={t.effects.map((e) => e.kind).join(', ')}
-          >
-            <b>{t.name}</b>
-            <small>
-              {ICON.science}
-              {t.cost} · {t.column}열{t.effects.length ? ' · 효과 있음' : ''}
-            </small>
-          </button>
+          />
         ))}
         {techs.length === 0 && <p className="muted">연구할 수 있는 기술이 없습니다.</p>}
       </div>
+      <p className="muted">카드를 누르면 바로 연구합니다. 과학이 모자란 카드는 흐리게 보입니다.</p>
       <button onClick={() => dispatch({ type: 'skipResearch' })}>이번 차례는 연구하지 않음</button>
     </div>
   )
