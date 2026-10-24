@@ -7,6 +7,7 @@ export default defineConfig({
   build: {
     outDir: 'dist-single',
     cssCodeSplit: false,
+    assetsInlineLimit: 100_000_000, // 카드 그림을 HTML 안에 넣어 단일 파일로 만든다
     modulePreload: false,
     rollupOptions: { output: { format: 'iife', inlineDynamicImports: true } },
   },

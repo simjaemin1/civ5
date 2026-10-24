@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { GameState, Player } from '../engine'
-import { CIVS, MILITARY_CARDS, TECHS, WONDER_CARDS, civById, culture, happiness, totalWorkers, tourism } from '../engine'
+import { prereqsMet, CIVS, MILITARY_CARDS, TECHS, WONDER_CARDS, civById, culture, happiness, totalWorkers, tourism } from '../engine'
+import { TechCard } from './cards/TechCard'
 import { cardText, conditionText, ICON, policyName, wonderEffectText } from './format'
 
 export function PlayersTable({ game, seats, actor }: { game: GameState; seats: { ai: boolean }[]; actor: number }) {
@@ -48,29 +49,27 @@ export function PlayersTable({ game, seats, actor }: { game: GameState; seats: {
   )
 }
 
-/** 기술 트리: 열(과학 비용)별로 보여 주고, 해당 문명이 가진 기술을 표시한다. */
+/** 기술 트리: 열(과학 비용)별로 카드를 늘어놓고, 보유·연구 가능·잠김을 테두리로 보여 준다. 카드를 누르면 크게 본다. */
 export function TechTree({ player }: { player: Player }) {
   return (
-    <div className="techgrid">
-      {Array.from({ length: 10 }, (_, i) => i + 1).map((col) => (
-        <div key={col} className="techcol">
-          <h5>
-            {ICON.science}
-            {TECHS.find((t) => t.column === col)?.cost}
-          </h5>
-          {TECHS.filter((t) => t.column === col).map((t) => {
-            const owned = player.techs.includes(t.id)
-            const pre = t.prereqs?.map((id) => TECHS.find((x) => x.id === id)?.name).join(', ')
-            return (
-              <div key={t.id} className={`tech${owned ? ' owned' : ''}`} title={pre ? `선행: ${pre}` : '연결선 없음: 같은 비용의 다른 기술이 있어야 함'}>
-                {owned ? '✓ ' : ''}
-                {t.name}
-                <small>{pre ? ` ← ${pre}` : t.cost > 0 ? ' (선 없음)' : ''}</small>
-              </div>
-            )
-          })}
-        </div>
-      ))}
+    <div className="scroll">
+      <div className="techgrid cards">
+        {Array.from({ length: 10 }, (_, i) => i + 1).map((col) => (
+          <div key={col} className="techcol cards">
+            <h5>
+              {ICON.science}
+              {TECHS.find((t) => t.column === col)?.cost}
+            </h5>
+            {TECHS.filter((t) => t.column === col).map((t) => {
+              const owned = player.techs.includes(t.id)
+              const pre = t.prereqs?.map((id) => TECHS.find((x) => x.id === id)?.name).join(', ')
+              const note = `${t.name} — ${pre ? `선행: ${pre}` : '연결선 없음: 같은 비용의 다른 기술이 있어야 함'}`
+              return <TechCard key={t.id} tech={t} width={150} note={note} state={owned ? 'owned' : prereqsMet(player, t) ? 'available' : 'locked'} />
+            })}
+          </div>
+        ))}
+      </div>
+      <p className="muted">테두리: 초록 = 보유, 주황 = 지금 연구할 수 있음, 흐림 = 선행 기술이 모자람. 카드를 누르면 크게 보입니다.</p>
     </div>
   )
 }
