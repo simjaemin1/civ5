@@ -38,6 +38,11 @@ export function TileView({ card, player, badge, selected, disabled, onClick, hin
         title={hint ?? tileTitle(card)}
       >
         <img src={img} alt={tileTitle(card)} draggable={false} />
+        {badge?.city && (
+          <div className="tile-city-token">
+            <Icon name="city" size={30} title="도시" />
+          </div>
+        )}
         <div className="tile-yield-chip">{yieldText(y)}</div>
         <div className="tile-badges">
           {badge?.worker && <Icon name="worker" size={24} title="일꾼" />}
@@ -57,7 +62,7 @@ export function TileView({ card, player, badge, selected, disabled, onClick, hin
       title={hint}
     >
       <div className="tile-head">
-        {badge?.city ? '🏛 ' : ''}
+        {badge?.city && <Icon name="city" size={18} title="도시" />}{badge?.city ? ' ' : ''}
         {tileTitle(card)}
       </div>
       {res && <div className="tile-res">{res.name}</div>}
