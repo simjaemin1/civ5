@@ -12,8 +12,8 @@ const STEPS: { phase: GameState['phase'] | 'end'; label: string; note?: string }
 
 interface Props {
   game: GameState
-  /** 이번 차례에 한 행동 직전 상태들 (오래된 것부터) */
-  turnHistory: GameState[]
+  /** 이번 차례에 되돌릴 수 있는 행동들의 직전 단계 (오래된 것부터). 핫시트는 기록에서, 온라인은 서버가 준다 */
+  phases: GameState['phase'][]
   /** 이번 차례에 무작위 결과를 보여 준 행동이 있어 그 전으로는 되돌릴 수 없는지 */
   locked?: boolean
   onJump: (index: number) => void
@@ -25,15 +25,15 @@ interface Props {
  * 지난 단계를 누르면 그 단계를 시작할 때로 되돌아간다. 되돌리기는 이번 차례 안에서만 되고,
  * 무작위 결과나 덱의 카드를 보여 준 행동(생산·승급·정찰·타일 뽑기) 뒤로는 되돌릴 수 없다 (gameInfo.revealsInfo).
  */
-export function TurnSteps({ game, turnHistory, locked, onJump, onUndo }: Props) {
-  const steps = STEPS.filter((s) => s.phase !== 'setup' || game.phase === 'setup' || turnHistory.some((h) => h.phase === 'setup'))
+export function TurnSteps({ game, phases, locked, onJump, onUndo }: Props) {
+  const steps = STEPS.filter((s) => s.phase !== 'setup' || game.phase === 'setup' || phases.includes('setup'))
   const cur = steps.findIndex((s) => s.phase === game.phase)
   return (
     <nav className="turn-steps" aria-label="이번 차례 단계">
       <ol>
         {steps.map((s, i) => {
           const state = i < cur ? 'done' : i === cur ? 'now' : 'next'
-          const start = state === 'done' ? turnHistory.findIndex((h) => h.phase === s.phase) : -1
+          const start = state === 'done' ? phases.indexOf(s.phase as GameState['phase']) : -1
           return (
             <li key={s.phase} className={state} aria-current={state === 'now' ? 'step' : undefined}>
               {start >= 0 ? (
@@ -58,8 +58,8 @@ export function TurnSteps({ game, turnHistory, locked, onJump, onUndo }: Props) 
             🔒 무작위 결과를 본 뒤라 그 전으로는 되돌릴 수 없음
           </small>
         )}
-        <button className="undo" disabled={turnHistory.length === 0} onClick={onUndo} title="이번 차례에 한 마지막 행동을 되돌립니다">
-          ↶ 한 단계 되돌리기{turnHistory.length > 0 ? ` (${turnHistory.length})` : ''}
+        <button className="undo" disabled={phases.length === 0} onClick={onUndo} title="이번 차례에 한 마지막 행동을 되돌립니다">
+          ↶ 한 단계 되돌리기{phases.length > 0 ? ` (${phases.length})` : ''}
         </button>
       </span>
     </nav>

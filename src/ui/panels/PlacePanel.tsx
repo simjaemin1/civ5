@@ -3,6 +3,7 @@ import type { Placement } from '../../engine'
 import { apply, civById, declarationTargets, totalWorkers, RuleError } from '../../engine'
 import { Board } from '../Board'
 import { ScoutBox } from './ScoutBox'
+import { deckSize } from '../gameInfo'
 import { ICON } from '../format'
 import type { PanelProps } from './types'
 import { ConfirmButton } from '../ConfirmButton'
@@ -106,7 +107,7 @@ export function PlacePanel({ game, player, dispatch, lastTiles }: PanelProps & {
         ? null // 선전포고용으로 1개 남긴 것으로 본다
         : `일꾼 ${idle}개가 놀고 있습니다${canWar ? ' (선전포고에는 1개면 충분)' : ''}. 빈 타일에 올리지 않으면 산출이 없습니다.`
   const canScout =
-    game.deck.length === 0
+    deckSize(game) === 0
       ? { ok: false, why: '타일 덱이 비어 정찰할 수 없습니다' }
       : left < 1
         ? { ok: false, why: '정찰하려면 올린 일꾼을 1개 내리세요' }

@@ -1,4 +1,4 @@
-import type { City, GameState, MilitaryCardDef, Player } from '../engine'
+import type { City, GameState, GameView, MilitaryCardDef, Player } from '../engine'
 import { MAX_HOLD, RESOURCES, TECHS, cardById, civById, cardCost, cardStats, findTile, isCoastalCity, isObsolete, producible, uniqueOf } from '../engine'
 
 /** 선전포고 목표 타일의 지형 이름 (탈환은 공격 측의 원래 타일) */
@@ -62,15 +62,8 @@ export function declCoastal(game: GameState, d: GameState['declarations'][number
   return !!findTile(owner, d.cityId, d.tileId)?.tile.card.terrains.includes('해안')
 }
 
-/** 한 문명의 내정 단계 */
-export const TURN_PHASES: GameState['phase'][] = ['setup', 'place', 'research', 'produce', 'declare']
+// 차례 안 되돌리기 범위와 잠금 기준은 엔진에 있다 (서버도 같은 기준을 쓴다)
+export { TURN_PHASES, revealsInfo, turnKey } from '../engine'
 
-/** 같은 차례인지 가르는 열쇠 (내정 단계가 아니면 null) */
-export const turnKey = (g: GameState): string | null => (TURN_PHASES.includes(g.phase) ? `${g.round}:${g.turnIdx}` : null)
-
-/**
- * 무작위 결과(카드 방향, 덱 섞기)를 쓰거나 덱의 카드를 보여 준 행동인지.
- * 이런 행동 뒤로는 차례 안 되돌리기를 막는다: 되돌려서 결과를 미리 보고 고르는 것(방향 고르기, 공짜 정찰)을 막기 위해서다.
- * 엔진 난수가 상태 안에 있으므로 난수 값이나 덱 장수가 바뀌었는지만 보면 빠짐없이 걸러진다.
- */
-export const revealsInfo = (prev: GameState, next: GameState): boolean => next.rng !== prev.rng || next.deck.length !== prev.deck.length
+/** 타일 덱에 남은 장수. 온라인 뷰는 덱 순서를 비우고 장수만 보낸다 */
+export const deckSize = (g: GameState): number => ('deckCount' in g ? (g as GameView).deckCount : g.deck.length)

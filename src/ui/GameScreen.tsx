@@ -22,6 +22,7 @@ import { SetupPanel } from './panels/SetupPanel'
 import { ScoutBox } from './panels/ScoutBox'
 import { TilePlacer } from './panels/TilePlacer'
 import { TurnSteps } from './TurnSteps'
+import { useEnterHotkey, useTurnTitle } from './hooks'
 import { revealsInfo, turnKey } from './gameInfo'
 
 const PHASE: Record<GameState['phase'], string> = {
@@ -145,31 +146,8 @@ export function GameScreen({ initial, seats, initialUi, onExit }: Props) {
     return () => clearTimeout(t)
   }, [game, prefs.autoSkip, over, actorSeat.ai, curtain, pendingReport, player, dispatch])
 
-  // 탭 제목으로 차례를 알린다 (다른 창을 보고 있어도 보이게)
-  useEffect(() => {
-    const name = civById(player.civId).name
-    document.title = over ? '게임 종료 · 문명 보드게임' : actorSeat.ai ? `${name} 진행 중… · 문명 보드게임` : `▶ ${name} 차례 · 문명 보드게임`
-    return () => {
-      document.title = '문명 보드게임'
-    }
-  }, [player.civId, actorSeat.ai, over])
-
-  // Enter: 이 단계의 확정 버튼 (입력칸·버튼에 초점이 있거나 창이 떠 있으면 무시)
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      // 누르고 있으면 반복 입력이 들어와 여러 단계가 한꺼번에 확정되므로 반복은 무시한다
-      if (e.key !== 'Enter' || e.isComposing || e.repeat || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return
-      const el = e.target as HTMLElement
-      if (el.closest('input, select, textarea, button, summary, a, [role="button"]') || document.querySelector('.modal-backdrop')) return
-      const btn = document.querySelector<HTMLButtonElement>('.main [data-hotkey]:not(:disabled)')
-      if (btn) {
-        e.preventDefault()
-        btn.click()
-      }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [])
+  useTurnTitle(over ? '게임 종료' : actorSeat.ai ? `${civById(player.civId).name} 진행 중…` : `▶ ${civById(player.civId).name} 차례`)
+  useEnterHotkey()
 
   /** history[index] 상태로 돌아간다 (그 뒤 기록은 버린다) */
   const restore = (index: number, curtainAgain: boolean) => {
@@ -341,7 +319,7 @@ export function GameScreen({ initial, seats, initialUi, onExit }: Props) {
               </span>
             )}
           </div>
-          {key && !over && <TurnSteps game={game} turnHistory={turnHistory} locked={lockedInTurn} onJump={jumpInTurn} onUndo={undoInTurn} />}
+          {key && !over && <TurnSteps game={game} phases={turnHistory.map((h) => h.phase)} locked={lockedInTurn} onJump={jumpInTurn} onUndo={undoInTurn} />}
           {main}
           {showBoard && <Board game={game} player={player} />}
           {actorSeat.ai && !over && <Board game={game} player={player} />}

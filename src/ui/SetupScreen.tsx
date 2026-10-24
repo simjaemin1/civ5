@@ -10,10 +10,11 @@ export interface Seat {
 interface Props {
   onStart: (seats: Seat[], seed: number) => void
   onResume?: () => void
+  onOnline?: () => void
 }
 
 /** 시작 화면: 문명과 사람/AI를 고른다 (2~6명) */
-export function SetupScreen({ onStart, onResume }: Props) {
+export function SetupScreen({ onStart, onResume, onOnline }: Props) {
   const [seats, setSeats] = useState<Seat[]>([
     { civId: 'korea', ai: false },
     { civId: 'russia', ai: true },
@@ -28,6 +29,11 @@ export function SetupScreen({ onStart, onResume }: Props) {
       {onResume && (
         <p>
           <button onClick={onResume}>이어하기 (자동 저장된 게임)</button>
+        </p>
+      )}
+      {onOnline && (
+        <p>
+          <button onClick={onOnline}>🌐 온라인으로 하기 (방 만들기 / 입장)</button>
         </p>
       )}
       <div className="scroll">

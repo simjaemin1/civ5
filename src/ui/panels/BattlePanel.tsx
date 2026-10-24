@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { actorOf, cardStats, civById, usableInBattle } from '../../engine'
+import { cardStats, civById, usableInBattle } from '../../engine'
 import type { CardInst, GameState, Player } from '../../engine'
 import { UnitCard } from '../cards/UnitCard'
 import { cardText } from '../format'
@@ -14,8 +14,7 @@ const label = (_p: Player, c: CardInst) => cardText(c, false)
 /** 전투: 비공개로 카드를 1~4번 자리에 놓고, 공개 후 대상을 고르는 카드는 대상을 고른다. */
 export function BattlePanel({ game, player, dispatch }: PanelProps) {
   const b = game.battle!
-  const me = game.players[actorOf(game)]
-  void player
+  const me = player // 지금 입력하는 사람 (핫시트는 actorOf, 온라인은 나)
   const enemyId = me.id === b.decl.attackerId ? b.decl.defenderId : b.decl.attackerId
   const enemy = game.players[enemyId]
   const tileOwner = b.decl.kind === 'retake' ? game.players[b.decl.attackerId] : game.players[b.decl.defenderId]
