@@ -1,5 +1,6 @@
 import type { Player, TileCard } from '../engine'
 import { RESOURCES, WONDERS, ctxOf, tileYield } from '../engine'
+import { cardImage } from './cards/cardImages'
 import { TERRAIN_COLOR, tileTitle, yieldText } from './format'
 
 export interface TileBadge {
@@ -25,6 +26,26 @@ export function TileView({ card, player, badge, selected, disabled, onClick, hin
   const res = card.resource ? RESOURCES[card.resource] : undefined
   const wonder = card.wonder ? WONDERS[card.wonder] : undefined
   const primary = card.terrains[0]
+  const img = cardImage('tile', String(card.id))
+  if (img) {
+    return (
+      <button
+        type="button"
+        className={`tile has-img${selected ? ' selected' : ''}${badge?.city ? ' city' : ''}${onClick ? '' : ' ro'}`}
+        disabled={disabled || !onClick}
+        onClick={onClick}
+        title={hint ?? tileTitle(card)}
+      >
+        <img src={img} alt={tileTitle(card)} draggable={false} />
+        <div className="tile-yield-chip">{yieldText(y)}</div>
+        <div className="tile-badges">
+          {badge?.worker && <span title="일꾼">👷</span>}
+          {badge?.general && <span title="위대한 장군(스웨덴)">⭐</span>}
+          {badge?.occupiedBy && <span title="점령됨">🚩{badge.occupiedBy}</span>}
+        </div>
+      </button>
+    )
+  }
   return (
     <button
       type="button"

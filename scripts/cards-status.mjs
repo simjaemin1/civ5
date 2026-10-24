@@ -58,3 +58,13 @@ status('문명 카드', civs.civs ?? civs, 'src/assets/cards/civ')
   if (missing.length) console.log('  아직 없음:', missing.join(', '))
 }
 
+
+// 타일 카드: tiles.json 순서대로 번호 0..159 (이미지 파일 이름 = 번호)
+{
+  const tiles = JSON.parse(readFileSync('src/engine/data/tiles.json', 'utf8')).cards
+  const files = existsSync('src/assets/cards/tile') ? readdirSync('src/assets/cards/tile').map((f) => f.replace(/\.[^.]+$/, '')) : []
+  const have = new Set(files)
+  const missing = tiles.map((_, i) => i).filter((i) => !have.has(String(i)))
+  console.log(`타일 카드 ${tiles.length - missing.length}/${tiles.length}장 등록`)
+  if (missing.length && missing.length < tiles.length) console.log('  아직 없음 번호:', missing.length > 40 ? `${missing[0]}~${missing[missing.length - 1]} 중 ${missing.length}장` : missing.join(', '))
+}
