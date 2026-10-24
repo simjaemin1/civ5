@@ -468,3 +468,10 @@ describe('도시 선택 (식량·망치 변환, 문화 타일, 일꾼 버리기)
     expect(me(run(false)).held?.id).toBe(held.id)
   })
 })
+
+describe('시작 타일 엘도라도', () => {
+  it('시작 타일이 엘도라도면 영토 효과로 문화 +1', () => {
+    const s = solo('denmark', [tile([], { wonder: 'eldorado' }), tile(['숲']), tile(['언덕']), tile(['해안'])])
+    expect(culture(s.players[0])).toBe(5)
+  })
+})
