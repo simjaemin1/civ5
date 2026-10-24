@@ -21,10 +21,14 @@
 ## 정책 카드 (8장 모두 등록됨)
 - 위치: `src/assets/cards/policy/<정책 id>.webp` (tradition, aesthetics, despotism, regime, liberty, rationalism, equality, diplomacy).
 
+## 문명 카드 (20/24장 등록, 가로형)
+- 위치: `src/assets/cards/civ/<문명 id>.webp` (korea, germany …). 아직 없는 문명: england, russia, netherlands, spain.
+
 ## 화면 사용처
 - 기술 트리 탭: 52장 카드가 비용 열별로 나열된다. 테두리 초록 = 보유, 주황 = 지금 연구 가능, 흐림 = 선행 기술이 모자람. 누르면 크게 보인다.
 - 기술 연구 화면: 연구할 수 있는 카드를 눌러 바로 연구한다.
 - 정책 탭, 정책을 고를 때, 문명 현황의 시행 중인 정책에 정책 카드가 나온다.
+- 시작 화면의 자리마다, 문명 현황(CivInspector)에 문명 카드가 나온다.
 - 불가사의 탭: 16장 카드와 주인·진척도. 생산 화면의 불가사의 투자에도 카드가 나온다.
 
 ## 다른 카드(군사·불가사의·정책·문명 등)

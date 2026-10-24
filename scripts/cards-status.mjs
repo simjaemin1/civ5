@@ -16,3 +16,5 @@ status('기술 카드', JSON.parse(readFileSync('src/engine/data/techs.json', 'u
 status('불가사의 카드', JSON.parse(readFileSync('src/engine/data/wonderCards.json', 'utf8')).wonders, 'src/assets/cards/wonder')
 const policies = Object.entries(JSON.parse(readFileSync('src/engine/data/policies.json', 'utf8'))).map(([id, p]) => ({ id, name: p.name }))
 status('정책 카드', policies, 'src/assets/cards/policy')
+const civs = JSON.parse(readFileSync('src/engine/data/civs.json', 'utf8'))
+status('문명 카드', civs.civs ?? civs, 'src/assets/cards/civ')
