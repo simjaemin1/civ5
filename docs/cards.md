@@ -14,9 +14,14 @@
 - 용량: 카드 한 장이 20~30KB 정도(webp)면 단일 HTML 빌드(`npm run build:single`)에도 문제없이 들어간다.
   (그림은 단일 HTML 안에 같이 들어간다.)
 
+## 불가사의 카드 (16장 모두 등록됨, 가로형)
+- 위치: `src/assets/cards/wonder/<불가사의 id>.webp` (예: pyramids, temple_of_artemis, statue_of_zeus …). id는 `src/engine/data/wonderCards.json`.
+- 카드의 최소 망치와 진척도(검은 원 개수 + 기술 아이콘 1개)는 데이터와 같아야 한다.
+
 ## 화면 사용처
 - 기술 트리 탭: 52장 카드가 비용 열별로 나열된다. 테두리 초록 = 보유, 주황 = 지금 연구 가능, 흐림 = 선행 기술이 모자람. 누르면 크게 보인다.
 - 기술 연구 화면: 연구할 수 있는 카드를 눌러 바로 연구한다.
+- 불가사의 탭: 16장 카드와 주인·진척도. 생산 화면의 불가사의 투자에도 카드가 나온다.
 
 ## 다른 카드(군사·불가사의·정책·문명 등)
 같은 방식으로 `src/assets/cards/<종류>/<id>.webp`를 두고, `src/ui/cards/cardImages.ts`의 `CardKind`에 종류를 추가하고 화면 컴포넌트를 만든다 (기술 카드 `TechCard.tsx`를 본뜬다).

@@ -2,7 +2,8 @@ import { useState } from 'react'
 import type { GameState, Player } from '../engine'
 import { prereqsMet, CIVS, MILITARY_CARDS, TECHS, WONDER_CARDS, civById, culture, happiness, totalWorkers, tourism } from '../engine'
 import { TechCard } from './cards/TechCard'
-import { cardText, conditionText, ICON, policyName, wonderEffectText } from './format'
+import { WonderCard } from './cards/WonderCard'
+import { cardText, ICON, policyName } from './format'
 
 export function PlayersTable({ game, seats, actor }: { game: GameState; seats: { ai: boolean }[]; actor: number }) {
   return (
@@ -98,39 +99,34 @@ export function InfoTabs({ game, viewer }: { game: GameState; viewer: number }) 
       </div>
       {tab === 'tech' && <TechTree player={me} />}
       {tab === 'wonder' && (
-        <div className="scroll">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>불가사의</th>
-              <th>기술</th>
-              <th>최소 망치</th>
-              <th>조건</th>
-              <th>효과</th>
-              <th>진척도 (필요)</th>
-            </tr>
-          </thead>
-          <tbody>
+        <div>
+          <div className="wonder-grid">
             {WONDER_CARDS.map((w) => {
               const owner = game.wonderOwners[w.id]
               const prog = game.wonderProgress[w.id] ?? {}
               return (
-                <tr key={w.id}>
-                  <td>{w.name}</td>
-                  <td>{TECHS.find((t) => t.id === w.tech)?.name}</td>
-                  <td>{w.minHammers}</td>
-                  <td>{conditionText(w.condition)}</td>
-                  <td>{w.effects.map(wonderEffectText).join(', ')}</td>
-                  <td>
-                    {owner !== undefined
-                      ? `🏛 ${civById(game.players[owner].civId).name}`
-                      : `(필요 ${w.progressNeeded}) ` + game.players.map((p) => `${civById(p.civId).name} ${prog[p.id] ?? 0}`).join(' / ')}
-                  </td>
-                </tr>
+                <WonderCard
+                  key={w.id}
+                  wonder={w}
+                  width={300}
+                  owned={owner !== undefined}
+                  note={`${w.name} — ${TECHS.find((t) => t.id === w.tech)?.name} 필요`}
+                  caption={
+                    owner !== undefined ? (
+                      <>🏛 {civById(game.players[owner].civId).name}이(가) 완성</>
+                    ) : (
+                      <>
+                        필요 진척도 {w.progressNeeded} · {game.players.map((p) => `${civById(p.civId).name} ${prog[p.id] ?? 0}`).join(' / ')}
+                        <br />
+                        기술: {TECHS.find((t) => t.id === w.tech)?.name}
+                      </>
+                    )
+                  }
+                />
               )
             })}
-          </tbody>
-        </table>
+          </div>
+          <p className="muted">카드를 누르면 크게 보입니다. 카드 오른쪽의 검은 원 개수 + 기술 아이콘 1개가 필요한 진척도입니다.</p>
         </div>
       )}
       {tab === 'card' && (

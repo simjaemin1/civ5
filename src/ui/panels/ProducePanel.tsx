@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { MILITARY_CARDS, cardById, cardCost, civById, investableWonders, minHammers, producible, uniqueOf, upgradeTargets, wonderCardById, TECHS, occupiedTiles } from '../../engine'
+import { WonderCard } from '../cards/WonderCard'
 import { cardText, conditionText, ICON, wonderEffectText } from '../format'
 import type { PanelProps } from './types'
 
@@ -40,23 +41,30 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
                       const amt = amounts[`${city.id}:${w.id}`] ?? h
                       const prog = game.wonderProgress[w.id] ?? {}
                       return (
-                        <div key={w.id} className="row">
-                          <b>{w.name}</b>
-                          <small>
-                            최소 {minHammers(player, w)} · 조건: {conditionText(w.condition)} · {w.effects.map(wonderEffectText).join(', ')} · 진척도{' '}
-                            {game.players.map((p) => `${civById(p.civId).name} ${prog[p.id] ?? 0}`).join(' / ')} (필요 {w.progressNeeded})
-                          </small>
-                          <input
-                            type="number"
-                            min={0}
-                            max={h}
-                            value={amt}
-                            style={{ width: 56 }}
-                            onChange={(e) => setAmounts({ ...amounts, [`${city.id}:${w.id}`]: Number(e.target.value) })}
-                          />
-                          <button disabled={amt < minHammers(player, w) || amt > h} onClick={() => dispatch({ type: 'invest', cityId: city.id, wonderId: w.id, hammers: amt })}>
-                            투자
-                          </button>
+                        <div key={w.id} className="wonder-row">
+                          <WonderCard wonder={w} width={240} />
+                          <div className="controls">
+                            <b>{w.name}</b>
+                            <small>
+                              최소 {minHammers(player, w)} · 조건: {conditionText(w.condition)} · {w.effects.map(wonderEffectText).join(', ')}
+                            </small>
+                            <small>
+                              진척도 (필요 {w.progressNeeded}): {game.players.map((p) => `${civById(p.civId).name} ${prog[p.id] ?? 0}`).join(' / ')}
+                            </small>
+                            <div className="row">
+                              <input
+                                type="number"
+                                min={0}
+                                max={h}
+                                value={amt}
+                                style={{ width: 56 }}
+                                onChange={(e) => setAmounts({ ...amounts, [`${city.id}:${w.id}`]: Number(e.target.value) })}
+                              />
+                              <button disabled={amt < minHammers(player, w) || amt > h} onClick={() => dispatch({ type: 'invest', cityId: city.id, wonderId: w.id, hammers: amt })}>
+                                투자
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       )
                     })}

@@ -190,3 +190,13 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .techcol.cards { display: flex; flex-direction: column; gap: 8px; align-items: center; }
 .zoom { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; align-items: center; gap: 10px; margin: auto; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme='light']) .card:not(.has-img) { --card-bg: #3a4252; --card-line: #6b7790; color: #f0e4cc; } .card .face-title { color: #f0d9a8; } }
+
+/* 불가사의 카드 (가로형) */
+.wonder-card { aspect-ratio: 685 / 480; }
+.wonder-card.owned { outline: 3px solid var(--own-line); }
+.wonder-card.dim { filter: grayscale(0.7); opacity: 0.7; }
+.wonder-fig { margin: 0; display: inline-flex; flex-direction: column; gap: 4px; vertical-align: top; }
+.wonder-fig figcaption { font-size: 0.8rem; line-height: 1.35; }
+.wonder-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.wonder-row .controls { display: flex; flex-direction: column; gap: 6px; min-width: 200px; flex: 1; }
+.wonder-grid { display: flex; flex-wrap: wrap; gap: 14px; }
