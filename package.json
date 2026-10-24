@@ -12,7 +12,8 @@
     "build:single": "node scripts/build-single.mjs",
     "cards:status": "node scripts/cards-status.mjs",
     "server": "tsx server/main.ts",
-    "server:dev": "tsx watch server/main.ts"
+    "server:dev": "tsx watch server/main.ts",
+    "share": "npm run build && tsx server/main.ts --share"
   },
   "dependencies": {
     "react": "^19.2.8",

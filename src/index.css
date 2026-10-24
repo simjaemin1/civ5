@@ -380,3 +380,5 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
 .yield-ic.minus { opacity: 0.28; filter: grayscale(1); }
 .tile.has-img img.yield-ic { display: block; outline: none !important; box-shadow: none; border-radius: 0; max-width: none; }
 .turn-steps .undo-box { margin: 0; gap: 6px; }
+.invite code { user-select: all; word-break: break-all; }
+.warn-text { color: var(--err); }

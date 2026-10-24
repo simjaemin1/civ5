@@ -2,6 +2,7 @@ import { createServer } from 'node:http'
 import type { IncomingMessage, Server, ServerResponse } from 'node:http'
 import { existsSync, readFileSync, statSync } from 'node:fs'
 import { extname, join, normalize } from 'node:path'
+import { networkInterfaces } from 'node:os'
 import { WebSocketServer } from 'ws'
 import type { WebSocket } from 'ws'
 import { Hub } from './hub'
@@ -51,11 +52,34 @@ function serveStatic(dir: string | undefined, req: IncomingMessage, res: ServerR
   res.end(readFileSync(file))
 }
 
-export function startServer(opts: { port: number; store: Store; staticDir?: string }): Promise<RunningServer> {
+/** 이 PC의 공유기 안(같은 와이파이) 주소들: 친구가 들어올 수 있는 주소 후보 */
+export function lanAddresses(port: number, ifaces = networkInterfaces()): string[] {
+  const found: { name: string; ip: string }[] = []
+  for (const [name, list] of Object.entries(ifaces)) {
+    for (const a of list ?? []) if (a.family === 'IPv4' && !a.internal) found.push({ name, ip: a.address })
+  }
+  // 실제 와이파이·유선 주소를 앞에: 가상 어댑터(WSL·Hyper-V·VirtualBox·VMware·Docker)는 뒤로, 공유기에서 흔한 192.168 → 10 → 그 밖 순
+  const virtual = (n: string) => /vEthernet|WSL|Hyper-V|VirtualBox|VMware|Docker|docker|veth|br-|Loopback|Tailscale|ZeroTier/i.test(n)
+  const rank = (x: { name: string; ip: string }) => (virtual(x.name) ? 10 : 0) + (x.ip.startsWith('192.168.') ? 0 : x.ip.startsWith('10.') ? 1 : 2)
+  return found.sort((a, b) => rank(a) - rank(b)).map((x) => `http://${x.ip}:${port}`)
+}
+
+/** 초대 주소 후보 (GET /api/info): 공개 주소(PUBLIC_URL·터널)가 있으면 그것, 그리고 같은 와이파이 주소들 */
+export interface ServerInfo {
+  publicUrl: string | null
+  lan: string[]
+}
+
+export function startServer(opts: { port: number; store: Store; staticDir?: string; publicUrl?: () => string | null }): Promise<RunningServer> {
   const hub = new Hub(opts.store)
   const server = createServer(async (req, res) => {
     try {
       const url = (req.url ?? '/').split('?')[0]
+      if (url === '/api/info' && req.method === 'GET') {
+        const addr = server.address()
+        const port = typeof addr === 'object' && addr ? addr.port : opts.port
+        return sendJson(res, 200, { publicUrl: opts.publicUrl?.() ?? null, lan: lanAddresses(port) } satisfies ServerInfo)
+      }
       const m = /^\/api\/rooms(?:\/([A-Za-z0-9]+))?(\/join)?$/.exec(url)
       if (!m) return serveStatic(opts.staticDir, req, res)
       const [, id, join_] = m
