@@ -4,7 +4,7 @@ import { MILITARY_CARDS, RESOURCES, TECHS, WONDERS, cardById, civById } from './
 import { cardStats } from './cardstats'
 import type { TechDef } from './data'
 import { apply, researchableTechs } from './game'
-import { ctxOf, culture, tileYield, totalWorkers, tourism } from './yields'
+import { ctxOf, culture, happiness, tileYield, totalWorkers, tourism } from './yields'
 import { investableWonders, minHammers } from './wonders'
 import { cardCost, producible, uniqueOf, upgradeTargets } from './military'
 import { declarationTargets, occupiedTiles } from './war'
@@ -234,8 +234,9 @@ function policyOrder(s: GameState, p: Player): Policy[] {
   const surplus = food - totalWorkers(p)
   const tiles = p.cities.reduce((n, c) => n + c.tiles.length, 0)
   const recovers = surplus >= 3 && totalWorkers(p) >= 6
-  const starved = withNone < need
-  if (starved && tiles >= TERRITORY_OK) {
+  // 발판(미학·전통)이 다져졌으면(영토가 충분하고 일꾼이 행복 한계에 가깝다) 스퍼트: 자유·합리주의로 과학을 몰아 올린다
+  const foundationDone = tiles >= TERRITORY_OK && totalWorkers(p) >= happiness(p) - 1
+  if (foundationDone || withNone < Math.min(need, 4)) {
     const withRational = base + (p.civId === 'korea' ? 5 : 3) + (writing ? Math.max(0, food - totalWorkers(p)) : 0)
     const withLiberty = base + (writing ? food : 0)
     return withLiberty >= withRational ? ['liberty', 'rationalism', ...POLICY_PREFERENCE] : ['rationalism', 'liberty', ...POLICY_PREFERENCE]
