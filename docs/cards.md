@@ -21,8 +21,8 @@
 ## 정책 카드 (8장 모두 등록됨)
 - 위치: `src/assets/cards/policy/<정책 id>.webp` (tradition, aesthetics, despotism, regime, liberty, rationalism, equality, diplomacy).
 
-## 문명 카드 (20/24장 등록, 가로형)
-- 위치: `src/assets/cards/civ/<문명 id>.webp` (korea, germany …). 아직 없는 문명: england, russia, netherlands, spain.
+## 문명 카드 (24장 모두 등록됨, 가로형)
+- 위치: `src/assets/cards/civ/<문명 id>.webp` (korea, germany …).
 
 ## 군사 카드 (방향마다 한 장씩)
 군사 카드는 전투력 마크의 **방향**마다 그림이 다르다 (별이 왼쪽/가운데/오른쪽에 있다). 파일 이름에 방향을 붙인다.
