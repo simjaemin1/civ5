@@ -543,7 +543,7 @@
   "priority": 17,
   "happiness": 4,
   "bonus": {
-   "gold": 3
+   "science": 1
   },
   "startCulture": 0,
   "ability": "상대의 해안 전용 군사 카드를 파괴하면 전투 후 그 카드를 가져옴",
@@ -578,7 +578,9 @@
   "name": "스웨덴",
   "priority": 15,
   "happiness": 3,
-  "bonus": {},
+  "bonus": {
+   "gold": 3
+  },
   "startCulture": 0,
   "ability": "배치하지 않은 위대한 장군을 일꾼처럼 타일에 올려 사용",
   "unique": "캐롤리언 (소총병)",
@@ -821,7 +823,7 @@
   "id": "huns",
   "name": "훈족",
   "priority": 2,
-  "happiness": 3,
+  "happiness": 4,
   "bonus": {},
   "startCulture": 1,
   "ability": "고유 유닛 2장",
