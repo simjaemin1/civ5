@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { CIVS, civById } from '../engine'
+import { CIVS } from '../engine'
+import { CivCard } from '../ui/cards/CivCard'
 import type { OnlineRoom } from './useOnlineRoom'
 import { MAX_PLAYERS, MIN_PLAYERS } from './protocol'
 
@@ -50,7 +51,8 @@ export function Lobby({ online, onLeave }: Props) {
                     {mine && ' ← 나'}
                   </td>
                   <td>
-                    {mine ? civSelect(s.civId, (id) => send({ type: 'setCiv', civId: id }), false) : s.civId ? civById(s.civId).name : <span className="muted">{s.ai ? '(시작할 때 정해짐)' : '(아직 안 골랐음)'}</span>}
+                    {mine && civSelect(s.civId, (id) => send({ type: 'setCiv', civId: id }), false)}
+                    {s.civId ? <CivCard civId={s.civId} width={230} /> : !mine && <span className="muted">{s.ai ? '(시작할 때 정해짐)' : '(아직 안 골랐음)'}</span>}
                   </td>
                   <td>{s.ai ? '' : s.connected ? '🟢 접속 중' : '⚪ 끊김'}</td>
                   <td>{you.host && !mine && <button onClick={() => send({ type: 'removeSeat', seat: s.seat })}>{s.ai ? '삭제' : '내보내기'}</button>}</td>

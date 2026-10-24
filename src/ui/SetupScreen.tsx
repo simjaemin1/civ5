@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { CIVS } from '../engine'
+import { CivCard } from './cards/CivCard'
 
 export interface Seat {
   civId: string
@@ -41,6 +42,9 @@ export function SetupScreen({ onStart, onResume, onOnline }: Props) {
           {seats.map((s, i) => (
             <tr key={i}>
               <td>{i + 1}번 자리</td>
+              <td>
+                <CivCard civId={s.civId} width={230} />
+              </td>
               <td>
                 <select
                   value={s.civId}

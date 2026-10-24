@@ -1,3 +1,4 @@
+import { Icon } from './icons'
 import { useCallback, useEffect, useState } from 'react'
 import type { Action, GameState } from '../engine'
 import { RuleError, actorOf, aiStep, apply, civById, culture, happiness, totalWorkers, tourism } from '../engine'
@@ -204,7 +205,7 @@ export function GameScreen({ initial, seats, onExit }: Props) {
       <div className="stats">
         {player.cities.length > 0 && (
           <span>
-            문화 {culture(player)} · 관광 {tourism(player)} · 일꾼 {totalWorkers(player)}/{happiness(player)} · 장군 {player.generals}
+            문화 {culture(player)} · 관광 {tourism(player)} · <Icon name="worker" size={16} /> {totalWorkers(player)}/{happiness(player)} · <Icon name="general" size={16} /> {player.generals}
           </span>
         )}
       </div>

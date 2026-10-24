@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { PolicyId } from '../../engine'
-import { MILITARY_CARDS, POLICIES, civById, happiness, producible, totalWorkers } from '../../engine'
+import { MILITARY_CARDS, civById, happiness, producible, totalWorkers } from '../../engine'
+import { PolicyCard } from '../cards/PolicyCard'
 import { CityBuilder } from './CityBuilder'
 import type { PanelProps } from './types'
 import { cardText, policyName } from '../format'
@@ -59,22 +60,20 @@ export function PendingPanel({ game, player, dispatch }: PanelProps) {
               </select>
             </label>
           )}
-          <div className="grid">
+          <div className="cardgrid">
             {ORDER.map((id) => (
-              <div key={id} className="policy">
-                <button className={player.policy === id ? 'active' : ''} onClick={() => choose(id, false)}>
-                  <b>{POLICIES[id].name}{id === 'tradition' ? ' (식량 정산만 생략)' : ''}</b>
-                  <small>{POLICIES[id].desc}</small>
-                </button>
+              <div key={id} className="policy-pick">
+                <PolicyCard policy={id} width={150} active={player.policy === id} onClick={() => choose(id, false)} />
                 {id === 'tradition' && (
                   <button disabled={workers < 3} onClick={() => choose(id, true)} title={workers < 3 ? '일꾼이 3개 이상일 때만 버릴 수 있습니다' : ''}>
                     <b>전통 + 일꾼 3개 버리고 문화 2</b>
-                    <small>{workers < 3 ? `지금 일꾼 ${workers}개라 불가능` : `일꾼 ${workers}개 → ${workers - 3}개, 타일 2장 추가`}</small>
+                    <small>{workers < 3 ? `지금 일꾼 ${workers}개라 불가능` : ` 일꾼 ${workers}개 → ${workers - 3}개, 타일 2장 추가`}</small>
                   </button>
                 )}
               </div>
             ))}
           </div>
+          <p className="muted">카드를 누르면 그 정책을 고릅니다.</p>
         </div>
       )}
       {player.pendingFreeCards > 0 && (

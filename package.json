@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "build:single": "node scripts/build-single.mjs",
+    "cards:status": "node scripts/cards-status.mjs",
     "server": "tsx server/main.ts",
     "server:dev": "tsx watch server/main.ts"
   },

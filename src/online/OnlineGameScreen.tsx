@@ -6,6 +6,7 @@ import { BattleReportModal } from '../ui/BattleReportModal'
 import { CivInspector } from '../ui/CivInspector'
 import { InfoTabs, PlayersTable } from '../ui/InfoTabs'
 import { ICON } from '../ui/format'
+import { Icon } from '../ui/icons'
 import { BattlePanel } from '../ui/panels/BattlePanel'
 import { DeclarePanel } from '../ui/panels/DeclarePanel'
 import { PendingPanel } from '../ui/panels/PendingPanel'
@@ -176,7 +177,7 @@ export function OnlineGameScreen({ online, onExit }: Props) {
       <div className="stats">
         {me.cities.length > 0 && (
           <span>
-            나: {civById(me.civId).name} · 문화 {culture(me)} · 관광 {tourism(me)} · 일꾼 {totalWorkers(me)}/{happiness(me)} · 장군 {me.generals}
+            나: {civById(me.civId).name} · 문화 {culture(me)} · 관광 {tourism(me)} · <Icon name="worker" size={16} /> {totalWorkers(me)}/{happiness(me)} · <Icon name="general" size={16} /> {me.generals}
           </span>
         )}
       </div>

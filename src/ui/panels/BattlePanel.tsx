@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { cardStats, civById, usableInBattle } from '../../engine'
 import type { CardInst, GameState, Player } from '../../engine'
+import { UnitCard } from '../cards/UnitCard'
 import { cardText } from '../format'
 import type { PanelProps } from './types'
 
@@ -65,20 +66,24 @@ function Arrange({ game, me, dispatch }: { game: GameState; me: Player; dispatch
       <div className="hand">
         {usable.length === 0 && <p className="muted">쓸 수 있는 카드가 없습니다.</p>}
         {usable.map((c) => (
-          <button
+          <div
             key={c.uid}
             draggable
             onDragStart={(e) => {
               e.dataTransfer.setData('text/plain', String(c.uid))
               setHeld(c.uid)
             }}
-            className={`card-chip ${held === c.uid ? 'held' : ''} ${placed.has(c.uid) ? 'used' : ''}`}
-            onClick={() => setHeld(held === c.uid ? null : c.uid)}
-            title={placed.has(c.uid) ? '이미 자리에 있음 (다른 자리를 누르면 옮김)' : undefined}
           >
-            {label(me, c)}
-            {placed.has(c.uid) && <small> · {slots.indexOf(c.uid) + 1}번에 놓음</small>}
-          </button>
+            <UnitCard
+              card={c}
+              width={120}
+              selected={held === c.uid}
+              dim={placed.has(c.uid)}
+              onClick={() => setHeld(held === c.uid ? null : c.uid)}
+              overlay={placed.has(c.uid) ? `${slots.indexOf(c.uid) + 1}번에 놓음` : undefined}
+              title={placed.has(c.uid) ? '이미 자리에 있음 (다른 자리를 누르면 옮김)' : cardText(c)}
+            />
+          </div>
         ))}
       </div>
       <div className="slot-row">
@@ -100,8 +105,8 @@ function Arrange({ game, me, dispatch }: { game: GameState; me: Player; dispatch
               }}
             >
               <b>{i + 1}번</b>
-              <small className="muted">상대 {4 - i >= 1 ? `${4 - i}번과 마주 봄` : '(마주 보는 자리 없음)'}</small>
-              <div className="slot-card">{c ? label(me, c) : <span className="muted">(비어 있음)</span>}</div>
+              <small className="muted">상대 {4 - i}번과 마주 봄</small>
+              <div className="slot-card">{c ? <UnitCard card={c} width={120} zoomable={false} /> : <span className="muted">(비어 있음)</span>}</div>
               {c && (
                 <button
                   className="link"
@@ -138,7 +143,7 @@ function Board4({ game, pid }: { game: GameState; pid: number }) {
             <b>
               {civById(p.civId).name} {i + 1}번
             </b>
-            <div>{c ? label(p, c) : '(빈칸)'}</div>
+            <div>{c ? <UnitCard card={c} width={120} /> : '(빈칸)'}</div>
           </div>
         )
       })}

@@ -1,30 +1,22 @@
 import type { BattleReport, BattleUnitReport, GameState } from '../engine'
-import { cardStats, civById } from '../engine'
-import { DIR_LABEL } from './format'
+import { civById } from '../engine'
+import { UnitCard } from './cards/UnitCard'
 
-/** 한 카드: 이름, 공격(방향·전투력), 체력, 방어력과 이번 전투의 결과 */
+/** 한 카드: 그림(또는 카드 얼굴)과 이번 전투의 결과 */
 function Unit({ u }: { u: BattleUnitReport | null }) {
   if (!u) return <div className="unit empty">빈칸</div>
-  const st = cardStats(u.inst)
   const taken = u.attackDamage + u.counterDamage
-  const atk =
-    st.choose !== undefined
-      ? `⚔${st.choose} 대상 선택`
-      : st.marks.length
-        ? st.marks.map((m) => `⚔${m.power}${DIR_LABEL[m.dir]}`).join('·')
-        : st.markPower !== undefined
-          ? `⚔${st.markPower}`
-          : '공격 없음'
   return (
     <div className={`unit ${u.destroyed ? 'dead' : 'alive'}`}>
-      <b>{st.name}</b>
-      <span>{atk}</span>
-      <span>
-        ♥{u.hp} 🛡{st.def}
-      </span>
+      <UnitCard card={u.inst} width={150} zoomable={false} />
       <span className="dmg">
-        받은 대미지 {taken}
-        {u.counterDamage > 0 && <small> (공격 {u.attackDamage} + 반격 {u.counterDamage})</small>}
+        받은 대미지 {taken} / 체력 {u.hp}
+        {u.counterDamage > 0 && (
+          <small>
+            {' '}
+            (공격 {u.attackDamage} + 반격 {u.counterDamage})
+          </small>
+        )}
       </span>
       <span className="state">{u.destroyed ? '💥 파괴' : '✔ 생존'}</span>
     </div>
