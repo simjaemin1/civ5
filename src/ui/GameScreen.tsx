@@ -158,7 +158,22 @@ export function GameScreen({ initial, seats, onExit }: Props) {
 
   return (
     <div className="game">
-      {pendingReport && <BattleReportModal game={game} report={pendingReport} onClose={() => setSeenBattle(pendingReport.seq)} />}
+      {pendingReport && (
+        <BattleReportModal
+          game={game}
+          report={pendingReport}
+          viewerId={
+            seats[pendingReport.attackerId].ai
+              ? pendingReport.defenderId
+              : seats[pendingReport.defenderId].ai
+                ? pendingReport.attackerId
+                : actor === pendingReport.defenderId
+                  ? pendingReport.defenderId
+                  : pendingReport.attackerId
+          }
+          onClose={() => setSeenBattle(pendingReport.seq)}
+        />
+      )}
       <header className="top">
         <div>
           <b>라운드 {game.round}</b> · {PHASE[game.phase]} ·{' '}
@@ -212,6 +227,13 @@ export function GameScreen({ initial, seats, onExit }: Props) {
           </span>
         )}
       </div>
+      {!over && !curtain && !actorSeat.ai && game.phase !== 'setup' && game.phase !== 'battle' && player.wonders.includes('great_wall') && !player.greatWallUsed && (
+        <div className="panel row">
+          <button onClick={() => dispatch({ type: 'useGreatWall' })} title="내 영토 위의 상대 장군을 모두 돌려보냅니다 (게임 중 1회)">
+            🧱 만리장성 사용 (상대 장군 모두 돌려보냄, 1회)
+          </button>
+        </div>
+      )}
       {main}
       {showBoard && <Board game={game} player={player} />}
       {actorSeat.ai && !over && <Board game={game} player={player} />}

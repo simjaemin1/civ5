@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { BattleReport, BattleUnitReport, GameState } from '../engine'
 import { civById } from '../engine'
+import { ArrowLayer } from './ArrowLayer'
+import type { Arrow } from './ArrowLayer'
 import { UnitCard } from './cards/UnitCard'
 
 type Live = { dmg: number; attacking: boolean; hit: number }
@@ -14,7 +16,7 @@ function Unit({ u, live, dir, final }: { u: BattleUnitReport | null; live: Live;
   return (
     <div className={`unit ${dead ? 'dead' : 'alive'}${live.attacking ? ` lunge-${dir}` : ''}${live.hit ? ' hit' : ''}`} key={live.hit}>
       <div className="cardwrap">
-        <UnitCard card={u.inst} width={150} zoomable={false} />
+        <UnitCard card={u.inst} width={150} zoomable={false} flip={dir === 'down'} />
         {live.hit > 0 && <span className="pop">−{live.hit}</span>}
       </div>
       <div className="hpbar" title={`체력 ${left}/${u.hp}`}>
@@ -63,11 +65,16 @@ function stepsOf(report: BattleReport): Step[] {
 }
 
 /** 전투가 끝나면 한 번 띄우는 전투 장면. 확인을 눌러야 다음으로 넘어간다. */
-export function BattleReportModal({ game, report, onClose }: { game: GameState; report: BattleReport; onClose: () => void }) {
+export function BattleReportModal({ game, report, viewerId, onClose }: { game: GameState; report: BattleReport; viewerId?: number; onClose: () => void }) {
   const att = game.players[report.attackerId]
   const def = game.players[report.defenderId]
   const unitAt = (pid: number, slot: number) => report.units.find((u) => u.owner === pid && u.slot === slot) ?? null
   const cols = [1, 2, 3, 4]
+  // 보는 사람(나)이 아래쪽, 상대가 위쪽 (상대 카드는 마주 보도록 뒤집힌다)
+  const viewer = viewerId === report.attackerId || viewerId === report.defenderId ? viewerId : report.attackerId
+  const bottomId = viewer
+  const topId = bottomId === report.attackerId ? report.defenderId : report.attackerId
+  const roleOf = (pid: number) => (pid === report.attackerId ? '공격' : '수비')
   const winnerName = civById((report.winner === 'attacker' ? att : def).civId).name
   const kind = { normal: '일반 선전포고', retake: '탈환 선전포고', city: '도시 공격' }[report.kind]
   const hits = [...report.hits].sort((a, b) => a.from.pid - b.from.pid || a.from.slot - b.from.slot)
@@ -96,6 +103,14 @@ export function BattleReportModal({ game, report, onClose }: { game: GameState; 
     const hit = now && now.to.pid === pid && now.to.slot === slot ? now.power : 0
     return { dmg, attacking, hit }
   }
+  const MINE = '#1a7f37'
+  const THEIRS = '#c62828'
+  const colorOf = (pid: number) => (pid === bottomId ? MINE : THEIRS)
+  const arrows: Arrow[] = done
+    ? steps.filter((st) => st.power > 0).map((st) => ({ from: `${st.from.pid}:${st.from.slot}`, to: `${st.to.pid}:${st.to.slot}`, color: colorOf(st.from.pid), label: String(st.power), dashed: true }))
+    : current
+      ? [{ from: `${current.from.pid}:${current.from.slot}`, to: `${current.to.pid}:${current.to.slot}`, color: colorOf(current.from.pid), label: `−${current.power}`, bold: true }]
+      : []
   const skip = () => {
     setRun(false)
     setStep(steps.length)
@@ -114,33 +129,43 @@ export function BattleReportModal({ game, report, onClose }: { game: GameState; 
           {kind} · 목표 타일: {report.terrains.length ? report.terrains.join('·') : '?'}
           {report.coastal ? ' (해안 타일 전투)' : ''} · 라운드 {report.round}
         </p>
-        <div className="scene">
-          <div className="side-label">{civById(def.civId).name} (수비)</div>
-          <div className="scene-row">
-            {cols.map((c) => (
-              <div key={`d${c}`} className="cell">
-                <small>수비 {5 - c}번</small>
-                <Unit u={unitAt(report.defenderId, 5 - c)} live={liveOf(report.defenderId, 5 - c)} dir="down" final={done} />
-              </div>
-            ))}
+        <ArrowLayer arrows={arrows}>
+          <div className="scene">
+            <div className="side-label">
+              {civById(game.players[topId].civId).name} ({roleOf(topId)}) {topId !== viewer && '— 상대'}
+            </div>
+            <div className="scene-row">
+              {cols.map((c) => (
+                <div key={`t${c}`} className="cell" data-slot={`${topId}:${5 - c}`}>
+                  <small>
+                    {roleOf(topId)} {5 - c}번
+                  </small>
+                  <Unit u={unitAt(topId, 5 - c)} live={liveOf(topId, 5 - c)} dir="down" final={done} />
+                </div>
+              ))}
+            </div>
+            <div className="scene-row vs">
+              {cols.map((c) => (
+                <div key={`v${c}`} className="cell arrow-gap">
+                  &nbsp;
+                </div>
+              ))}
+            </div>
+            <div className="scene-row">
+              {cols.map((c) => (
+                <div key={`b${c}`} className="cell" data-slot={`${bottomId}:${c}`}>
+                  <small>
+                    {roleOf(bottomId)} {c}번
+                  </small>
+                  <Unit u={unitAt(bottomId, c)} live={liveOf(bottomId, c)} dir="up" final={done} />
+                </div>
+              ))}
+            </div>
+            <div className="side-label">
+              {civById(game.players[bottomId].civId).name} ({roleOf(bottomId)}) — 나
+            </div>
           </div>
-          <div className="scene-row vs">
-            {cols.map((c) => (
-              <div key={`v${c}`} className="cell">
-                ↕
-              </div>
-            ))}
-          </div>
-          <div className="scene-row">
-            {cols.map((c) => (
-              <div key={`a${c}`} className="cell">
-                <small>공격 {c}번</small>
-                <Unit u={unitAt(report.attackerId, c)} live={liveOf(report.attackerId, c)} dir="up" final={done} />
-              </div>
-            ))}
-          </div>
-          <div className="side-label">{civById(att.civId).name} (공격)</div>
-        </div>
+        </ArrowLayer>
         <div className="row anim-bar">
           {!done && (
             <span className="muted">

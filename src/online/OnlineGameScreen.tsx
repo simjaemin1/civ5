@@ -132,7 +132,7 @@ export function OnlineGameScreen({ online, onExit }: Props) {
 
   return (
     <div className="game">
-      {pendingReport && <BattleReportModal game={game} report={pendingReport} onClose={() => setSeenBattle(pendingReport.seq)} />}
+      {pendingReport && <BattleReportModal game={game} report={pendingReport} viewerId={pendingReport.attackerId === game.viewer || pendingReport.defenderId === game.viewer ? game.viewer : pendingReport.attackerId} onClose={() => setSeenBattle(pendingReport.seq)} />}
       <header className="top">
         <div>
           <b>라운드 {game.round}</b> · {PHASE[game.phase]} · <span className="who">{civById(actorPlayer.civId).name}</span>
@@ -184,6 +184,13 @@ export function OnlineGameScreen({ online, onExit }: Props) {
           </span>
         )}
       </div>
+      {mine && !over && game.phase !== 'setup' && game.phase !== 'battle' && me.wonders.includes('great_wall') && !me.greatWallUsed && (
+        <div className="panel row">
+          <button onClick={() => dispatch({ type: 'useGreatWall' })} title="내 영토 위의 상대 장군을 모두 돌려보냅니다 (게임 중 1회)">
+            🧱 만리장성 사용 (상대 장군 모두 돌려보냄, 1회)
+          </button>
+        </div>
+      )}
       {main}
       {showBoard && <Board game={game} player={me} />}
       {!mine && !over && me.cities.length > 0 && <Board game={game} player={me} />}

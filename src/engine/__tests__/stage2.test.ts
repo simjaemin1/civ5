@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { apply, culture, happiness, tourism, computeYields, RuleError, WONDER_CARDS, TECHS } from '..'
+import { apply, createGame, culture, happiness, tourism, computeYields, RuleError, WONDER_CARDS, TECHS } from '..'
 import type { GameState, TileCard } from '..'
 import { found, me, play, startGame, tile } from './helpers'
 
@@ -94,26 +94,28 @@ describe('정책', () => {
     expect(me(s).cities[0].workers).toBe(2)
   })
 
-  it('합리주의: 매 차례 과학 +3 (한국은 5)', () => {
+  it('합리주의: 매 차례 과학 +4 (한국은 6)', () => {
     const base = solo('denmark')
     const withP = mod(base, (c) => (c.players[0].policy = 'rationalism'))
-    expect(computeYields(me(withP)).science - computeYields(me(base)).science).toBe(3)
+    expect(computeYields(me(withP)).science - computeYields(me(base)).science).toBe(4)
     const k = solo('korea')
     const kp = mod(k, (c) => (c.players[0].policy = 'rationalism'))
-    expect(computeYields(me(kp)).science - computeYields(me(k)).science).toBe(5)
+    expect(computeYields(me(kp)).science - computeYields(me(k)).science).toBe(6)
   })
 
-  it('평등: 일꾼 2개당 관광 1', () => {
+  it('평등: 문화 3당 관광 1', () => {
     const s = mod(solo(), (c) => {
       c.players[0].policy = 'equality'
-      c.players[0].cities[0].workers = 5
     })
-    expect(tourism(me(s))).toBe(2)
+    expect(tourism(me(s))).toBe(Math.floor(culture(me(s)) / 3))
   })
 
-  it('세계화·냉각기술: 문화 2당 관광 1', () => {
-    const s = mod(solo(), (c) => c.players[0].techs.push('globalization', 'refrigeration'))
-    expect(tourism(me(s))).toBe(2 * Math.floor(culture(me(s)) / 2))
+  it('세계화·냉각기술: 문화 3당 관광 1씩', () => {
+    let s = mod(solo(), (c) => c.players[0].techs.push('globalization', 'refrigeration'))
+    const third = Math.floor(culture(me(s)) / 3)
+    expect(tourism(me(s))).toBe(2 * third)
+    s = mod(s, (c) => (c.players[0].policy = 'equality'))
+    expect(tourism(me(s))).toBe(3 * third)
   })
 })
 
@@ -296,8 +298,8 @@ describe('불가사의 완성 효과', () => {
   })
 
   it('관광: 루브르 +2, 에펠탑 +3, 프랑스는 불가사의 관광 2배', () => {
-    expect(tourism(me(owning('denmark', ['louvre', 'eiffel_tower'])))).toBe(5)
-    expect(tourism(me(owning('france', ['louvre', 'eiffel_tower'])))).toBe(10)
+    expect(tourism(me(owning('denmark', ['louvre', 'eiffel_tower'])))).toBe(7)
+    expect(tourism(me(owning('france', ['louvre', 'eiffel_tower'])))).toBe(14)
   })
 
   it('페트라: 사막 타일 식량 +1', () => {
@@ -466,5 +468,58 @@ describe('도시 선택 (식량·망치 변환, 문화 타일, 일꾼 버리기)
     }
     expect(me(run(true)).held).toBeNull()
     expect(me(run(false)).held?.id).toBe(held.id)
+  })
+})
+
+describe('시작 타일 엘도라도', () => {
+  const eldoradoIn = (hand: TileCard[]) => hand.some((c) => c.wonder === 'eldorado')
+  it('시작 손에서 엘도라도를 처음 발견하면 손이 5장, 도시를 세우면 영토 효과로 6장', () => {
+    let hit = 0
+    for (let seed = 1; seed <= 400 && hit < 3; seed++) {
+      let s = createGame({ seed, civIds: ['denmark', 'china'] })
+      const hand = s.players[s.order[0]].hand
+      if (!eldoradoIn(hand)) continue
+      hit++
+      expect(hand).toHaveLength(5)
+      expect(s.eldoradoFound).toBe(true)
+      s = found(s)
+      expect(culture(me(s))).toBe(6)
+    }
+    expect(hit).toBeGreaterThan(0)
+  })
+  it('시작 손이 이미 5장인 문명(시작 문화 1)은 발견 타일을 도시를 세운 뒤 영토로 받는다', () => {
+    let hit = 0
+    for (let seed = 1; seed <= 600 && hit < 2; seed++) {
+      let s = createGame({ seed, civIds: ['persia', 'greece'] })
+      const p = s.players[s.order[0]]
+      if (p.civId !== 'persia' || !eldoradoIn(p.hand)) continue
+      hit++
+      expect(p.hand).toHaveLength(5)
+      expect(p.startExtras).toHaveLength(1)
+      s = found(s)
+      expect(culture(me(s))).toBe(7)
+    }
+    expect(hit).toBeGreaterThan(0)
+  })
+  it('엘도라도가 없는 시작 손은 4장', () => {
+    for (let seed = 1; seed <= 40; seed++) {
+      const s = createGame({ seed, civIds: ['denmark', 'china'] })
+      const hand = s.players[s.order[0]].hand
+      if (!eldoradoIn(hand)) expect(hand).toHaveLength(4)
+    }
+  })
+})
+
+describe('일꾼이 모자랄 때', () => {
+  it('일꾼이 0명인데 맡아둔 타일이 있으면 타일을 덱으로 돌려주고 배치를 계속한다 (진행 불능 방지)', () => {
+    const held = tile(['평지'])
+    let s = mod(solo(), (c) => {
+      c.players[0].cities[0].workers = 0
+      c.players[0].held = held
+    })
+    s = apply(s, { type: 'placeWorkers', placements: [] })
+    expect(me(s).held).toBeNull()
+    expect(s.deck.some((c) => c.id === held.id)).toBe(true)
+    expect(s.phase).toBe('research')
   })
 })

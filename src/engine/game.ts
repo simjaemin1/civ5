@@ -1,6 +1,6 @@
 import type { Action, City, GameState, Placement, Player, Side, TileCard } from './types'
 import { RuleError, SIDES } from './types'
-import { TECHS, civById, techById } from './data'
+import { TECHS, WONDERS, civById, techById } from './data'
 import type { TechDef } from './data'
 import { shuffle } from './rng'
 import { computeYields, happiness, totalWorkers } from './yields'
@@ -93,6 +93,16 @@ function beginTurn(s: GameState): void {
     if (p.hand.length === 0) {
       const civ = civById(p.civId)
       p.hand = drawTiles(s, 4 + civ.startCulture)
+      // 시작 손에서 엘도라도를 처음 발견하면 문화 +1: 타일 1장을 손에 더 받는다 (도시를 세울 때 영토 효과로 한 장 더)
+      for (let i = 0; i < p.hand.length; i++) {
+        const w = p.hand[i].wonder ? WONDERS[p.hand[i].wonder!] : undefined
+        if (!w?.cultureOnDiscover || s.eldoradoFound) continue
+        s.eldoradoFound = true
+        // 도시는 도시 타일 1장 + 사방 4장까지만 세울 수 있으므로, 손이 이미 5장이면 도시를 세운 뒤 영토로 붙인다
+        if (p.hand.length < 5) p.hand.push(...drawTiles(s, 1))
+        else p.startExtras = [...(p.startExtras ?? []), ...drawTiles(s, 1)]
+        say(s, `${civ.name} 엘도라도 발견 (문화 +1)`)
+      }
     }
   } else {
     s.phase = 'place'
@@ -234,7 +244,7 @@ export function apply(prev: GameState, action: Action): GameState {
       detonateAtomicBomb(s, p, action)
       return s
     case 'useGreatWall':
-      expectPhase(s, 'produce')
+      expectPhase(s, 'place', 'research', 'produce', 'declare') // 자신의 차례에는 언제든 쓸 수 있다
       activateGreatWall(s, p)
       return s
     case 'endProduction':
@@ -343,6 +353,8 @@ function buildCity(
   const city = foundCity(p.hand, a, 0, 1)
   p.cities.push(city)
   p.hand = []
+  for (const card of p.startExtras ?? []) city.tiles.push({ card, role: 'extra' })
+  p.startExtras = undefined
   for (const t of city.tiles) if (t.card.wonder) onTileGained(s, p, t.card) // 시작 타일에 자연경관이 있어도 문화 효과를 받는다 (킬리만자로 등)
   if (p.civId === 'china') p.generals += 1 // 중국: 위대한 장군 1개로 시작
   say(s, `${civById(p.civId).name} 도시 건설 (타일 ${city.tiles.length}장)`)
@@ -409,6 +421,13 @@ function placeWorkers(s: GameState, p: Player, placements: Placement[]): GameSta
   }
   for (const city of p.cities) {
     if (city.placed.length + (city.enemyPlaced?.length ?? 0) > city.workers) throw new RuleError('일꾼이 모자랍니다')
+  }
+  if (freeWorkers(p) < 0 && placements.length === 0) {
+    // 일꾼이 굶어 줄어서 정찰·맡아둔 타일·선전포고에 묶인 일꾼조차 없다: 묶인 순서의 반대로 풀어 준다 (맡아둔 타일은 덱으로 돌아간다)
+    if (p.held) releaseHeld(s, p)
+    else if (p.scouting) p.scouting = false
+    if (freeWorkers(p) < 0) p.busyWorkers = Math.max(0, p.busyWorkers + freeWorkers(p))
+    say(s, `${civById(p.civId).name} 일꾼이 모자라 묶인 일꾼을 풀었습니다`)
   }
   if (freeWorkers(p) < 0) throw new RuleError('정찰·선전포고·맡아둔 타일에 쓰는 일꾼과 합쳐 일꾼이 모자랍니다')
   p.turn = {

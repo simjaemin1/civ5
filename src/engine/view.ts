@@ -22,8 +22,19 @@ const stripDirs = (c: CardInst): CardInst => {
   return copy
 }
 
-function viewPlayer(p: Player, viewer: number): Player {
+/**
+ * 전투에서 카드를 공개한 뒤(대상 선택 단계)에는 판 위의 카드는 마크(공격 방향)까지 보인다.
+ * 그 밖의 카드 방향은 계속 본인만 안다.
+ */
+function revealedUids(s: GameState, pid: number): Set<number> {
+  const b = s.battle
+  if (!b || b.step === 'arrange') return new Set()
+  return new Set((b.slots[pid] ?? []).filter((x): x is number => x !== null))
+}
+
+function viewPlayer(s: GameState, p: Player, viewer: number): Player {
   if (p.id === viewer) return p
+  const shown = revealedUids(s, p.id)
   return {
     ...p,
     hand: [],
@@ -31,11 +42,12 @@ function viewPlayer(p: Player, viewer: number): Player {
     scouted: null,
     held: null,
     choices: undefined, // 맡아둔 타일을 쓸지 같은 선택은 본인만
-    military: p.military.map(stripDirs),
+    startExtras: undefined, // 시작 손에서 발견한 엘도라도 타일: 도시를 세울 때까지 본인만
+    military: p.military.map((c) => (shown.has(c.uid) ? c : stripDirs(c))),
   }
 }
 
-function viewBattle(b: BattleState | null, s: GameState, viewer: number): BattleState | null {
+function viewBattle(b: BattleState | null, viewer: number): BattleState | null {
   if (!b) return null
   const revealed = b.step !== 'arrange'
   const slots: BattleState['slots'] = {}
@@ -43,10 +55,8 @@ function viewBattle(b: BattleState | null, s: GameState, viewer: number): Battle
     const pid = Number(k)
     slots[pid] = !v || pid === viewer || revealed ? v : v.map(() => HIDDEN_SLOT)
   }
-  const mine = new Set(s.players[viewer]?.military.map((c) => c.uid))
-  const picks: BattleState['picks'] = {}
-  for (const [k, v] of Object.entries(b.picks)) if (mine.has(Number(k))) picks[Number(k)] = v
-  return { ...b, slots, picks }
+  // picks는 이미 확정한 선택만 들어 있고, 대상은 우선도 순으로 차례로 고르므로 뒤에 고르는 쪽에게 보인다 (화면이 "상대가 고른 대상"을 보여 준다)
+  return { ...b, slots }
 }
 
 /** 고유 유닛 재고의 방향 조합은 상대 카드의 방향을 알려 주므로 장수만 남긴다. */
@@ -61,8 +71,8 @@ export function view(s: GameState, viewer: number): GameView {
     viewer,
     deckCount: s.deck.length,
     handCounts: Object.fromEntries(s.players.map((p) => [p.id, p.hand.length])),
-    players: s.players.map((p) => viewPlayer(p, viewer)),
-    battle: viewBattle(s.battle, s, viewer),
+    players: s.players.map((p) => viewPlayer(s, p, viewer)),
+    battle: viewBattle(s.battle, viewer),
     uniqueSupply: hideSupply(s.uniqueSupply),
   }
 }

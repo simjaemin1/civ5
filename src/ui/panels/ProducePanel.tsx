@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { MILITARY_CARDS, cardById, cardCost, civById, investableWonders, minHammers, producible, uniqueOf, upgradeTargets, wonderCardById, TECHS, occupiedTiles } from '../../engine'
+import { MILITARY_CARDS, cardById, cardCost, civById, investableWonders, minHammers, producible, uniqueOf, upgradeTargets, TECHS, occupiedTiles } from '../../engine'
 import { UnitCard } from '../cards/UnitCard'
 import { WonderCard } from '../cards/WonderCard'
 import { cardText, conditionText, ICON, wonderEffectText } from '../format'
@@ -194,11 +194,6 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
               ☢ 원자폭탄: {civById(o.civId).name} {t.card.terrains.join('·')} 파괴
             </button>
           ))}
-        {player.wonders.includes('great_wall') && !player.greatWallUsed && (
-          <button onClick={() => dispatch({ type: 'useGreatWall' })} title={wonderCardById('great_wall').name}>
-            🧱 만리장성 사용 (상대 장군 모두 돌려보냄, 1회)
-          </button>
-        )}
         <button className="primary" onClick={() => dispatch({ type: 'endProduction' })}>
           생산 끝내기
         </button>

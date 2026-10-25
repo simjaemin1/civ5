@@ -37,10 +37,13 @@ function cityAttackable(attacker: Player, defender: Player, city: City): boolean
 export function declarationTargets(s: GameState, p: Player): DeclTarget[] {
   const out: DeclTarget[] = []
   if (p.eliminated || s.declarations.some((d) => d.attackerId === p.id)) return out
+  // 같은 타일에는 선전포고가 하나만 걸린다 (이미 누군가 노린 타일은 제외)
+  const targeted = (defenderId: number, cityId: number, tileId: number) =>
+    s.declarations.some((d) => d.defenderId === defenderId && d.cityId === cityId && d.tileId === tileId)
   if (freeWorkers(p) < 1) return out
   for (const city of p.cities) {
     for (const t of city.tiles) {
-      if (t.occupiedBy !== undefined && t.occupiedBy !== p.id && !s.players[t.occupiedBy].eliminated) {
+      if (t.occupiedBy !== undefined && t.occupiedBy !== p.id && !s.players[t.occupiedBy].eliminated && !targeted(p.id, city.id, t.card.id)) {
         out.push({ defenderId: t.occupiedBy, cityId: city.id, tileId: t.card.id, kind: 'retake' })
       }
     }
@@ -50,6 +53,7 @@ export function declarationTargets(s: GameState, p: Player): DeclTarget[] {
     if (opp.id === p.id) continue
     for (const city of opp.cities) {
       for (const t of city.tiles) {
+        if (targeted(opp.id, city.id, t.card.id)) continue
         if (t.role === 'city') {
           if (cityAttackable(p, opp, city)) out.push({ defenderId: opp.id, cityId: city.id, tileId: t.card.id, kind: 'city' })
         } else if (t.occupiedBy === undefined) {
@@ -226,7 +230,7 @@ interface Unit {
 }
 
 /** 공격 방향 → 마주 보는 상대 자리: 가운데 5-i, 왼쪽 6-i, 오른쪽 4-i (범위 밖이면 빈칸) */
-const targetSlot = (dir: 'L' | 'C' | 'R', i: number): number => (dir === 'C' ? 5 - i : dir === 'L' ? 6 - i : 4 - i)
+export const targetSlot = (dir: 'L' | 'C' | 'R', i: number): number => (dir === 'C' ? 5 - i : dir === 'L' ? 6 - i : 4 - i)
 
 const isKnightLike = (u: Unit): boolean => u.st.baseId === 'knight' || u.st.baseId === 'cavalry'
 
