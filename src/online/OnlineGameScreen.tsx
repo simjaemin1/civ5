@@ -9,6 +9,7 @@ import { ICON } from '../ui/format'
 import { Icon } from '../ui/icons'
 import { BattlePanel } from '../ui/panels/BattlePanel'
 import { DeclarePanel } from '../ui/panels/DeclarePanel'
+import { DiscardPanel } from '../ui/panels/DiscardPanel'
 import { ChoicesPanel } from '../ui/panels/ChoicesPanel'
 import { PendingPanel } from '../ui/panels/PendingPanel'
 import { PlacePanel } from '../ui/panels/PlacePanel'
@@ -124,7 +125,7 @@ export function OnlineGameScreen({ online, onExit }: Props) {
       </>
     )
   } else if (game.phase === 'declare') {
-    main = <DeclarePanel game={game} player={me} dispatch={dispatch} />
+    main = me.pendingDiscard ? <DiscardPanel game={game} player={me} dispatch={dispatch} /> : <DeclarePanel game={game} player={me} dispatch={dispatch} />
   }
 
   const yields = me.turn?.yields
