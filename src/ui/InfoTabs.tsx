@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { GameState, PolicyId, Player } from '../engine'
-import techTreeUrl from '../assets/ui/tech-tree.webp'
+import { ArrowLayer } from './ArrowLayer'
+import type { Arrow } from './ArrowLayer'
 import { POLICIES, prereqsMet, CIVS, MILITARY_CARDS, TECHS, WONDER_CARDS, civById, culture, happiness, totalWorkers, tourism } from '../engine'
 import { TechCard } from './cards/TechCard'
 import { PolicyCard } from './cards/PolicyCard'
@@ -53,42 +54,63 @@ export function PlayersTable({ game, seats, actor }: { game: GameState; seats: {
   )
 }
 
-/** 기술 트리: 열(과학 비용)별로 카드를 늘어놓고, 보유·연구 가능·잠김을 테두리로 보여 준다. 카드를 누르면 크게 본다. */
+/** 도표의 줄 배치: 줄이 시작되는 기술(선행 기술 없음)이 어느 줄에 놓이는지. 이어지는 기술은 선행 기술과 같은 줄에 놓인다. */
+const ROOT_ROW: Record<string, number> = {
+  agriculture: 0, civil_service: 0,
+  writing: 1, education: 1,
+  archery: 2, rifling: 2,
+  sailing: 3, interchangeable_parts: 3,
+  animal_husbandry: 4, atomic_theory: 4,
+  mining: 5, combined_arms: 5,
+  bronze_working: 6,
+}
+const APOLLO_ROW = 3
+
+function rowOf(id: string): number {
+  const t = TECHS.find((x) => x.id === id)!
+  if (t.prereqs && t.prereqs.length > 1) return APOLLO_ROW // 여러 줄이 모이는 기술은 가운데
+  if (t.prereqs && t.prereqs.length === 1) return rowOf(t.prereqs[0])
+  return ROOT_ROW[id] ?? 0
+}
+
+/**
+ * 기술 트리: 가로는 열(과학 비용), 세로는 도표의 줄. 선행 기술은 왼쪽, 후행 기술은 오른쪽에 놓이고 화살표로 이어진다.
+ * 보유·연구 가능·잠김은 테두리로 보여 주고, 카드를 누르면 크게 본다.
+ */
 export function TechTree({ player }: { player: Player }) {
-  const [zoom, setZoom] = useState(false)
+  const cols = Array.from({ length: 10 }, (_, i) => i + 1)
+  const arrows: Arrow[] = TECHS.flatMap((t) =>
+    (t.prereqs ?? []).map((pre) => ({
+      from: pre,
+      to: t.id,
+      color: player.techs.includes(pre) ? '#2e7d32' : '#9a9a9a',
+    })),
+  )
   return (
     <div className="scroll">
-      <details className="tree-figure" open>
-        <summary>기술 도표 (그림) — 누르면 크게 봅니다</summary>
-        <img src={techTreeUrl} alt="과학 카드 도표: 고대·중세·산업·현대" onClick={() => setZoom(true)} />
-      </details>
-      {zoom && (
-        <div className="modal-backdrop" onClick={() => setZoom(false)} role="dialog" aria-modal="true" aria-label="기술 도표">
-          <div className="zoom" onClick={(e) => e.stopPropagation()}>
-            <img className="tree-zoom" src={techTreeUrl} alt="과학 카드 도표" />
-            <button className="primary" autoFocus onClick={() => setZoom(false)}>
-              닫기
-            </button>
-          </div>
-        </div>
-      )}
-      <div className="techgrid cards">
-        {Array.from({ length: 10 }, (_, i) => i + 1).map((col) => (
-          <div key={col} className="techcol cards">
-            <h5>
+      <ArrowLayer arrows={arrows}>
+        <div className="techmap">
+          {cols.map((col) => (
+            <h5 key={col} className="techmap-head" style={{ gridColumn: col, gridRow: 1 }}>
               {ICON.science}
               {TECHS.find((t) => t.column === col)?.cost}
             </h5>
-            {TECHS.filter((t) => t.column === col).map((t) => {
-              const owned = player.techs.includes(t.id)
-              const pre = t.prereqs?.map((id) => TECHS.find((x) => x.id === id)?.name).join(', ')
-              const note = `${t.name} — ${pre ? `선행: ${pre}` : '연결선 없음: 같은 비용의 다른 기술이 있어야 함'}`
-              return <TechCard key={t.id} tech={t} width={150} note={note} state={owned ? 'owned' : prereqsMet(player, t) ? 'available' : 'locked'} />
-            })}
-          </div>
-        ))}
-      </div>
-      <p className="muted">테두리: 초록 = 보유, 주황 = 지금 연구할 수 있음, 흐림 = 선행 기술이 모자람. 카드를 누르면 크게 보입니다.</p>
+          ))}
+          {TECHS.map((t) => {
+            const owned = player.techs.includes(t.id)
+            const pre = t.prereqs?.map((id) => TECHS.find((x) => x.id === id)?.name).join(', ')
+            const note = `${t.name} — ${pre ? `선행: ${pre}` : '연결선 없음: 같은 비용의 다른 기술이 있어야 함'}`
+            return (
+              <div key={t.id} data-slot={t.id} className="techmap-cell" style={{ gridColumn: t.column, gridRow: rowOf(t.id) + 2 }}>
+                <TechCard tech={t} width={150} note={note} state={owned ? 'owned' : prereqsMet(player, t) ? 'available' : 'locked'} />
+              </div>
+            )
+          })}
+        </div>
+      </ArrowLayer>
+      <p className="muted">
+        왼쪽이 선행 기술, 오른쪽이 후행 기술입니다 (화살표 초록 = 이미 얻은 선행 기술). 테두리: 초록 = 보유, 주황 = 지금 연구할 수 있음, 흐림 = 선행 기술이 모자람. 카드를 누르면 크게 보입니다.
+      </p>
     </div>
   )
 }
