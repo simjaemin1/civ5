@@ -1023,3 +1023,35 @@ describe('군사 카드 데이터', () => {
     expect(MILITARY_CARDS.find((c) => c.id === 'cannon')).toBeTruthy()
   })
 })
+
+describe('같은 타일에는 선전포고 불가', () => {
+  it('이미 누군가 선전포고한 타일은 다른 문명의 목표에서 빠진다', () => {
+    let s = mod(round2(['korea', 'russia', 'china'], [hand4(), hand4(), hand4()]), (c) => {
+      c.players[0].generals = 1
+      c.players[2].generals = 1
+    })
+    const target = tileId(s, 1, 1)
+    expect(declarationTargets(s, s.players[2]).some((t) => t.defenderId === 1 && t.tileId === target)).toBe(true)
+    s = toDeclare(s)
+    s = apply(s, { type: 'declareWar', defenderId: 1, cityId: 0, tileId: target })
+    expect(declarationTargets(s, s.players[2]).some((t) => t.defenderId === 1 && t.tileId === target)).toBe(false)
+    expect(declarationTargets(s, s.players[2]).some((t) => t.defenderId === 1 && t.tileId === tileId(s, 1, 2))).toBe(true)
+  })
+
+  it('만리장성은 자신의 차례 어느 단계에서든 쓸 수 있다', () => {
+    const base = mod(round2(['korea', 'russia']), (c) => {
+      c.players[0].wonders.push('great_wall')
+      c.players[1].generals = 0
+      c.players[1].cities[0].tiles[1].occupiedBy = 0
+      c.players[0].cities[0].tiles[1].occupiedBy = 1
+    })
+    // place 단계에서 바로
+    const s = apply(base, { type: 'useGreatWall' })
+    expect(s.players[0].greatWallUsed).toBe(true)
+    expect(s.players[0].cities[0].tiles[1].occupiedBy).toBeUndefined()
+    expect(() => apply(s, { type: 'useGreatWall' })).toThrow(RuleError)
+    // research 단계에서도
+    const r = apply(apply(base, { type: 'placeWorkers', placements: [] }), { type: 'useGreatWall' })
+    expect(r.players[0].greatWallUsed).toBe(true)
+  })
+})

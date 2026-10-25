@@ -94,13 +94,13 @@ describe('정책', () => {
     expect(me(s).cities[0].workers).toBe(2)
   })
 
-  it('합리주의: 매 차례 과학 +3 (한국은 5)', () => {
+  it('합리주의: 매 차례 과학 +4 (한국은 6)', () => {
     const base = solo('denmark')
     const withP = mod(base, (c) => (c.players[0].policy = 'rationalism'))
-    expect(computeYields(me(withP)).science - computeYields(me(base)).science).toBe(3)
+    expect(computeYields(me(withP)).science - computeYields(me(base)).science).toBe(4)
     const k = solo('korea')
     const kp = mod(k, (c) => (c.players[0].policy = 'rationalism'))
-    expect(computeYields(me(kp)).science - computeYields(me(k)).science).toBe(5)
+    expect(computeYields(me(kp)).science - computeYields(me(k)).science).toBe(6)
   })
 
   it('평등: 문화 3당 관광 1', () => {

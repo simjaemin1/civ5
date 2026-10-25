@@ -4,7 +4,7 @@ import { MILITARY_CARDS, RESOURCES, TECHS, WONDERS, cardById, civById } from './
 import { cardStats } from './cardstats'
 import type { TechDef } from './data'
 import { apply, researchableTechs } from './game'
-import { ctxOf, culture, happiness, tileYield, totalWorkers, tourism } from './yields'
+import { ctxOf, culture, happiness, rationalismScience, tileYield, totalWorkers, tourism } from './yields'
 import { investableWonders, minHammers } from './wonders'
 import { cardCost, producible, uniqueOf, upgradeTargets } from './military'
 import { declarationTargets, occupiedTiles } from './war'
@@ -233,7 +233,7 @@ function cardOptions(p: Player): { def: (typeof MILITARY_CARDS)[number]; unique?
 
 /**
  * 정책 고르기: 과학이 모자라 기술을 못 연구할 지경이면 합리주의·자유로, 아니면 미학·전통으로 번성한다.
- * 과학 가능량 = 기본 과학 + (식량을 과학으로 바꿀 수 있으면) 남는 식량. 자유는 식량 전부, 합리주의는 +3(한국 +5).
+ * 과학 가능량 = 기본 과학 + (식량을 과학으로 바꿀 수 있으면) 남는 식량. 자유는 식량 전부, 합리주의는 +4(한국 +6).
  */
 /** 이 정도 타일(영토)이 있으면 문화보다 과학을 챙긴다 */
 const TERRITORY_OK = 10
@@ -241,7 +241,7 @@ const TERRITORY_OK = 10
 function policyOrder(s: GameState, p: Player): Policy[] {
   const turn = p.turn
   const food = turn ? turn.yields.cities.reduce((n, c) => n + c.food, 0) : 0
-  const base = turn ? turn.yields.science - (p.policy === 'rationalism' ? (p.civId === 'korea' ? 5 : 3) : 0) : 0
+  const base = turn ? turn.yields.science - (p.policy === 'rationalism' ? rationalismScience(p.civId) : 0) : 0
   const writing = p.techs.includes('writing')
   const cheapest = Math.min(...researchableTechs(s).map((t) => t.cost), 99)
   const withNone = base + (writing ? Math.max(0, food - totalWorkers(p)) : 0)
@@ -268,7 +268,7 @@ function policyOrder(s: GameState, p: Player): Policy[] {
   // 발판(미학·전통)이 다져졌으면(영토가 충분하고 일꾼이 행복 한계에 가깝다) 스퍼트: 자유·합리주의로 과학을 몰아 올린다
   const foundationDone = tiles >= TERRITORY_OK && totalWorkers(p) >= happiness(p) - 1
   if (foundationDone || withNone < Math.min(need, 4)) {
-    const withRational = base + (p.civId === 'korea' ? 5 : 3) + (writing ? Math.max(0, food - totalWorkers(p)) : 0)
+    const withRational = base + rationalismScience(p.civId) + (writing ? Math.max(0, food - totalWorkers(p)) : 0)
     const withLiberty = base + (writing ? food : 0)
     return withLiberty >= withRational ? ['liberty', 'rationalism', ...POLICY_PREFERENCE] : ['rationalism', 'liberty', ...POLICY_PREFERENCE]
   }

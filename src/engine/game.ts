@@ -244,7 +244,7 @@ export function apply(prev: GameState, action: Action): GameState {
       detonateAtomicBomb(s, p, action)
       return s
     case 'useGreatWall':
-      expectPhase(s, 'produce')
+      expectPhase(s, 'place', 'research', 'produce', 'declare') // 자신의 차례에는 언제든 쓸 수 있다
       activateGreatWall(s, p)
       return s
     case 'endProduction':
