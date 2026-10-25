@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { apply, createGame, culture, happiness, tourism, computeYields, RuleError, WONDER_CARDS, TECHS } from '..'
+import { aiCandidates, aiDebug, apply, createGame, culture, happiness, tourism, computeYields, RuleError, WONDER_CARDS, TECHS } from '..'
 import type { GameState, TileCard } from '..'
 import { found, me, play, startGame, tile } from './helpers'
 
@@ -521,5 +521,47 @@ describe('일꾼이 모자랄 때', () => {
     expect(me(s).held).toBeNull()
     expect(s.deck.some((c) => c.id === held.id)).toBe(true)
     expect(s.phase).toBe('research')
+  })
+})
+
+describe('AI 정책 고르기 (타일·불가사의·성장에 따라)', () => {
+  const firstPolicy = (s: GameState) => {
+    const a = aiCandidates(s).find((x) => x.type === 'choosePolicy')
+    return a && a.type === 'choosePolicy' ? a.policy : undefined
+  }
+  const ready = (hand: TileCard[], fn: (c: GameState) => void = () => undefined) => {
+    let s = toResearch(solo('denmark', hand))
+    s = mod(s, (c) => {
+      c.players[0].pendingPolicies = 1
+      fn(c)
+    })
+    return s
+  }
+
+  it('후반 지향형 타일(석유 등)을 두 장 이상 들고 있으면 자유나 합리주의로 스퍼트한다', () => {
+    const s = ready(hand4([{}, { resource: 'oil' }, { resource: 'coal' }, {}]))
+    expect(['liberty', 'rationalism']).toContain(firstPolicy(s))
+    expect(aiDebug.policyReason).toBe('후반 타일')
+  })
+
+  it('후반 타일이 한 장뿐이면 스퍼트하지 않는다', () => {
+    const s = ready(hand4([{}, { resource: 'oil' }, {}, {}]))
+    firstPolicy(s)
+    expect(aiDebug.policyReason).not.toBe('후반 타일')
+  })
+
+  it('타일이 좋지 못하면 전통', () => {
+    const poor = [tile(['설원']), tile(['설원']), tile(['산']), tile(['산'])]
+    const s = ready(poor, (c) => {
+      c.players[0].cities[0].tiles.push({ card: tile(['설원']), role: 'extra' }, { card: tile(['산']), role: 'extra' })
+    })
+    expect(firstPolicy(s)).toBe('tradition')
+  })
+
+  it('꼭 지어야 할 불가사의(루브르)가 미학을 요구하고 아직 지어지지 않았으면 미학', () => {
+    const s = ready(hand4(), (c) => {
+      c.players[0].techs.push('archaeology')
+    })
+    expect(firstPolicy(s)).toBe('aesthetics')
   })
 })

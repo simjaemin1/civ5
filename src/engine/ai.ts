@@ -1,6 +1,6 @@
 import type { Action, GameState, Player, Side, TileCard } from './types'
 import { RuleError, SIDES } from './types'
-import { MILITARY_CARDS, RESOURCES, TECHS, WONDERS, cardById, civById } from './data'
+import { MILITARY_CARDS, RESOURCES, TECHS, WONDERS, cardById, civById, wonderCardById } from './data'
 import { cardStats } from './cardstats'
 import type { TechDef } from './data'
 import { apply, researchableTechs } from './game'
@@ -238,6 +238,16 @@ function cardOptions(p: Player): { def: (typeof MILITARY_CARDS)[number]; unique?
 /** 이 정도 타일(영토)이 있으면 문화보다 과학을 챙긴다 */
 const TERRITORY_OK = 10
 
+/** 후반에 크게 터지는 자원 타일 (기술이 열리면 산출이 크게 늘어난다) */
+const LATE_RESOURCES = new Set(['oil', 'coal', 'uranium', 'aluminum'])
+/** 정책 조건이 걸려 있어 그 정책이어야만 지을 수 있는 중요한 불가사의 (미학: 루브르) */
+const MUST_BUILD_WONDERS: Record<string, Policy> = { louvre: 'aesthetics' }
+/** 영토 타일 한 장의 평균 가치가 이보다 낮으면 타일이 좋지 못하다고 본다 */
+const POOR_TILES = 2.6
+
+/** 정책을 고른 이유 (시뮬레이션 통계용) */
+export const aiDebug = { policyReason: '' }
+
 function policyOrder(s: GameState, p: Player): Policy[] {
   const turn = p.turn
   const food = turn ? turn.yields.cities.reduce((n, c) => n + c.food, 0) : 0
@@ -265,13 +275,45 @@ function policyOrder(s: GameState, p: Player): Policy[] {
   const surplus = food - totalWorkers(p)
   const tiles = p.cities.reduce((n, c) => n + c.tiles.length, 0)
   const recovers = surplus >= 3 && totalWorkers(p) >= 6
-  // 발판(미학·전통)이 다져졌으면(영토가 충분하고 일꾼이 행복 한계에 가깝다) 스퍼트: 자유·합리주의로 과학을 몰아 올린다
+  // 정책마다 맞는 때가 있다:
+  //  - 꼭 지어야 할 불가사의(루브르)가 미학을 요구하는 때, 또는 성장이 한번 무너지면 되살리기 힘든 때(식량 여유가 거의 없다) → 미학
+  //  - 후반 지향형 타일(석유·석탄·우라늄·알루미늄)이 영토에 두 장 이상이면 곧 터지므로 → 자유·합리주의로 스퍼트
+  //  - 타일이 좋지 못하면 → 전통
+  const territory = p.cities.flatMap((c) => c.tiles).filter((t) => t.role !== 'city')
+  const lateTiles = territory.filter((t) => t.card.resource && LATE_RESOURCES.has(t.card.resource)).length
+  const avgTile = territory.length ? territory.reduce((n, t) => n + weight(tileYield(t.card, ctxOf(p))), 0) / territory.length : 0
+  const mustWonder = Object.entries(MUST_BUILD_WONDERS).some(
+    ([id, pol]) => pol === 'aesthetics' && p.policy !== 'aesthetics' && p.techs.includes(wonderCardById(id).tech) && s.wonderOwners[id] === undefined,
+  )
   const foundationDone = tiles >= TERRITORY_OK && totalWorkers(p) >= happiness(p) - 1
-  if (foundationDone || withNone < Math.min(need, 4)) {
+  const fragile = surplus <= 0 && totalWorkers(p) >= 3 && !foundationDone
+  const sprint = (): Policy[] => {
     const withRational = base + rationalismScience(p.civId) + (writing ? Math.max(0, food - totalWorkers(p)) : 0)
     const withLiberty = base + (writing ? food : 0)
     return withLiberty >= withRational ? ['liberty', 'rationalism', ...POLICY_PREFERENCE] : ['rationalism', 'liberty', ...POLICY_PREFERENCE]
   }
+  if (mustWonder) {
+    aiDebug.policyReason = '불가사의'
+    return ['aesthetics', ...POLICY_PREFERENCE]
+  }
+  if (fragile) {
+    aiDebug.policyReason = '성장 취약'
+    return ['aesthetics', 'tradition', ...POLICY_PREFERENCE]
+  }
+  if (lateTiles >= 2) {
+    aiDebug.policyReason = '후반 타일'
+    return sprint()
+  }
+  if (territory.length >= 4 && avgTile < POOR_TILES && !foundationDone) {
+    aiDebug.policyReason = '타일 부실'
+    return ['tradition', 'aesthetics', ...POLICY_PREFERENCE]
+  }
+  // 발판(미학·전통)이 다져졌으면(영토가 충분하고 일꾼이 행복 한계에 가깝다) 스퍼트: 자유·합리주의로 과학을 몰아 올린다
+  if (foundationDone || withNone < Math.min(need, 4)) {
+    aiDebug.policyReason = '스퍼트'
+    return sprint()
+  }
+  aiDebug.policyReason = recovers ? '전통(회복 빠름)' : '미학(기본)'
   return recovers ? ['tradition', 'aesthetics', ...POLICY_PREFERENCE] : ['aesthetics', 'tradition', ...POLICY_PREFERENCE]
 }
 
