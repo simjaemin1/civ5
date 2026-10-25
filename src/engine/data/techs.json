@@ -294,7 +294,7 @@
    "name": "기계",
    "column": 4,
    "prereqs": [
-    "compass"
+    "trapping"
    ],
    "effects": []
   },
@@ -347,7 +347,7 @@
    "name": "신학",
    "column": 4,
    "prereqs": [
-    "trapping"
+    "compass"
    ],
    "effects": [
     {
@@ -360,7 +360,7 @@
    "name": "천문학",
    "column": 5,
    "prereqs": [
-    "theology"
+    "machinery"
    ],
    "effects": []
   },

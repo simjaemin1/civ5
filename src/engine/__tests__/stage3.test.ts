@@ -998,7 +998,7 @@ describe('문명 능력 (전쟁·군사 관련)', () => {
 
   it('브라질: 기계를 얻을 때 영토의 정글 1장당 문화 1', () => {
     let s = found(startGame(['brazil'], [[tile(['정글']), tile(['정글']), tile(['평지']), tile(['해안'])]]))
-    s = mod(s, (c) => c.players[0].techs.push('compass'))
+    s = mod(s, (c) => c.players[0].techs.push('trapping'))
     s = apply(s, { type: 'placeWorkers', placements: [] })
     s = mod(s, (c) => (c.players[0].turn!.yields.science = 9))
     const before = culture(me(s))

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { GameState, PolicyId, Player } from '../engine'
+import techTreeUrl from '../assets/ui/tech-tree.webp'
 import { POLICIES, prereqsMet, CIVS, MILITARY_CARDS, TECHS, WONDER_CARDS, civById, culture, happiness, totalWorkers, tourism } from '../engine'
 import { TechCard } from './cards/TechCard'
 import { PolicyCard } from './cards/PolicyCard'
@@ -54,8 +55,23 @@ export function PlayersTable({ game, seats, actor }: { game: GameState; seats: {
 
 /** 기술 트리: 열(과학 비용)별로 카드를 늘어놓고, 보유·연구 가능·잠김을 테두리로 보여 준다. 카드를 누르면 크게 본다. */
 export function TechTree({ player }: { player: Player }) {
+  const [zoom, setZoom] = useState(false)
   return (
     <div className="scroll">
+      <details className="tree-figure" open>
+        <summary>기술 도표 (그림) — 누르면 크게 봅니다</summary>
+        <img src={techTreeUrl} alt="과학 카드 도표: 고대·중세·산업·현대" onClick={() => setZoom(true)} />
+      </details>
+      {zoom && (
+        <div className="modal-backdrop" onClick={() => setZoom(false)} role="dialog" aria-modal="true" aria-label="기술 도표">
+          <div className="zoom" onClick={(e) => e.stopPropagation()}>
+            <img className="tree-zoom" src={techTreeUrl} alt="과학 카드 도표" />
+            <button className="primary" autoFocus onClick={() => setZoom(false)}>
+              닫기
+            </button>
+          </div>
+        </div>
+      )}
       <div className="techgrid cards">
         {Array.from({ length: 10 }, (_, i) => i + 1).map((col) => (
           <div key={col} className="techcol cards">
