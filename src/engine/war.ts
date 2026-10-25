@@ -230,7 +230,7 @@ interface Unit {
 }
 
 /** 공격 방향 → 마주 보는 상대 자리: 가운데 5-i, 왼쪽 6-i, 오른쪽 4-i (범위 밖이면 빈칸) */
-const targetSlot = (dir: 'L' | 'C' | 'R', i: number): number => (dir === 'C' ? 5 - i : dir === 'L' ? 6 - i : 4 - i)
+export const targetSlot = (dir: 'L' | 'C' | 'R', i: number): number => (dir === 'C' ? 5 - i : dir === 'L' ? 6 - i : 4 - i)
 
 const isKnightLike = (u: Unit): boolean => u.st.baseId === 'knight' || u.st.baseId === 'cavalry'
 

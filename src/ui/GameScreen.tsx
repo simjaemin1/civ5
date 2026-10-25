@@ -158,7 +158,22 @@ export function GameScreen({ initial, seats, onExit }: Props) {
 
   return (
     <div className="game">
-      {pendingReport && <BattleReportModal game={game} report={pendingReport} onClose={() => setSeenBattle(pendingReport.seq)} />}
+      {pendingReport && (
+        <BattleReportModal
+          game={game}
+          report={pendingReport}
+          viewerId={
+            seats[pendingReport.attackerId].ai
+              ? pendingReport.defenderId
+              : seats[pendingReport.defenderId].ai
+                ? pendingReport.attackerId
+                : actor === pendingReport.defenderId
+                  ? pendingReport.defenderId
+                  : pendingReport.attackerId
+          }
+          onClose={() => setSeenBattle(pendingReport.seq)}
+        />
+      )}
       <header className="top">
         <div>
           <b>라운드 {game.round}</b> · {PHASE[game.phase]} ·{' '}
