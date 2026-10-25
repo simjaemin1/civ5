@@ -180,7 +180,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .card .badge { position: absolute; top: 4px; right: 4px; background: var(--ok); color: #fff; font-size: 0.7rem; border-radius: 999px; padding: 1px 7px; }
 .tech-card.owned { outline: 3px solid var(--own-line); }
 .tech-card.available { outline: 3px solid var(--accent); }
-.tech-card.locked { filter: grayscale(0.85) brightness(0.9); opacity: 0.75; }
+.tech-card.locked > img, .tech-card.locked > .face { filter: grayscale(0.85) brightness(0.9); opacity: 0.75; }
 .tech-card:disabled:not(.owned) { opacity: 0.55; }
 .card .face { display: flex; flex-direction: column; align-items: center; min-height: 100%; padding: 6cqw 6cqw 6cqw; gap: 3cqw; font-size: 7.4cqw; line-height: 1.3; }
 .card .face-title { font-weight: 700; font-size: 1.3em; color: #6a4a22; }
@@ -269,3 +269,14 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .techmap-head { margin: 0; text-align: center; }
 .techmap-cell { display: flex; justify-content: center; }
 .scroll .arrow-layer { width: max-content; }
+
+/* 정책을 주는 기술 = 보라색 광택, 위대한 장군을 주는 기술 = 빨간색 광택 (둘 다면 겹쳐 보인다) */
+.tech-card.gives-policy { box-shadow: 0 0 0 2px #b266d9, 0 0 10px 3px rgba(178, 102, 217, 0.75), inset 0 0 8px rgba(178, 102, 217, 0.55); animation: tech-glow-policy 2.6s ease-in-out infinite; }
+.tech-card.gives-general { box-shadow: 0 0 0 2px #e53935, 0 0 10px 3px rgba(229, 57, 53, 0.75), inset 0 0 8px rgba(229, 57, 53, 0.5); animation: tech-glow-general 2.6s ease-in-out infinite; }
+.tech-card.gives-policy.gives-general { box-shadow: 0 0 0 2px #b266d9, 0 0 10px 3px rgba(229, 57, 53, 0.75), inset 0 0 8px rgba(178, 102, 217, 0.55); }
+@keyframes tech-glow-policy { 50% { box-shadow: 0 0 0 2px #d28cf0, 0 0 16px 5px rgba(178, 102, 217, 0.95), inset 0 0 12px rgba(178, 102, 217, 0.7); } }
+@keyframes tech-glow-general { 50% { box-shadow: 0 0 0 2px #ff6f6b, 0 0 16px 5px rgba(229, 57, 53, 0.95), inset 0 0 12px rgba(229, 57, 53, 0.65); } }
+@media (prefers-reduced-motion: reduce) { .tech-card.gives-policy, .tech-card.gives-general { animation: none; } }
+.holders { display: flex; flex-wrap: wrap; gap: 2px 8px; justify-content: center; font-size: 0.78rem; max-width: 130px; }
+.holders .mine { font-weight: 700; color: var(--own-line); }
+.holders .none { color: var(--muted); }

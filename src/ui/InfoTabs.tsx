@@ -196,13 +196,21 @@ export function InfoTabs({ game, viewer }: { game: GameState; viewer: number }) 
       )}
       {tab === 'card' && (
         <div className="scroll">
-        <p className="muted">공용 덱의 카드는 사실상 무제한이고, 한 종류는 6장까지 가질 수 있습니다. 방향이 있는 카드는 만들 때 방향이 무작위로 정해지고, 누가 어떤 방향의 카드를 가졌는지는 비공개입니다. 무엇을 생산했는지는 로그에 남습니다.</p>
+        <p className="muted">한 종류는 6장까지 가질 수 있습니다. 문명별 종류별 보유 수는 모두에게 공개됩니다. 방향이 있는 카드의 방향은 만들 때 무작위로 정해지고 가진 사람만 압니다. 카드를 누르면 크게 보입니다.</p>
         <div className="unit-row">
           {MILITARY_CARDS.filter((c) => !c.uniqueOnly).map((c) => (
             <div key={c.id} className="policy-pick">
               <UnitCard card={catalogCard(c.id)} width={130} />
-              <small className="muted">
-                {TECHS.find((t) => t.id === c.tech)?.name} · 내 보유 {me.military.filter((m) => m.defId === c.id).length}/6장
+              <small className="holders">
+                {game.players
+                  .map((p) => ({ p, n: p.military.filter((m) => m.defId === c.id).length }))
+                  .filter((x) => x.n > 0)
+                  .map(({ p, n }) => (
+                    <span key={p.id} className={p.id === viewer ? 'mine' : ''}>
+                      {civById(p.civId).name} {n}장
+                    </span>
+                  ))}
+                {game.players.every((p) => !p.military.some((m) => m.defId === c.id)) && <span className="none">보유 없음</span>}
               </small>
             </div>
           ))}
