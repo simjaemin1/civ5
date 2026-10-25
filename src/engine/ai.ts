@@ -552,8 +552,14 @@ export function aiCandidates(s: GameState): Action[] {
     }
     case 'produce':
       return [...pendingCandidates(s, p), ...produceCandidates(s, p), { type: 'endProduction' }]
-    case 'declare':
+    case 'declare': {
+      // 행복 상한을 넘은 일꾼은 일꾼이 가장 많은 도시부터 한 명씩 버린다
+      if (p.pendingDiscard) {
+        const biggest = p.cities.reduce((a, b) => (b.workers > a.workers ? b : a))
+        return [{ type: 'discardWorker', cityId: biggest.id }]
+      }
       return declareCandidates(s, p)
+    }
     default:
       return []
   }

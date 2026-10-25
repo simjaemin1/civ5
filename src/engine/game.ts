@@ -119,6 +119,21 @@ function skipEliminated(s: GameState): void {
   while (s.turnIdx < s.order.length - 1 && s.players[s.order[s.turnIdx]].eliminated) s.turnIdx++
 }
 
+/** 정책을 고를 차례가 남아 있으면 생산·투자·승급 전에 정책부터 고르게 한다 (정책 조건이 붙은 불가사의가 틀어지지 않도록) */
+function mustChoosePolicyFirst(p: Player): void {
+  if (p.pendingPolicies > 0) throw new RuleError('정책을 먼저 고르세요 (정책 조건이 있는 불가사의 때문에 생산·투자 전에 정책을 정해야 합니다)')
+}
+
+/** 식량 정산 뒤 차례를 끝낸다. 행복 상한을 넘은 일꾼이 있으면 다 버린 뒤(discardWorker)에 차례가 끝난다. */
+function settleAndEnd(s: GameState, p: Player): void {
+  foodSettlement(s, p)
+  if (p.pendingDiscard) {
+    s.phase = 'declare'
+    return
+  }
+  endTurn(s)
+}
+
 function endTurn(s: GameState): void {
   endScouting(s, currentPlayer(s))
   if (s.turnIdx + 1 >= s.order.length) {
@@ -201,7 +216,7 @@ export function apply(prev: GameState, action: Action): GameState {
     case 'setChoices': {
       p.choices = { ...p.choices }
       if (action.useHeld !== undefined) p.choices.useHeld = action.useHeld
-      for (const key of ['cultureCity', 'discardCity'] as const) {
+      for (const key of ['cultureCity'] as const) {
         const v = action[key]
         if (v === undefined) continue
         if (v === null) delete p.choices[key]
@@ -221,14 +236,17 @@ export function apply(prev: GameState, action: Action): GameState {
     case 'buildSecondCity': return buildSecondCity(s, p, action)
     case 'invest':
       expectPhase(s, 'produce')
+      mustChoosePolicyFirst(p)
       invest(s, p, action.cityId, action.wonderId, action.hammers)
       return s
     case 'produce':
       expectPhase(s, 'produce')
+      mustChoosePolicyFirst(p)
       produceCard(s, p, action)
       return s
     case 'upgrade':
       expectPhase(s, 'produce')
+      mustChoosePolicyFirst(p)
       upgradeCard(s, p, action)
       return s
     case 'sacrificeCard':
@@ -260,8 +278,7 @@ export function apply(prev: GameState, action: Action): GameState {
         s.phase = 'declare'
         return s
       }
-      foodSettlement(s, p)
-      endTurn(s)
+      settleAndEnd(s, p)
       return s
     case 'recallGeneral':
       expectPhase(s, 'produce', 'declare')
@@ -271,14 +288,28 @@ export function apply(prev: GameState, action: Action): GameState {
     case 'declareWar':
       expectPhase(s, 'declare')
       declareWar(s, p, action)
-      foodSettlement(s, p)
-      endTurn(s)
+      settleAndEnd(s, p)
       return s
     case 'endTurn':
       expectPhase(s, 'declare')
-      foodSettlement(s, p)
-      endTurn(s)
+      if (p.pendingDiscard) throw new RuleError('버려야 하는 일꾼을 먼저 고르세요')
+      settleAndEnd(s, p)
       return s
+    case 'discardWorker': {
+      expectPhase(s, 'declare')
+      if (!p.pendingDiscard) throw new RuleError('버릴 일꾼이 없습니다')
+      const city = p.cities.find((c) => c.id === action.cityId)
+      if (!city) throw new RuleError('내 도시가 아닙니다')
+      if (city.workers <= 0) throw new RuleError('그 도시에는 일꾼이 없습니다')
+      city.workers--
+      p.pendingDiscard--
+      if (!p.pendingDiscard) {
+        p.pendingDiscard = undefined
+        say(s, `${civById(p.civId).name} 일꾼 ${totalWorkers(p)}개로 정리`)
+        endTurn(s)
+      }
+      return s
+    }
     case 'arrangeBattle':
       expectPhase(s, 'battle')
       arrangeBattle(s, action.playerId, action.slots)
@@ -561,11 +592,11 @@ function foodSettlement(s: GameState, p: Player): void {
       }
     }
   }
-  // 어떤 이유로든 일꾼이 행복을 넘으면 넘친 만큼 버린다 (가장 많은 도시부터)
-  while (totalWorkers(p) > cap) {
-    const chosen = p.cities.find((c) => c.id === p.choices?.discardCity && c.workers > 0)
-    const biggest = chosen ?? p.cities.reduce((a, b) => (b.workers > a.workers ? b : a))
-    biggest.workers--
-  }
   say(s, `${civById(p.civId).name} 일꾼 ${totalWorkers(p)} / 행복 ${cap}`)
+  // 어떤 이유로든 일꾼이 행복을 넘으면 넘친 만큼 버려야 한다: 도시를 눌러 한 명씩 직접 고른다 (discardWorker)
+  const over = totalWorkers(p) - cap
+  if (over > 0) {
+    p.pendingDiscard = over
+    say(s, `${civById(p.civId).name} 행복 상한 초과: 일꾼 ${over}개를 버려야 합니다`)
+  }
 }
