@@ -93,6 +93,8 @@ export interface Player {
   wastelandPending: boolean
   turn: TurnData | null
   policy: PolicyId | null
+  /** 지금까지 정책을 고른 횟수 (불가사의·기술로 바뀐 것은 세지 않는다) */
+  policyPicks?: number
   /** 아직 고르지 않은 정책 선택 횟수 */
   pendingPolicies: number
   /** 인쇄기술로 얻은 두 번째 도시용 타일 4장 (도시를 세울 때까지) */

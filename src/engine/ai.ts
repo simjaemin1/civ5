@@ -257,6 +257,11 @@ function policyOrder(s: GameState, p: Player): Policy[] {
   const withNone = base + (writing ? Math.max(0, food - totalWorkers(p)) : 0)
   // 앞으로 만날 비용 10대 기술을 감당할 수 있는지 (번성 뒤에도 막히지 않도록 여유 있게)
   const need = Math.max(cheapest, AI_TUNE.policyNeed)
+  // 맨 처음 고르는 정책은 전통 아니면 미학으로 고정한다: 당장 남는 식량(식량 − 일꾼)이 없으면 미학, 있으면 전통.
+  if ((p.policyPicks ?? 0) === 0) {
+    aiDebug.policyReason = '첫 정책'
+    return food - totalWorkers(p) > 0 ? ['tradition', 'aesthetics', ...POLICY_PREFERENCE] : ['aesthetics', 'tradition', ...POLICY_PREFERENCE]
+  }
   // 평등 한 번으로 관광이 상대의 문화를 넘어 탈락시킬 수 있으면 (아폴로 질주 중이어도) 평등
   if (p.policy !== 'equality') {
     const gain = Math.floor(culture(p) / 3)

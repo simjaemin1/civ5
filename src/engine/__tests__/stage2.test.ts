@@ -533,6 +533,7 @@ describe('AI 정책 고르기 (타일·불가사의·성장에 따라)', () => {
     let s = toResearch(solo('denmark', hand))
     s = mod(s, (c) => {
       c.players[0].pendingPolicies = 1
+      c.players[0].policyPicks = 1 // 첫 정책이 아닌 경우
       fn(c)
     })
     return s
@@ -563,5 +564,28 @@ describe('AI 정책 고르기 (타일·불가사의·성장에 따라)', () => {
       c.players[0].techs.push('archaeology')
     })
     expect(firstPolicy(s)).toBe('aesthetics')
+  })
+
+  it('맨 처음 고르는 정책: 남는 식량이 있으면 전통, 없으면 미학', () => {
+    const withFood = (food: number) =>
+      ready(hand4(), (c) => {
+        c.players[0].policyPicks = 0
+        c.players[0].turn!.yields.cities[0].food = food
+        c.players[0].cities[0].workers = 1
+      })
+    expect(firstPolicy(withFood(3))).toBe('tradition')
+    expect(aiDebug.policyReason).toBe('첫 정책')
+    expect(firstPolicy(withFood(1))).toBe('aesthetics')
+    expect(firstPolicy(withFood(0))).toBe('aesthetics')
+  })
+
+  it('정책을 고르면 횟수가 올라가고, 두 번째부터는 자유롭게 고른다', () => {
+    let s = ready(hand4(), (c) => {
+      c.players[0].policyPicks = 0
+      c.players[0].techs.push('archaeology')
+    })
+    expect(firstPolicy(s)).not.toBe('liberty')
+    s = apply(s, { type: 'choosePolicy', policy: 'aesthetics' })
+    expect(me(s).policyPicks).toBe(1)
   })
 })
