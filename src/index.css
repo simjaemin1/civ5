@@ -262,7 +262,10 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .arrow-label { font-size: 15px; font-weight: 800; paint-order: stroke; stroke: #fff; stroke-width: 4px; }
 .enemy-pick { margin: 4px 0; padding: 4px 8px; border-left: 4px solid #c62828; background: rgba(198, 40, 40, 0.08); font-weight: 600; }
 
-.techmap { display: grid; grid-template-columns: repeat(10, 166px); grid-auto-rows: auto; gap: 12px 14px; width: max-content; padding: 4px 4px 8px; }
+.techwrap { width: 100%; overflow-x: auto; }
+.techmap { display: grid; grid-auto-rows: auto; width: max-content; padding: 4px; }
+.techmap .badge { font-size: 8px; padding: 0 3px; top: 2px; right: 2px; }
+.techmap-head { font-size: 0.75rem; }
 .techmap-head { margin: 0; text-align: center; }
 .techmap-cell { display: flex; justify-content: center; }
 .scroll .arrow-layer { width: max-content; }

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import type { GameState, PolicyId, Player } from '../engine'
 import { ArrowLayer } from './ArrowLayer'
 import type { Arrow } from './ArrowLayer'
@@ -6,6 +6,7 @@ import { POLICIES, prereqsMet, CIVS, MILITARY_CARDS, TECHS, WONDER_CARDS, civByI
 import { TechCard } from './cards/TechCard'
 import { PolicyCard } from './cards/PolicyCard'
 import { UnitCard } from './cards/UnitCard'
+import { catalogCard } from './cards/unitImage'
 import { WonderCard } from './cards/WonderCard'
 import { ICON, policyName } from './format'
 
@@ -65,6 +66,7 @@ const ROOT_ROW: Record<string, number> = {
   bronze_working: 6,
 }
 const APOLLO_ROW = 3
+const TECH_GAP = 6
 
 function rowOf(id: string): number {
   const t = TECHS.find((x) => x.id === id)!
@@ -78,6 +80,18 @@ function rowOf(id: string): number {
  * 보유·연구 가능·잠김은 테두리로 보여 주고, 카드를 누르면 크게 본다.
  */
 export function TechTree({ player }: { player: Player }) {
+  // 열 10개가 가로 스크롤 없이 한눈에 들어오도록 카드 폭을 화면 폭에 맞춘다
+  const wrap = useRef<HTMLDivElement>(null)
+  const [cardW, setCardW] = useState(110)
+  useLayoutEffect(() => {
+    const el = wrap.current
+    if (!el) return
+    const measure = () => setCardW(Math.max(56, Math.min(150, Math.floor((el.clientWidth - 9 * TECH_GAP - 8) / 10))))
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
   const cols = Array.from({ length: 10 }, (_, i) => i + 1)
   const arrows: Arrow[] = TECHS.flatMap((t) =>
     (t.prereqs ?? []).map((pre) => ({
@@ -87,9 +101,9 @@ export function TechTree({ player }: { player: Player }) {
     })),
   )
   return (
-    <div className="scroll">
+    <div className="techwrap" ref={wrap}>
       <ArrowLayer arrows={arrows}>
-        <div className="techmap">
+        <div className="techmap" style={{ gridTemplateColumns: `repeat(10, ${cardW}px)`, gap: `${TECH_GAP}px` }}>
           {cols.map((col) => (
             <h5 key={col} className="techmap-head" style={{ gridColumn: col, gridRow: 1 }}>
               {ICON.science}
@@ -102,7 +116,7 @@ export function TechTree({ player }: { player: Player }) {
             const note = `${t.name} — ${pre ? `선행: ${pre}` : '연결선 없음: 같은 비용의 다른 기술이 있어야 함'}`
             return (
               <div key={t.id} data-slot={t.id} className="techmap-cell" style={{ gridColumn: t.column, gridRow: rowOf(t.id) + 2 }}>
-                <TechCard tech={t} width={150} note={note} state={owned ? 'owned' : prereqsMet(player, t) ? 'available' : 'locked'} />
+                <TechCard tech={t} width={cardW} note={note} state={owned ? 'owned' : prereqsMet(player, t) ? 'available' : 'locked'} />
               </div>
             )
           })}
@@ -183,28 +197,16 @@ export function InfoTabs({ game, viewer }: { game: GameState; viewer: number }) 
       {tab === 'card' && (
         <div className="scroll">
         <p className="muted">공용 덱의 카드는 사실상 무제한이고, 한 종류는 6장까지 가질 수 있습니다. 방향이 있는 카드는 만들 때 방향이 무작위로 정해지고, 누가 어떤 방향의 카드를 가졌는지는 비공개입니다. 무엇을 생산했는지는 로그에 남습니다.</p>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>카드</th>
-              <th>망치</th>
-              <th>기술</th>
-              <th>내 보유</th>
-            </tr>
-          </thead>
-          <tbody>
-            {MILITARY_CARDS.filter((c) => !c.uniqueOnly).map((c) => (
-              <tr key={c.id}>
-                <td>{c.name}</td>
-                <td>{c.cost}</td>
-                <td>{TECHS.find((t) => t.id === c.tech)?.name}</td>
-                <td>
-                  {me.military.filter((m) => m.defId === c.id).length}/6장
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="unit-row">
+          {MILITARY_CARDS.filter((c) => !c.uniqueOnly).map((c) => (
+            <div key={c.id} className="policy-pick">
+              <UnitCard card={catalogCard(c.id)} width={130} />
+              <small className="muted">
+                {TECHS.find((t) => t.id === c.tech)?.name} · 내 보유 {me.military.filter((m) => m.defId === c.id).length}/6장
+              </small>
+            </div>
+          ))}
+        </div>
         </div>
       )}
       {tab === 'unique' && (

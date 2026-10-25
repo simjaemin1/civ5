@@ -4,7 +4,9 @@ import { MILITARY_CARDS, civById, happiness, producible, totalWorkers } from '..
 import { PolicyCard } from '../cards/PolicyCard'
 import { CityBuilder } from './CityBuilder'
 import type { PanelProps } from './types'
-import { cardText, policyName } from '../format'
+import { policyName } from '../format'
+import { UnitCard } from '../cards/UnitCard'
+import { catalogCard } from '../cards/unitImage'
 
 const ORDER: PolicyId[] = ['tradition', 'aesthetics', 'despotism', 'regime', 'liberty', 'rationalism', 'equality', 'diplomacy']
 
@@ -79,16 +81,14 @@ export function PendingPanel({ game, player, dispatch }: PanelProps) {
       {player.pendingFreeCards > 0 && (
         <div className="panel">
           <h3>무료 군사 카드 ({player.pendingFreeCards}장, 독일)</h3>
-          <div className="list">
+          <div className="unit-row">
             {MILITARY_CARDS.flatMap((def) => {
               const entries: { def: typeof def; unique?: string }[] = [{ def }]
               for (const u of civById(player.civId).uniques) if (u.base === def.id) entries.push({ def, unique: u.name })
               return entries
                 .filter((e) => producible(game, player, e.def.id, e.unique))
                 .map((e) => (
-                  <button key={`${e.def.id}-${e.unique}`} onClick={() => dispatch({ type: 'claimFreeCard', defId: e.def.id, unique: e.unique })}>
-                    {cardText({ defId: e.def.id, unique: e.unique })}
-                  </button>
+                  <UnitCard key={`${e.def.id}-${e.unique}`} card={catalogCard(e.def.id, e.unique)} width={120} onClick={() => dispatch({ type: 'claimFreeCard', defId: e.def.id, unique: e.unique })} title="누르면 이 카드를 받습니다" />
                 ))
             })}
           </div>
