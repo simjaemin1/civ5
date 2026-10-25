@@ -12,6 +12,7 @@ import { BattlePanel } from './panels/BattlePanel'
 import { DeclarePanel } from './panels/DeclarePanel'
 import { PendingPanel } from './panels/PendingPanel'
 import { ChoicesPanel } from './panels/ChoicesPanel'
+import { DiscardPanel } from './panels/DiscardPanel'
 import { PlacePanel } from './panels/PlacePanel'
 import { ProducePanel } from './panels/ProducePanel'
 import { ResearchPanel } from './panels/ResearchPanel'
@@ -151,7 +152,7 @@ export function GameScreen({ initial, seats, onExit }: Props) {
       </>
     )
   } else if (game.phase === 'declare') {
-    main = <DeclarePanel game={game} player={player} dispatch={dispatch} />
+    main = player.pendingDiscard ? <DiscardPanel game={game} player={player} dispatch={dispatch} /> : <DeclarePanel game={game} player={player} dispatch={dispatch} />
   }
 
   const showBoard = !over && !curtain && game.phase !== 'setup' && game.phase !== 'place' && game.phase !== 'battle'

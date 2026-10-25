@@ -32,9 +32,6 @@ export function ChoicesPanel({ player, dispatch }: PanelProps) {
             <label>
               얻은 타일 붙일 도시 {cityOptions(ch.cultureCity, (v) => dispatch({ type: 'setChoices', cultureCity: v }))}
             </label>
-            <label>
-              일꾼을 버릴 도시 {cityOptions(ch.discardCity, (v) => dispatch({ type: 'setChoices', discardCity: v }))}
-            </label>
           </>
         )}
       </div>

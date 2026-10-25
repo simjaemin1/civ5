@@ -78,7 +78,6 @@ export interface PlayerChoices {
   /** false면 맡아둔 타일을 두고 덱에서 새로 뽑는다 */
   useHeld?: boolean
   cultureCity?: number
-  discardCity?: number
 }
 
 export interface Player {
@@ -93,6 +92,8 @@ export interface Player {
   wastelandPending: boolean
   turn: TurnData | null
   policy: PolicyId | null
+  /** 행복 상한을 넘어 이번 차례 끝에 직접 버려야 하는 일꾼 수 (도시를 눌러 한 명씩 버린다) */
+  pendingDiscard?: number
   /** 지금까지 정책을 고른 횟수 (불가사의·기술로 바뀐 것은 세지 않는다) */
   policyPicks?: number
   /** 아직 고르지 않은 정책 선택 횟수 */
@@ -231,7 +232,8 @@ export type Action =
   | { type: 'wasteland'; discardTileId: number }
   | { type: 'placeWorkers'; placements: Placement[] }
   | { type: 'research'; techId: string; foodToScience?: number; hammerToScience?: number; foodByCity?: Record<number, number>; hammerByCity?: Record<number, number> }
-  | { type: 'setChoices'; useHeld?: boolean; cultureCity?: number | null; discardCity?: number | null }
+  | { type: 'setChoices'; useHeld?: boolean; cultureCity?: number | null }
+  | { type: 'discardWorker'; cityId: number }
   | { type: 'skipResearch' }
   | { type: 'endProduction' }
   | { type: 'choosePolicy'; policy: PolicyId; discard?: { cityId: number; count: number }[]; dismiss?: { cityId: number; tileId: number } }

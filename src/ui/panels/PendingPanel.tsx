@@ -4,7 +4,9 @@ import { MILITARY_CARDS, civById, happiness, producible, totalWorkers } from '..
 import { PolicyCard } from '../cards/PolicyCard'
 import { CityBuilder } from './CityBuilder'
 import type { PanelProps } from './types'
-import { cardText, policyName } from '../format'
+import { policyName } from '../format'
+import { UnitCard } from '../cards/UnitCard'
+import { catalogCard } from '../cards/unitImage'
 
 const ORDER: PolicyId[] = ['tradition', 'aesthetics', 'despotism', 'regime', 'liberty', 'rationalism', 'equality', 'diplomacy']
 
@@ -16,19 +18,24 @@ export function PendingPanel({ game, player, dispatch }: PanelProps) {
   )
   const workers = totalWorkers(player)
   const cap = player.cities.length ? happiness(player) : 0
-  const choose = (id: PolicyId, discard: boolean) => {
+  // 전통: 일꾼이 3개 이상이면 자동으로 "일꾼 3개 버리고 문화 2"로 처리한다. 버릴 도시는 도시를 눌러 한 명씩 고른다.
+  const [trad, setTrad] = useState<Record<number, number> | null>(null)
+  const taken = trad ? Object.values(trad).reduce((n, v) => n + v, 0) : 0
+  const choose = (id: PolicyId, discard?: { cityId: number; count: number }[]) => {
     const [cityId, tileId] = dismiss ? dismiss.split(':').map(Number) : []
-    let take: { cityId: number; count: number }[] | undefined
-    if (id === 'tradition' && discard) {
-      let left = 3
-      take = []
-      for (const c of player.cities) {
-        const n = Math.min(left, c.workers)
-        if (n > 0) take.push({ cityId: c.id, count: n })
-        left -= n
-      }
+    dispatch({ type: 'choosePolicy', policy: id, discard, dismiss: id === 'diplomacy' && dismiss ? { cityId, tileId } : undefined })
+  }
+  const pick = (id: PolicyId) => {
+    if (id === 'tradition' && workers >= 3) setTrad({})
+    else choose(id)
+  }
+  const discardOne = (cityId: number) => {
+    const next = { ...(trad ?? {}), [cityId]: ((trad ?? {})[cityId] ?? 0) + 1 }
+    setTrad(next)
+    if (Object.values(next).reduce((n, v) => n + v, 0) === 3) {
+      setTrad(null)
+      choose('tradition', Object.entries(next).map(([id, count]) => ({ cityId: Number(id), count })))
     }
-    dispatch({ type: 'choosePolicy', policy: id, discard: take, dismiss: id === 'diplomacy' && dismiss ? { cityId, tileId } : undefined })
   }
   return (
     <>
@@ -63,32 +70,38 @@ export function PendingPanel({ game, player, dispatch }: PanelProps) {
           <div className="cardgrid">
             {ORDER.map((id) => (
               <div key={id} className="policy-pick">
-                <PolicyCard policy={id} width={150} active={player.policy === id} onClick={() => choose(id, false)} />
-                {id === 'tradition' && (
-                  <button disabled={workers < 3} onClick={() => choose(id, true)} title={workers < 3 ? '일꾼이 3개 이상일 때만 버릴 수 있습니다' : ''}>
-                    <b>전통 + 일꾼 3개 버리고 문화 2</b>
-                    <small>{workers < 3 ? `지금 일꾼 ${workers}개라 불가능` : ` 일꾼 ${workers}개 → ${workers - 3}개, 타일 2장 추가`}</small>
-                  </button>
-                )}
+                <PolicyCard policy={id} width={150} active={player.policy === id} onClick={() => pick(id)} />
+                {id === 'tradition' && <small className="muted">{workers >= 3 ? '고르면 일꾼 3개를 버리고 문화 2' : `일꾼 ${workers}개라 문화 2는 못 받음`}</small>}
               </div>
             ))}
           </div>
+          {trad && (
+            <div className="panel">
+              <h4>전통: 일꾼 3개를 버리고 문화 2를 얻습니다 — 버릴 도시를 {3 - taken}번 더 누르세요</h4>
+              <div className="row">
+                {player.cities.map((c) => (
+                  <button key={c.id} disabled={(trad[c.id] ?? 0) >= c.workers} onClick={() => discardOne(c.id)}>
+                    <b>도시 {c.id + 1}</b> — 일꾼 {c.workers - (trad[c.id] ?? 0)}명 <small>(누르면 1명 버림)</small>
+                  </button>
+                ))}
+                <button onClick={() => setTrad(null)}>취소</button>
+              </div>
+            </div>
+          )}
           <p className="muted">카드를 누르면 그 정책을 고릅니다.</p>
         </div>
       )}
       {player.pendingFreeCards > 0 && (
         <div className="panel">
           <h3>무료 군사 카드 ({player.pendingFreeCards}장, 독일)</h3>
-          <div className="list">
+          <div className="unit-row">
             {MILITARY_CARDS.flatMap((def) => {
               const entries: { def: typeof def; unique?: string }[] = [{ def }]
               for (const u of civById(player.civId).uniques) if (u.base === def.id) entries.push({ def, unique: u.name })
               return entries
                 .filter((e) => producible(game, player, e.def.id, e.unique))
                 .map((e) => (
-                  <button key={`${e.def.id}-${e.unique}`} onClick={() => dispatch({ type: 'claimFreeCard', defId: e.def.id, unique: e.unique })}>
-                    {cardText({ defId: e.def.id, unique: e.unique })}
-                  </button>
+                  <UnitCard key={`${e.def.id}-${e.unique}`} card={catalogCard(e.def.id, e.unique)} width={120} onClick={() => dispatch({ type: 'claimFreeCard', defId: e.def.id, unique: e.unique })} title="누르면 이 카드를 받습니다" />
                 ))
             })}
           </div>

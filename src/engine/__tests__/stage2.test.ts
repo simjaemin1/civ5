@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { aiCandidates, aiDebug, apply, createGame, culture, happiness, tourism, computeYields, RuleError, WONDER_CARDS, TECHS } from '..'
+import { aiCandidates, aiDebug, apply, createGame, culture, happiness, tourism, computeYields, totalWorkers, RuleError, WONDER_CARDS, TECHS } from '..'
 import type { GameState, TileCard } from '..'
 import { found, me, play, startGame, tile } from './helpers'
 
@@ -617,5 +617,42 @@ describe('AI 정책 고르기 (타일·불가사의·성장에 따라)', () => {
     }
     expect(firstResearch(30)).toBe('acoustics')
     expect(firstResearch(1)).not.toBe('acoustics')
+  })
+})
+
+describe('정책 먼저, 일꾼 직접 버리기', () => {
+  it('정책을 고를 차례가 남아 있으면 생산·투자·승급 전에 정책부터 고르게 한다', () => {
+    let s = mod(toProduce(solo('denmark')), (c) => {
+      c.players[0].pendingPolicies = 1
+      c.players[0].techs.push('bronze_working', 'archery')
+      c.players[0].turn!.yields.cities[0].hammer = 9
+      c.players[0].turn!.yields.gold = 20
+    })
+    expect(() => apply(s, { type: 'produce', cityId: 0, defId: 'archer' })).toThrow(RuleError)
+    expect(() => apply(s, { type: 'invest', cityId: 0, wonderId: 'temple_of_artemis', hammers: 3 })).toThrow(RuleError)
+    expect(() => apply(s, { type: 'upgrade', uid: 1 })).toThrow(RuleError)
+    s = apply(s, { type: 'choosePolicy', policy: 'aesthetics' })
+    expect(() => apply(s, { type: 'produce', cityId: 0, defId: 'archer' })).not.toThrow(RuleError)
+  })
+
+  it('행복 상한을 넘은 일꾼은 차례가 끝날 때 도시를 눌러 한 명씩 직접 버린다', () => {
+    let s = mod(toProduce(solo('denmark')), (c) => {
+      c.players[0].cities[0].workers = 12
+      c.players[0].turn!.skipFoodSettle = true
+    })
+    const round = s.round
+    s = apply(s, { type: 'endProduction' })
+    const over = totalWorkers(me(s)) - happiness(me(s))
+    expect(over).toBeGreaterThan(0)
+    expect(me(s).pendingDiscard).toBe(over)
+    expect(s.phase).toBe('declare')
+    expect(s.round).toBe(round) // 아직 차례가 끝나지 않았다
+    expect(() => apply(s, { type: 'endTurn' })).toThrow(RuleError)
+    expect(aiCandidates(s)[0]).toMatchObject({ type: 'discardWorker' })
+    for (let i = 0; i < over; i++) s = apply(s, { type: 'discardWorker', cityId: 0 })
+    expect(totalWorkers(me(s))).toBe(happiness(me(s)))
+    expect(me(s).pendingDiscard).toBeUndefined()
+    expect(s.round).toBe(round + 1)
+    expect(() => apply(s, { type: 'discardWorker', cityId: 0 })).toThrow(RuleError)
   })
 })
