@@ -354,9 +354,14 @@ function produceCandidates(s: GameState, p: Player): Action[] {
     }
     for (const c of p.military) for (const t of upgradeTargets(p, c)) out.push({ type: 'upgrade', uid: c.uid, toDefId: t.id })
   }
-  // 4) 장군이 없고 군대가 있으면 점령 중인 장군 1개를 불러들여 다시 전쟁에 쓴다
+  // 4) 장군이 없고 군대가 있으면 점령 중인 장군 1개를 불러들여 다시 전쟁에 쓴다.
+  //    다만 상대에게 중요한 타일(좋은 산출·자원·자연경관)을 점령 중이면 그대로 들고 있는다. 상대의 성장을 누르는 편이 낫다.
   if (p.generals < 1 && !turn.recalled && army >= 2) {
-    for (const t of occupiedTiles(s, p)) out.push({ type: 'recallGeneral', ...t })
+    const cheap = occupiedTiles(s, p)
+      .map((t) => ({ t, v: tileImportance(s, t.defenderId, t.cityId, t.tileId) }))
+      .filter((x) => x.v < KEEP_OCCUPIED)
+      .sort((a, b) => a.v - b.v)
+    for (const { t } of cheap) out.push({ type: 'recallGeneral', ...t })
   }
   return out
 }
@@ -371,6 +376,17 @@ export function rankTop(s: GameState): { leader: Player; runnerUp: Player } | nu
   return alive.length >= 3 ? { leader: alive[0], runnerUp: alive[1] } : null
 }
 
+/** 상대(또는 내) 타일이 그 주인에게 얼마나 중요한지: 산출·자원·행복·자연경관 */
+function tileImportance(s: GameState, ownerId: number, cityId: number, tileId: number): number {
+  const owner = s.players[ownerId]
+  const card = owner.cities.find((c) => c.id === cityId)?.tiles.find((x) => x.card.id === tileId)?.card
+  if (!card) return 0
+  const r = card.resource ? RESOURCES[card.resource] : undefined
+  return weight(tileYield(card, ctxOf(owner))) + (r?.kind === 'luxury' ? 4 : r?.kind === 'strategic' ? 3 : 0) + (card.wonder ? 6 : 0)
+}
+/** 이만큼 중요한 상대 타일은 장군을 올려 둔 채 계속 점령한다 (상대의 성장을 누른다) */
+const KEEP_OCCUPIED = 4.5
+
 function declareCandidates(s: GameState, p: Player): Action[] {
   const out: Action[] = []
   const army = p.military.filter((c) => cardStats(c).hp !== undefined).length
@@ -379,11 +395,7 @@ function declareCandidates(s: GameState, p: Player): Action[] {
     const value = (t: ReturnType<typeof declarationTargets>[number]): number => {
       if (t.kind === 'retake') return 1000
       if (t.kind === 'city') return 0
-      const owner = s.players[t.defenderId]
-      const card = owner.cities.find((c) => c.id === t.cityId)?.tiles.find((x) => x.card.id === t.tileId)?.card
-      if (!card) return 0
-      const r = card.resource ? RESOURCES[card.resource] : undefined
-      return weight(tileYield(card, ctxOf(owner))) + (r?.kind === 'luxury' ? 4 : r?.kind === 'strategic' ? 3 : 0) + (card.wonder ? 6 : 0)
+      return tileImportance(s, t.defenderId, t.cityId, t.tileId)
     }
     // 셋 이상이면 한 사람을 집중공략하지 않고, 딸리는 나라들이 함께 1등을 견제한다.
     // 1등은 2등을 견제한다. 탈환은 언제든 할 수 있다.
