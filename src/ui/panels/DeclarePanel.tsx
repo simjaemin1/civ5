@@ -1,3 +1,4 @@
+import { CityTag } from '../icons'
 import { civById, declarationTargets } from '../../engine'
 import type { PanelProps } from './types'
 
@@ -20,7 +21,7 @@ export function DeclarePanel({ game, player, dispatch }: PanelProps) {
           const tile = tileOf(t.defenderId, t.cityId, t.tileId)
           return (
             <button key={`${t.defenderId}-${t.cityId}-${t.tileId}`} onClick={() => dispatch({ type: 'declareWar', defenderId: t.defenderId, cityId: t.cityId, tileId: t.tileId })}>
-              {KIND[t.kind]} → {civById(game.players[t.defenderId].civId).name} 도시{t.cityId + 1} · {tile ? tile.card.terrains.join('·') : '?'}
+              {KIND[t.kind]} → {civById(game.players[t.defenderId].civId).name} <CityTag id={t.cityId} /> · {tile ? tile.card.terrains.join('·') : '?'}
               {tile?.role === 'city' ? ' (도시 타일)' : ''}
             </button>
           )

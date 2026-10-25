@@ -286,3 +286,8 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .worker-summary .chip.total { font-size: 1.05rem; border-width: 2px; border-color: var(--own-line); }
 .worker-summary .chip.warn { background: #fff0d6; border-color: #e08a00; }
 .worker-summary .chip b { font-size: 1.15em; }
+.citytag { display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; min-width: 30px; margin-right: 2px; }
+.citytag img { border-radius: 50%; }
+.citytag small { margin-left: 2px; }
+.upgrade-row { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: flex-start; padding: 6px 0; border-bottom: 1px dashed var(--line); }
+.upgrade-opts { display: flex; flex-direction: column; gap: 8px; }

@@ -1,3 +1,4 @@
+import { CityTag } from '../icons'
 import { useMemo, useState } from 'react'
 import type { Placement } from '../../engine'
 import { apply, civById, totalWorkers, RuleError } from '../../engine'
@@ -98,7 +99,7 @@ export function PlacePanel({ game, player, dispatch }: PanelProps) {
             const onCity = [...placed].filter((id) => cityOf(id).id === c.id).length + enemy.filter((e) => e.cityId === c.id).length
             return (
               <span key={c.id} className="chip">
-                <b>도시 {c.id + 1}</b> 일꾼 {c.workers}명 · 배치 {onCity} · 남음 {Math.max(0, c.workers - onCity)}
+                <CityTag id={c.id} /> 일꾼 {c.workers}명 · 배치 {onCity} · 남음 {Math.max(0, c.workers - onCity)}
               </span>
             )
           })}
@@ -175,7 +176,7 @@ export function PlacePanel({ game, player, dispatch }: PanelProps) {
               예상 산출:{' '}
               {preview.y.cities.map((c) => (
                 <span key={c.cityId} style={{ marginRight: 12 }}>
-                  도시{c.cityId + 1} {ICON.food}
+                  <CityTag id={c.cityId} /> {ICON.food}
                   {c.food} {ICON.hammer}
                   {c.hammer}
                 </span>

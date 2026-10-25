@@ -1,3 +1,4 @@
+import { CityTag } from '../icons'
 import { useState } from 'react'
 import { happiness, researchableTechs, totalWorkers } from '../../engine'
 import { TechCard } from '../cards/TechCard'
@@ -56,7 +57,7 @@ export function ResearchPanel({ game, player, dispatch }: PanelProps) {
               const workers = player.cities.find((x) => x.id === c.cityId)?.workers ?? 0
               return (
                 <tr key={c.cityId}>
-                  <td>도시 {c.cityId + 1}</td>
+                  <td><CityTag id={c.cityId} /></td>
                   {canFood && (
                     <td>
                       <input type="range" min={0} max={c.food} value={foodBy[c.cityId] ?? 0} onChange={(e) => setFood(c.cityId, Number(e.target.value))} />{' '}

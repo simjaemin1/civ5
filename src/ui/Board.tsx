@@ -1,3 +1,4 @@
+import { CityTag } from './icons'
 import type { City, GameState, Player, Side } from '../engine'
 import { civById } from '../engine'
 import { TileView } from './TileView'
@@ -59,7 +60,7 @@ function CityBoard({ game, player, city, placed, generalPlaced, onTileClick, isD
   return (
     <section className="city">
       <h3>
-        도시 {city.id + 1} · 일꾼 {city.workers}
+        <CityTag id={city.id} /> 일꾼 {city.workers}
         <small> (타일 {city.tiles.length}장)</small>
       </h3>
       <div className="cross">

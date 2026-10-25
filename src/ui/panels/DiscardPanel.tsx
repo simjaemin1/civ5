@@ -1,3 +1,4 @@
+import { CityTag } from '../icons'
 import { civById, totalWorkers } from '../../engine'
 import type { PanelProps } from './types'
 
@@ -13,7 +14,7 @@ export function DiscardPanel({ player, dispatch }: PanelProps) {
       <div className="row">
         {player.cities.map((c) => (
           <button key={c.id} disabled={c.workers <= 0} onClick={() => dispatch({ type: 'discardWorker', cityId: c.id })}>
-            <b>도시 {c.id + 1}</b> — 일꾼 {c.workers}명 <small>(누르면 1명 버림)</small>
+            <CityTag id={c.id} /> 일꾼 {c.workers}명 <small>(누르면 1명 버림)</small>
           </button>
         ))}
       </div>
