@@ -170,7 +170,13 @@ function researchCandidates(s: GameState, p: Player): Action[] {
   const food = turn.yields.cities.reduce((n, c) => n + c.food, 0)
   const hammers = turn.yields.cities.reduce((n, c) => n + c.hammer, 0)
   const out: Action[] = []
-  const rush = rushingCulture(p) ? cultureMissing(p) : rushingApollo(p) ? apolloMissing(p) : undefined
+  const rush = rushingCulture(p)
+    ? cultureMissing(p)
+    : rushingApollo(p)
+      ? apolloMissing(p)
+      : cultureFirst(p) && !p.techs.includes('acoustics')
+        ? missingFor(p, ['acoustics']) // 문화가 급하면 음향학(문화 +1)부터
+        : undefined
   const techs = researchableTechs(s).sort((a, b) => techPriority(b, rush, p) - techPriority(a, rush, p))
   for (const t of techs) {
     let need = t.cost - turn.yields.science
@@ -244,6 +250,17 @@ const LATE_RESOURCES = new Set(['oil', 'coal', 'uranium', 'aluminum'])
 const MUST_BUILD_WONDERS: Record<string, Policy> = { louvre: 'aesthetics' }
 /** 영토 타일 한 장의 평균 가치가 이보다 낮으면 타일이 좋지 못하다고 본다 */
 const POOR_TILES = 2.6
+
+/**
+ * 문화를 최우선으로 노릴 때: 영토 타일이 시원치 않거나, 일꾼이 행복 상한만큼 다 찼다.
+ * 성장할 길이 막혔으니 새 타일을 문화로 얻어야 한다 (음향학 연구, 시스티나 성당).
+ */
+function cultureFirst(p: Player): boolean {
+  if (!p.cities.length) return false
+  const territory = p.cities.flatMap((c) => c.tiles).filter((t) => t.role !== 'city')
+  const avg = territory.length ? territory.reduce((n, t) => n + weight(tileYield(t.card, ctxOf(p))), 0) / territory.length : 0
+  return (territory.length >= 3 && avg < POOR_TILES) || totalWorkers(p) >= happiness(p)
+}
 
 /** 정책을 고른 이유 (시뮬레이션 통계용) */
 export const aiDebug = { policyReason: '' }
@@ -322,10 +339,28 @@ function policyOrder(s: GameState, p: Player): Policy[] {
   return recovers ? ['tradition', 'aesthetics', ...POLICY_PREFERENCE] : ['aesthetics', 'tradition', ...POLICY_PREFERENCE]
 }
 
+/** 전통으로 버릴 일꾼 3명: 일꾼이 가장 많은 도시부터 한 명씩 */
+function traditionDiscard(p: Player): { cityId: number; count: number }[] {
+  const left = new Map(p.cities.map((c) => [c.id, c.workers]))
+  const taken = new Map<number, number>()
+  for (let i = 0; i < 3; i++) {
+    const [id] = [...left.entries()].sort((a, b) => b[1] - a[1])[0]
+    left.set(id, left.get(id)! - 1)
+    taken.set(id, (taken.get(id) ?? 0) + 1)
+  }
+  return [...taken.entries()].map(([cityId, count]) => ({ cityId, count }))
+}
+
 function pendingCandidates(s: GameState, p: Player): Action[] {
   const out: Action[] = []
   if (p.pendingCity) out.push(foundSecond(p.pendingCity))
-  if (p.pendingPolicies > 0) for (const policy of policyOrder(s, p)) out.push({ type: 'choosePolicy', policy })
+  if (p.pendingPolicies > 0) {
+    for (const policy of policyOrder(s, p)) {
+      // 전통을 고를 때는 일꾼 3명을 버려 문화 2를 얻는다 (일꾼이 3명 이상일 때)
+      if (policy === 'tradition' && totalWorkers(p) >= 3) out.push({ type: 'choosePolicy', policy, discard: traditionDiscard(p) })
+      out.push({ type: 'choosePolicy', policy })
+    }
+  }
   if (p.pendingFreeCards > 0) {
     for (const o of cardOptions(p)) {
       out.push({ type: 'claimFreeCard', defId: o.def.id, unique: o.unique })
@@ -383,7 +418,7 @@ function produceCandidates(s: GameState, p: Player): Action[] {
       .filter((w) => minHammers(p, w) <= h)
       // 과학 정책(합리주의·자유)을 평등 등으로 덮어쓰는 불가사의는 피한다
       .filter((w) => !(['rationalism', 'liberty'].includes(p.policy ?? '') && w.effects.some((e) => e.kind === 'setPolicy' && e.policy !== 'liberty')))
-      .sort((a, b) => b.minHammers - a.minHammers)
+      .sort((a, b) => (cultureFirst(p) ? Number(b.id === 'sistine_chapel') - Number(a.id === 'sistine_chapel') : 0) || b.minHammers - a.minHammers)
     const wonderActions: Action[] = wonders.map((w) => ({ type: 'invest', cityId: city.id, wonderId: w.id, hammers: h }))
     const cardActions: Action[] = []
     for (const o of cardOptions(p)) {
