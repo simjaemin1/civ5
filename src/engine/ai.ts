@@ -1,6 +1,6 @@
 import type { Action, GameState, Player, Side, TileCard } from './types'
 import { RuleError, SIDES } from './types'
-import { MILITARY_CARDS, RESOURCES, TECHS, WONDERS, cardById, civById } from './data'
+import { MILITARY_CARDS, RESOURCES, TECHS, WONDERS, cardById, civById, wonderCardById } from './data'
 import { cardStats } from './cardstats'
 import type { TechDef } from './data'
 import { apply, researchableTechs } from './game'
@@ -238,6 +238,16 @@ function cardOptions(p: Player): { def: (typeof MILITARY_CARDS)[number]; unique?
 /** 이 정도 타일(영토)이 있으면 문화보다 과학을 챙긴다 */
 const TERRITORY_OK = 10
 
+/** 후반에 크게 터지는 자원 타일 (기술이 열리면 산출이 크게 늘어난다) */
+const LATE_RESOURCES = new Set(['oil', 'coal', 'uranium', 'aluminum'])
+/** 정책 조건이 걸려 있어 그 정책이어야만 지을 수 있는 중요한 불가사의 (미학: 루브르) */
+const MUST_BUILD_WONDERS: Record<string, Policy> = { louvre: 'aesthetics' }
+/** 영토 타일 한 장의 평균 가치가 이보다 낮으면 타일이 좋지 못하다고 본다 */
+const POOR_TILES = 2.6
+
+/** 정책을 고른 이유 (시뮬레이션 통계용) */
+export const aiDebug = { policyReason: '' }
+
 function policyOrder(s: GameState, p: Player): Policy[] {
   const turn = p.turn
   const food = turn ? turn.yields.cities.reduce((n, c) => n + c.food, 0) : 0
@@ -247,6 +257,11 @@ function policyOrder(s: GameState, p: Player): Policy[] {
   const withNone = base + (writing ? Math.max(0, food - totalWorkers(p)) : 0)
   // 앞으로 만날 비용 10대 기술을 감당할 수 있는지 (번성 뒤에도 막히지 않도록 여유 있게)
   const need = Math.max(cheapest, AI_TUNE.policyNeed)
+  // 맨 처음 고르는 정책은 전통 아니면 미학으로 고정한다: 당장 남는 식량(식량 − 일꾼)이 없으면 미학, 있으면 전통.
+  if ((p.policyPicks ?? 0) === 0) {
+    aiDebug.policyReason = '첫 정책'
+    return food - totalWorkers(p) > 0 ? ['tradition', 'aesthetics', ...POLICY_PREFERENCE] : ['aesthetics', 'tradition', ...POLICY_PREFERENCE]
+  }
   // 평등 한 번으로 관광이 상대의 문화를 넘어 탈락시킬 수 있으면 (아폴로 질주 중이어도) 평등
   if (p.policy !== 'equality') {
     const gain = Math.floor(culture(p) / 3)
@@ -265,13 +280,45 @@ function policyOrder(s: GameState, p: Player): Policy[] {
   const surplus = food - totalWorkers(p)
   const tiles = p.cities.reduce((n, c) => n + c.tiles.length, 0)
   const recovers = surplus >= 3 && totalWorkers(p) >= 6
-  // 발판(미학·전통)이 다져졌으면(영토가 충분하고 일꾼이 행복 한계에 가깝다) 스퍼트: 자유·합리주의로 과학을 몰아 올린다
+  // 정책마다 맞는 때가 있다:
+  //  - 꼭 지어야 할 불가사의(루브르)가 미학을 요구하는 때, 또는 성장이 한번 무너지면 되살리기 힘든 때(식량 여유가 거의 없다) → 미학
+  //  - 후반 지향형 타일(석유·석탄·우라늄·알루미늄)이 영토에 두 장 이상이면 곧 터지므로 → 자유·합리주의로 스퍼트
+  //  - 타일이 좋지 못하면 → 전통
+  const territory = p.cities.flatMap((c) => c.tiles).filter((t) => t.role !== 'city')
+  const lateTiles = territory.filter((t) => t.card.resource && LATE_RESOURCES.has(t.card.resource)).length
+  const avgTile = territory.length ? territory.reduce((n, t) => n + weight(tileYield(t.card, ctxOf(p))), 0) / territory.length : 0
+  const mustWonder = Object.entries(MUST_BUILD_WONDERS).some(
+    ([id, pol]) => pol === 'aesthetics' && p.policy !== 'aesthetics' && p.techs.includes(wonderCardById(id).tech) && s.wonderOwners[id] === undefined,
+  )
   const foundationDone = tiles >= TERRITORY_OK && totalWorkers(p) >= happiness(p) - 1
-  if (foundationDone || withNone < Math.min(need, 4)) {
+  const fragile = surplus <= 0 && totalWorkers(p) >= 3 && !foundationDone
+  const sprint = (): Policy[] => {
     const withRational = base + rationalismScience(p.civId) + (writing ? Math.max(0, food - totalWorkers(p)) : 0)
     const withLiberty = base + (writing ? food : 0)
     return withLiberty >= withRational ? ['liberty', 'rationalism', ...POLICY_PREFERENCE] : ['rationalism', 'liberty', ...POLICY_PREFERENCE]
   }
+  if (mustWonder) {
+    aiDebug.policyReason = '불가사의'
+    return ['aesthetics', ...POLICY_PREFERENCE]
+  }
+  if (fragile) {
+    aiDebug.policyReason = '성장 취약'
+    return ['aesthetics', 'tradition', ...POLICY_PREFERENCE]
+  }
+  if (lateTiles >= 2) {
+    aiDebug.policyReason = '후반 타일'
+    return sprint()
+  }
+  if (territory.length >= 4 && avgTile < POOR_TILES && !foundationDone) {
+    aiDebug.policyReason = '타일 부실'
+    return ['tradition', 'aesthetics', ...POLICY_PREFERENCE]
+  }
+  // 발판(미학·전통)이 다져졌으면(영토가 충분하고 일꾼이 행복 한계에 가깝다) 스퍼트: 자유·합리주의로 과학을 몰아 올린다
+  if (foundationDone || withNone < Math.min(need, 4)) {
+    aiDebug.policyReason = '스퍼트'
+    return sprint()
+  }
+  aiDebug.policyReason = recovers ? '전통(회복 빠름)' : '미학(기본)'
   return recovers ? ['tradition', 'aesthetics', ...POLICY_PREFERENCE] : ['aesthetics', 'tradition', ...POLICY_PREFERENCE]
 }
 
@@ -354,9 +401,14 @@ function produceCandidates(s: GameState, p: Player): Action[] {
     }
     for (const c of p.military) for (const t of upgradeTargets(p, c)) out.push({ type: 'upgrade', uid: c.uid, toDefId: t.id })
   }
-  // 4) 장군이 없고 군대가 있으면 점령 중인 장군 1개를 불러들여 다시 전쟁에 쓴다
+  // 4) 장군이 없고 군대가 있으면 점령 중인 장군 1개를 불러들여 다시 전쟁에 쓴다.
+  //    다만 상대에게 중요한 타일(좋은 산출·자원·자연경관)을 점령 중이면 그대로 들고 있는다. 상대의 성장을 누르는 편이 낫다.
   if (p.generals < 1 && !turn.recalled && army >= 2) {
-    for (const t of occupiedTiles(s, p)) out.push({ type: 'recallGeneral', ...t })
+    const cheap = occupiedTiles(s, p)
+      .map((t) => ({ t, v: tileImportance(s, t.defenderId, t.cityId, t.tileId) }))
+      .filter((x) => x.v < KEEP_OCCUPIED)
+      .sort((a, b) => a.v - b.v)
+    for (const { t } of cheap) out.push({ type: 'recallGeneral', ...t })
   }
   return out
 }
@@ -371,6 +423,17 @@ export function rankTop(s: GameState): { leader: Player; runnerUp: Player } | nu
   return alive.length >= 3 ? { leader: alive[0], runnerUp: alive[1] } : null
 }
 
+/** 상대(또는 내) 타일이 그 주인에게 얼마나 중요한지: 산출·자원·행복·자연경관 */
+function tileImportance(s: GameState, ownerId: number, cityId: number, tileId: number): number {
+  const owner = s.players[ownerId]
+  const card = owner.cities.find((c) => c.id === cityId)?.tiles.find((x) => x.card.id === tileId)?.card
+  if (!card) return 0
+  const r = card.resource ? RESOURCES[card.resource] : undefined
+  return weight(tileYield(card, ctxOf(owner))) + (r?.kind === 'luxury' ? 4 : r?.kind === 'strategic' ? 3 : 0) + (card.wonder ? 6 : 0)
+}
+/** 이만큼 중요한 상대 타일은 장군을 올려 둔 채 계속 점령한다 (상대의 성장을 누른다) */
+const KEEP_OCCUPIED = 4.5
+
 function declareCandidates(s: GameState, p: Player): Action[] {
   const out: Action[] = []
   const army = p.military.filter((c) => cardStats(c).hp !== undefined).length
@@ -379,11 +442,7 @@ function declareCandidates(s: GameState, p: Player): Action[] {
     const value = (t: ReturnType<typeof declarationTargets>[number]): number => {
       if (t.kind === 'retake') return 1000
       if (t.kind === 'city') return 0
-      const owner = s.players[t.defenderId]
-      const card = owner.cities.find((c) => c.id === t.cityId)?.tiles.find((x) => x.card.id === t.tileId)?.card
-      if (!card) return 0
-      const r = card.resource ? RESOURCES[card.resource] : undefined
-      return weight(tileYield(card, ctxOf(owner))) + (r?.kind === 'luxury' ? 4 : r?.kind === 'strategic' ? 3 : 0) + (card.wonder ? 6 : 0)
+      return tileImportance(s, t.defenderId, t.cityId, t.tileId)
     }
     // 셋 이상이면 한 사람을 집중공략하지 않고, 딸리는 나라들이 함께 1등을 견제한다.
     // 1등은 2등을 견제한다. 탈환은 언제든 할 수 있다.

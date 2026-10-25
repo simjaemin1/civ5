@@ -15,6 +15,7 @@ export function choosePolicy(
 ): void {
   if (p.pendingPolicies <= 0) throw new RuleError('고를 수 있는 정책 선택권이 없습니다')
   p.pendingPolicies--
+  p.policyPicks = (p.policyPicks ?? 0) + 1
   p.policy = policy // 새 정책을 고르면 기존 정책은 끝난다 (같은 정책을 다시 골라도 효과가 다시 발동)
   const name = civById(p.civId).name
   say(s, `${name} 정책: ${POLICIES[policy].name}`)

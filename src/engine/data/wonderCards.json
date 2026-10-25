@@ -104,7 +104,7 @@
           "policy": "liberty"
         }
       ],
-      "progressNeeded": 3
+      "progressNeeded": 4
     },
     {
       "id": "petra",
@@ -160,7 +160,7 @@
           "amount": 1
         }
       ],
-      "progressNeeded": 2
+      "progressNeeded": 3
     },
     {
       "id": "louvre",
@@ -181,7 +181,7 @@
           "amount": 3
         }
       ],
-      "progressNeeded": 2
+      "progressNeeded": 1
     },
     {
       "id": "statue_of_liberty",
@@ -197,7 +197,7 @@
           "kind": "choosePolicy"
         }
       ],
-      "progressNeeded": 4
+      "progressNeeded": 3
     },
     {
       "id": "eiffel_tower",
@@ -235,7 +235,7 @@
           "policy": "liberty"
         }
       ],
-      "progressNeeded": 2
+      "progressNeeded": 1
     },
     {
       "id": "internet_censorship",
@@ -247,7 +247,7 @@
           "kind": "immuneCultureLoss"
         }
       ],
-      "progressNeeded": 3
+      "progressNeeded": 2
     }
   ]
 }
