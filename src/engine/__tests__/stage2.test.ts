@@ -656,3 +656,15 @@ describe('정책 먼저, 일꾼 직접 버리기', () => {
     expect(() => apply(s, { type: 'discardWorker', cityId: 0 })).toThrow(RuleError)
   })
 })
+
+describe('지난 배치 기억', () => {
+  it('차례가 돌아오면 지난 차례에 일꾼이 올라가 있던 타일을 기억한다', () => {
+    let s = solo('denmark')
+    const tileId = me(s).cities[0].tiles.find((t) => t.role !== 'city')!.card.id
+    s = apply(s, { type: 'placeWorkers', placements: [{ cityId: 0, tileId }] })
+    s = apply(apply(s, { type: 'skipResearch' }), { type: 'endProduction' })
+    expect(s.phase).toBe('place')
+    expect(me(s).cities[0].placed).toEqual([])
+    expect(me(s).cities[0].lastPlaced).toEqual([tileId])
+  })
+})

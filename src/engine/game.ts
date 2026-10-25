@@ -107,6 +107,7 @@ function beginTurn(s: GameState): void {
   } else {
     s.phase = 'place'
     p.cities.forEach((c) => {
+      if (c.placed.length) c.lastPlaced = [...c.placed] // 지난 차례의 배치를 기억한다 (다음 배치 때 그대로 올려 둔다)
       c.placed = []
       c.enemyPlaced = []
       c.generalPlaced = []
