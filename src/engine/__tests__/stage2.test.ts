@@ -588,4 +588,34 @@ describe('AI 정책 고르기 (타일·불가사의·성장에 따라)', () => {
     s = apply(s, { type: 'choosePolicy', policy: 'aesthetics' })
     expect(me(s).policyPicks).toBe(1)
   })
+
+  it('전통을 고를 때는 일꾼 3명을 버려 문화 2를 얻는다', () => {
+    let s = ready(hand4(), (c) => {
+      c.players[0].policyPicks = 0
+      c.players[0].cities[0].workers = 5
+      c.players[0].turn!.yields.cities[0].food = 9
+    })
+    const a = aiCandidates(s).find((x) => x.type === 'choosePolicy')!
+    expect(a.type === 'choosePolicy' && a.policy).toBe('tradition')
+    expect(a.type === 'choosePolicy' && a.discard?.reduce((n, d) => n + d.count, 0)).toBe(3)
+    const before = culture(me(s))
+    s = apply(s, a)
+    expect(me(s).cities[0].workers).toBe(2)
+    expect(culture(me(s))).toBe(before + 2)
+  })
+
+  it('일꾼이 행복 상한만큼 차면 문화를 최우선으로: 음향학부터 연구한다', () => {
+    const firstResearch = (workers: number) => {
+      const s = mod(toResearch(solo('denmark')), (c) => {
+        c.players[0].techs.push('education')
+        c.players[0].cities[0].workers = workers
+        c.players[0].cities[0].tiles.forEach((t) => (t.card = { ...t.card, terrains: ['평지'] })) // 타일이 시원찮지 않게
+        c.players[0].turn!.yields.science = 99
+      })
+      const a = aiCandidates(s).find((x) => x.type === 'research')
+      return a && a.type === 'research' ? a.techId : undefined
+    }
+    expect(firstResearch(30)).toBe('acoustics')
+    expect(firstResearch(1)).not.toBe('acoustics')
+  })
 })
