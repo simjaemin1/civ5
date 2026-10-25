@@ -55,13 +55,16 @@ function CityBoard({ game, player, city, placed, generalPlaced, onTileClick, isD
       />
     )
   }
+  // 이 도시에서 아직 타일에 올리지 않은 일꾼 (배치 중이면 지금 올린 것 기준)
+  const onTiles = placed ? city.tiles.filter((t) => placed.has(t.card.id)).length : city.placed.length + (city.enemyPlaced?.length ?? 0)
+  const unplaced = Math.max(0, city.workers - onTiles)
   const side = (s: Side) => city.tiles.find((t) => t.role === 'side' && t.side === s)
   const extras = city.tiles.filter((t) => t.role === 'extra')
   return (
     <section className="city">
       <h3>
         <CityTag id={city.id} /> 일꾼 {city.workers}
-        <small> (타일 {city.tiles.length}장)</small>
+        <small className={unplaced > 0 ? 'unplaced' : ''}> (미배치 {unplaced})</small>
       </h3>
       <div className="cross">
         <div className="c-n">{render(side('N'), SIDE_LABEL.N)}</div>

@@ -291,3 +291,4 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .citytag small { margin-left: 2px; }
 .upgrade-row { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: flex-start; padding: 6px 0; border-bottom: 1px dashed var(--line); }
 .upgrade-opts { display: flex; flex-direction: column; gap: 8px; }
+.city h3 small.unplaced { color: #b36b00; font-weight: 700; }
