@@ -330,6 +330,14 @@ describe('데이터 무결성', () => {
     expect([...TECHS.map((t) => t.id)].filter((id) => !done.has(id))).toEqual([])
   })
 
+  it('신학은 나침반 뒤(정책 1개), 기계는 수렵 뒤(석궁병), 천문학은 기계 뒤', () => {
+    expect(techById('theology').prereqs).toEqual(['compass'])
+    expect(techById('machinery').prereqs).toEqual(['trapping'])
+    expect(techById('astronomy').prereqs).toEqual(['machinery'])
+    expect(techById('theology').effects).toEqual([{ kind: 'policy' }])
+    expect(MILITARY_CARDS.find((c) => c.id === 'crossbowman')!.tech).toBe('machinery')
+  })
+
   it('도표 확인 결과: 1줄은 공공행정→경제학→고고학→생물학→냉각기술→컴퓨터, 2줄은 음향학→과학이론→전기', () => {
     const chain = (id: string): string[] => {
       const pre = techById(id).prereqs?.[0]
