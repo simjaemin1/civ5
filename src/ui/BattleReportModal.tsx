@@ -14,7 +14,7 @@ function Unit({ u, live, dir, final }: { u: BattleUnitReport | null; live: Live;
   return (
     <div className={`unit ${dead ? 'dead' : 'alive'}${live.attacking ? ` lunge-${dir}` : ''}${live.hit ? ' hit' : ''}`} key={live.hit}>
       <div className="cardwrap">
-        <UnitCard card={u.inst} width={150} zoomable={false} />
+        <UnitCard card={u.inst} width={150} zoomable={false} flip={dir === 'down'} />
         {live.hit > 0 && <span className="pop">−{live.hit}</span>}
       </div>
       <div className="hpbar" title={`체력 ${left}/${u.hp}`}>

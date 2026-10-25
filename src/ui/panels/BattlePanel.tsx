@@ -130,13 +130,15 @@ function Arrange({ game, me, dispatch }: { game: GameState; me: Player; dispatch
   )
 }
 
-function Board4({ game, pid }: { game: GameState; pid: number }) {
+/** 4칸 배치. mirror: 상대 쪽 줄 — 마주 보도록 칸 순서를 거꾸로 놓고 카드도 180도 뒤집어 보여 준다. */
+function Board4({ game, pid, mirror }: { game: GameState; pid: number; mirror?: boolean }) {
   const b = game.battle!
   const p = game.players[pid]
   const slots = b.slots[pid] ?? []
+  const order = mirror ? [3, 2, 1, 0] : [0, 1, 2, 3]
   return (
-    <div className="slots">
-      {[0, 1, 2, 3].map((i) => {
+    <div className={`slots board4${mirror ? ' mirror' : ''}`}>
+      {order.map((i) => {
         const uid = slots[i]
         const c = uid == null ? null : p.military.find((m) => m.uid === uid)
         return (
@@ -144,7 +146,7 @@ function Board4({ game, pid }: { game: GameState; pid: number }) {
             <b>
               {civById(p.civId).name} {i + 1}번
             </b>
-            <div>{c ? <UnitCard card={c} width={120} /> : '(빈칸)'}</div>
+            <div>{c ? <UnitCard card={c} width={120} flip={mirror} /> : '(빈칸)'}</div>
           </div>
         )
       })}
@@ -161,8 +163,9 @@ function Choose({ game, me, enemy, dispatch }: { game: GameState; me: Player; en
   return (
     <>
       <p>카드가 공개되었습니다. 대상을 고르는 카드는 우선도가 높은 쪽부터 대상을 고릅니다 (코사크는 모두 고른 뒤에).</p>
-      <Board4 game={game} pid={b.decl.attackerId} />
-      <Board4 game={game} pid={b.decl.defenderId} />
+      <p className="muted">위쪽이 상대 카드(마주 보도록 뒤집어 놓음), 아래쪽이 내 카드입니다. 같은 세로줄이 서로 마주 봅니다.</p>
+      <Board4 game={game} pid={enemy.id} mirror />
+      <Board4 game={game} pid={me.id} />
       <h4>{civById(me.civId).name}: 공격 대상 고르기</h4>
       {head.uids.map((uid) => {
         const mine = me.military.find((m) => m.uid === uid)!

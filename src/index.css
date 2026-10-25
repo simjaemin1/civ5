@@ -250,3 +250,8 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 @keyframes unit-flash { from { opacity: 1; } to { opacity: 0; } }
 @keyframes unit-pop { from { opacity: 1; margin-top: 0; } to { opacity: 0; margin-top: -40px; } }
 @media (prefers-reduced-motion: reduce) { .unit, .unit * { animation: none !important; transition: none !important; } }
+
+.board4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.board4 .slot { align-items: center; }
+.board4.mirror .slot > b { order: 2; }
+@media (max-width: 720px) { .board4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
