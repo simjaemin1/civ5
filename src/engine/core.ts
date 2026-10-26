@@ -51,7 +51,7 @@ export function defaultTileCity(p: Player): City {
 /** 타일을 도시에 붙인다: 첫 5타일의 빈 면이 있으면 반드시 그 면에, 아니면 추가 타일로 */
 export function attachTile(s: GameState, p: Player, city: City, card: TileCard): void {
   const side = city.openSides.shift()
-  city.tiles.push(side ? { card, role: 'side', side } : { card, role: 'extra' })
+  city.tiles.push(side ? { card, role: 'side', side, late: true } : { card, role: 'extra', late: true })
   onTileGained(s, p, card)
 }
 

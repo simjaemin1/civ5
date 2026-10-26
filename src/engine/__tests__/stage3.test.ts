@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { apply, cardById, culture, ctxOf, RuleError, MILITARY_CARDS, declarationTargets, freeWorkers, tileYield } from '..'
+import { apply, cardById, culture, ctxOf, RuleError, MILITARY_CARDS, declarationTargets, freeWorkers, tileYield, isCoastalCity, happiness } from '..'
 import type { GameState, TileCard } from '..'
 import { found, me, play, startGame, tile } from './helpers'
 
@@ -105,13 +105,39 @@ describe('군사 카드 생산', () => {
     expect(() => apply(s, { type: 'produce', cityId: 0, defId: 'archer' })).toThrow(RuleError)
   })
 
-  it('한 종류는 6장까지만 보유할 수 있다 (공용 덱은 사실상 무제한)', () => {
+  it('한 종류는 4장까지: 더 만들면 넘친 1장을 골라 버려야 하고, 그동안 다른 행동은 막힌다', () => {
     let s = mod(withHammers(at('denmark', ['agriculture']), 5), (c) => {
-      for (let i = 0; i < 6; i++) give(c, 0, 'warrior', 'L')
+      for (let i = 0; i < 4; i++) give(c, 0, 'warrior', 'L')
     })
-    expect(() => apply(s, { type: 'produce', cityId: 0, defId: 'warrior' })).toThrow(RuleError)
-    s = mod(s, (c) => c.players[0].military.pop())
-    expect(() => apply(s, { type: 'produce', cityId: 0, defId: 'warrior' })).not.toThrow()
+    s = apply(s, { type: 'produce', cityId: 0, defId: 'warrior' })
+    expect(s.players[0].military.filter((c) => c.defId === 'warrior')).toHaveLength(5)
+    expect(s.players[0].pendingCardDiscard).toEqual(['warrior'])
+    expect(() => apply(s, { type: 'endProduction' })).toThrow(RuleError)
+    expect(() => apply(s, { type: 'discardCard', uid: 99999 })).toThrow(RuleError)
+    const uid = s.players[0].military[0].uid
+    s = apply(s, { type: 'discardCard', uid })
+    expect(s.players[0].military.filter((c) => c.defId === 'warrior')).toHaveLength(4)
+    expect(s.players[0].pendingCardDiscard).toBeUndefined()
+    expect(() => apply(s, { type: 'endProduction' })).not.toThrow()
+  })
+
+  it('해안 타일을 나중에 얻어도 첫 5타일이 아니면 전함을 만들 수 없다', () => {
+    let s = mod(startGame(['denmark'], [inland()]), () => {})
+    s = found(s)
+    s = mod(s, (c) => {
+      const city = c.players[0].cities[0]
+      city.openSides = ['N']
+      c.players[0].techs.push('biology')
+      // 나중에 붙은 해안 타일 (빈 면에 들어가 role은 side지만 첫 5타일은 아니다)
+      city.tiles.push({ card: tile(['해안']), role: 'side', side: 'N', late: true })
+    })
+    expect(isCoastalCity(s.players[0].cities[0])).toBe(false)
+  })
+
+  it('다이너마이트: 행복 +2', () => {
+    const base = at('denmark', [])
+    const withTech = mod(base, (c) => c.players[0].techs.push('dynamite'))
+    expect(happiness(withTech.players[0]) - happiness(base.players[0])).toBe(2)
   })
 
   it('전함은 첫 5타일에 해안이 있는 도시에서만 만들 수 있다', () => {

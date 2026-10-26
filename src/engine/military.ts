@@ -6,8 +6,11 @@ import { say } from './core'
 import { nextRandom } from './rng'
 import { dirsKey } from './cardstats'
 
-/** 한 종류의 군사 카드는 최대 6장까지 보유할 수 있다. 공용 덱의 카드는 사실상 무제한이라 재고는 세지 않는다. */
-export const MAX_HOLD = 6
+/**
+ * 한 종류의 군사 카드는 4장까지 보유한다. 더 만들 수는 있지만, 넘친 만큼은 직접 골라 버려야 한다 (discardCard).
+ * 공용 덱의 카드는 사실상 무제한이라 재고는 세지 않는다.
+ */
+export const MAX_HOLD = 4
 
 /**
  * 고유 유닛은 3장만 만들어져 있다: 방향 카드는 왼쪽·가운데·오른쪽 한 장씩, 방향이 없는 카드는 같은 카드 3장.
@@ -47,7 +50,8 @@ export function uniqueOf(p: Player, name: string): UniqueUnitDef | undefined {
   return civById(p.civId).uniques.find((u) => u.name === name)
 }
 
-const first5 = (city: City) => city.tiles.filter((t) => t.role === 'city' || t.role === 'side')
+/** 도시를 세울 때의 첫 5타일 (나중에 붙은 타일은 제외) */
+const first5 = (city: City) => city.tiles.filter((t) => (t.role === 'city' || t.role === 'side') && !t.late)
 export const isCoastalCity = (city: City): boolean => first5(city).some((t) => t.card.terrains.includes('해안'))
 
 /** 같은 계열의 더 높은 단계 기술을 얻으면 낮은 단계 카드는 더 만들 수 없다 ("앞으로 ○○ 생산불가") */
@@ -68,7 +72,6 @@ export function producible(s: GameState, p: Player, defId: string, unique?: stri
   if (!p.techs.includes(tech)) return null
   if (isObsolete(p, def)) return null
   if (city && def.requires && !city.tiles.some((t) => t.card.resource === def.requires)) return null
-  if (p.military.filter((c) => c.defId === id).length >= MAX_HOLD) return null
   if (uq && (s.uniqueSupply[uq.name]?.length ?? 0) === 0) return null // 고유 유닛 3장이 모두 존재함
   return { def, uq }
 }
@@ -89,8 +92,27 @@ function newCard(s: GameState, defId: string, unique?: string): CardInst {
 }
 
 /** 기술 효과 등으로 카드를 바로 받는다 (핵융합의 원자폭탄) */
+/** 보유 한도(MAX_HOLD)를 넘으면 버릴 카드를 골라야 한다: 넘친 종류를 기록한다 */
+function noteOverflow(p: Player, defId: string): void {
+  if (p.military.filter((c) => c.defId === defId).length > MAX_HOLD) (p.pendingCardDiscard ??= []).push(defId)
+}
+
+/** 넘친 군사 카드 1장을 골라 버린다 (고유 유닛이면 재고로 돌아간다) */
+export function discardCard(s: GameState, p: Player, uid: number): void {
+  const inst = p.military.find((c) => c.uid === uid)
+  if (!inst) throw new RuleError('내 카드가 아닙니다')
+  const at = p.pendingCardDiscard?.indexOf(inst.defId) ?? -1
+  if (at < 0) throw new RuleError('버려야 하는 종류의 카드를 고르세요')
+  p.military = p.military.filter((c) => c.uid !== uid)
+  releaseUnique(s, inst)
+  p.pendingCardDiscard!.splice(at, 1)
+  if (!p.pendingCardDiscard!.length) p.pendingCardDiscard = undefined
+  say(s, `${civById(p.civId).name} 넘친 ${cardById(inst.defId).name} 1장을 버림`)
+}
+
 export function grantCard(s: GameState, p: Player, defId: string): void {
   p.military.push(newCard(s, defId))
+  noteOverflow(p, defId)
   say(s, `${civById(p.civId).name} ${cardById(defId).name} 획득`)
 }
 
@@ -104,7 +126,7 @@ export function produceCard(
   const turn = p.turn!
   if (turn.produced.includes(a.cityId)) throw new RuleError('도시마다 한 차례에 생산은 1개만 할 수 있습니다')
   const ok = producible(s, p, a.defId, a.unique, city)
-  if (!ok) throw new RuleError('지금 만들 수 없는 카드입니다 (기술·자원·더 높은 단계 보유·보유 한도 확인)')
+  if (!ok) throw new RuleError('지금 만들 수 없는 카드입니다 (기술·자원·더 높은 단계 보유 확인)')
   const { def, uq } = ok
   if ((uq?.coastalOnly || def.special === 'coastalOnly') && !isCoastalCity(city)) {
     throw new RuleError('첫 5타일에 해안이 있는 도시에서만 만들 수 있습니다')
@@ -113,6 +135,7 @@ export function produceCard(
   const available = turn.yields.cities.find((c) => c.cityId === a.cityId)!.hammer
   if (available < cost) throw new RuleError('도시의 망치가 모자랍니다')
   p.military.push(newCard(s, def.id, a.unique))
+  noteOverflow(p, def.id)
   turn.produced.push(a.cityId)
   say(s, `${civById(p.civId).name} ${a.unique ?? def.name} 생산 (망치 ${cost})`)
 }
@@ -138,13 +161,13 @@ export function upgradeCard(s: GameState, p: Player, a: { uid: number; unique?: 
   const uq = a.unique ? uniqueOf(p, a.unique) : undefined
   if (a.unique && (!uq || uq.base !== upper.id)) throw new RuleError('그 고유 유닛으로 승급할 수 없습니다')
   if (!p.techs.includes(uq?.tech ?? upper.tech)) throw new RuleError('필요한 기술이 없습니다')
-  if (p.military.filter((c) => c.defId === upper.id).length >= MAX_HOLD) throw new RuleError('한 종류는 6장까지만 가질 수 있습니다')
   if (uq && (s.uniqueSupply[uq.name]?.length ?? 0) === 0) throw new RuleError('그 고유 유닛 3장이 모두 존재합니다')
   const cost = cardCost(p, upper, uq)
   if (turn.yields.gold < cost) throw new RuleError('금이 모자랍니다')
   p.military = p.military.filter((c) => c.uid !== a.uid)
   releaseUnique(s, inst) // 승급으로 바뀐 하위 고유 유닛은 재고로 돌아간다
   p.military.push(newCard(s, upper.id, a.unique))
+  noteOverflow(p, upper.id)
   turn.upgraded = true
   turn.yields.gold -= cost
   say(s, `${civById(p.civId).name} ${lower.name} → ${upper.name} 승급 (금 ${cost})`)
@@ -168,6 +191,7 @@ export function claimFreeCard(s: GameState, p: Player, a: { defId: string; uniqu
   const ok = producible(s, p, a.defId, a.unique)
   if (!ok) throw new RuleError('지금 받을 수 없는 카드입니다')
   p.military.push(newCard(s, ok.def.id, a.unique))
+  noteOverflow(p, ok.def.id)
   p.pendingFreeCards--
   say(s, `${civById(p.civId).name} 무료 군사 카드: ${a.unique ?? ok.def.name}`)
 }

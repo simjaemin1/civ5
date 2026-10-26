@@ -30,6 +30,8 @@ export interface PlacedTile {
   /** 'city' | 'side' (첫 5타일의 십자 위치) | 'extra' */
   role: 'city' | 'side' | 'extra'
   side?: Side
+  /** 도시를 세운 뒤에 붙은 타일 (첫 5타일에 속하지 않는다: 해안 도시 판정 등) */
+  late?: boolean
 }
 
 export interface City {
@@ -99,6 +101,8 @@ export interface Player {
   policy: PolicyId | null
   /** 행복 상한을 넘어 이번 차례 끝에 직접 버려야 하는 일꾼 수 (도시를 눌러 한 명씩 버린다) */
   pendingDiscard?: number
+  /** 보유 한도(한 종류 4장)를 넘어 골라 버려야 하는 군사 카드의 종류 (한 장마다 한 항목) */
+  pendingCardDiscard?: string[]
   /** 정책을 바꿀 기회로 얻은 선택권이면 고를 수 있는 정책 (이 정책이나 지금 정책) */
   policyOnly?: PolicyId[]
   /** 지금까지 정책을 고른 횟수 (불가사의·기술로 바뀐 것은 세지 않는다) */
@@ -243,6 +247,7 @@ export type Action =
   | { type: 'research'; techId: string; foodToScience?: number; hammerToScience?: number; foodByCity?: Record<number, number>; hammerByCity?: Record<number, number> }
   | { type: 'setChoices'; useHeld?: boolean; cultureCity?: number | null }
   | { type: 'discardWorker'; cityId: number }
+  | { type: 'discardCard'; uid: number }
   | { type: 'skipResearch' }
   | { type: 'endProduction' }
   | { type: 'choosePolicy'; policy: PolicyId; discard?: { cityId: number; count: number }[]; dismiss?: { cityId: number; tileId: number } }

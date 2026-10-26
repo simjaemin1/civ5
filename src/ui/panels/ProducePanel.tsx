@@ -1,6 +1,6 @@
 import { CityTag } from '../icons'
 import { useState } from 'react'
-import { MILITARY_CARDS, cardById, cardCost, civById, declarationTargets, investableWonders, minHammers, uniqueOf, upgradeTargets, occupiedTiles } from '../../engine'
+import { MAX_HOLD, MILITARY_CARDS, cardById, cardCost, civById, declarationTargets, investableWonders, minHammers, uniqueOf, upgradeTargets, occupiedTiles } from '../../engine'
 import { UnitCard } from '../cards/UnitCard'
 import { catalogCard } from '../cards/unitImage'
 import { WonderCard } from '../cards/WonderCard'
@@ -146,21 +146,27 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
                     const ok = rows.filter((r) => !r.block)
                     const no = rows.filter((r) => r.block)
                     // 카드 그림으로 보여 준다: 만들 수 있는 카드는 앞에, 만들 수 없는 카드는 이유와 함께 접어 둔다
-                    const card = (r: (typeof rows)[number]) => (
+                    const card = (r: (typeof rows)[number]) => {
+                      const full = player.military.filter((c) => c.defId === r.def.id).length >= MAX_HOLD
+                      return (
                       <div key={`${r.def.id}:${r.unique ?? ''}`} className={`policy-pick prod-card${r.block ? ' blocked' : ''}`}>
                         <UnitCard card={catalogCard(r.def.id, r.unique)} width={120} />
                         {r.unique && <small className="muted">고유 유닛 — 남은 {game.uniqueSupply[r.unique]?.length ?? 0}/3장</small>}
-                        <button
+                        {full && !r.block && <small className="warn">⚠ 이미 {MAX_HOLD}장 보유: 생산하면 1장을 골라 버립니다</small>}
+                        <ConfirmButton
+                          className=""
                           disabled={mustPolicy || !!r.block}
                           title={r.block ?? cardText({ defId: r.def.id, unique: r.unique })}
+                          warn={full ? `${r.unique ?? r.def.name}을(를) 이미 ${MAX_HOLD}장 가지고 있습니다. 만들면 1장을 골라 버려야 합니다` : null}
                           onClick={() => dispatch({ type: 'produce', cityId: city.id, defId: r.def.id, unique: r.unique })}
                         >
                           생산 {ICON.hammer}
                           {r.cost}
-                        </button>
+                        </ConfirmButton>
                         {r.block && <small className="muted">{r.block}</small>}
                       </div>
-                    )
+                      )
+                    }
                     return (
                       <>
                         <div className="unit-row">{ok.map(card)}</div>

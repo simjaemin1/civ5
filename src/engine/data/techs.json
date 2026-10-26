@@ -241,7 +241,12 @@
    "prereqs": [
     "rifling"
    ],
-   "effects": []
+   "effects": [
+    {
+     "kind": "happiness",
+     "amount": 2
+    }
+   ]
   },
   {
    "id": "ballistics",

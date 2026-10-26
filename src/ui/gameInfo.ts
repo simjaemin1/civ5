@@ -1,5 +1,5 @@
 import type { City, GameState, GameView, MilitaryCardDef, Player } from '../engine'
-import { MAX_HOLD, RESOURCES, TECHS, cardById, civById, cardCost, cardStats, findTile, isCoastalCity, isObsolete, producible, uniqueOf } from '../engine'
+import { RESOURCES, TECHS, cardById, civById, cardCost, cardStats, findTile, isCoastalCity, isObsolete, producible, uniqueOf } from '../engine'
 
 /** 선전포고 목표 타일의 지형 이름 (탈환은 공격 측의 원래 타일) */
 export function declTileName(game: GameState, d: GameState['declarations'][number]): string {
@@ -30,7 +30,6 @@ export function produceBlock(game: GameState, p: Player, def: MilitaryCardDef, u
   if (!p.techs.includes(tech)) return `기술 필요: ${TECHS.find((x) => x.id === tech)?.name ?? tech}`
   if (isObsolete(p, def)) return '상위 카드를 만들 수 있게 되어 더는 생산불가'
   if (def.requires && !city.tiles.some((t) => t.card.resource === def.requires)) return `이 도시에 ${RESOURCES[def.requires]?.name ?? def.requires} 타일이 없음`
-  if (p.military.filter((c) => c.defId === def.id).length >= MAX_HOLD) return `한 종류 ${MAX_HOLD}장 보유 한도`
   if (uq && (game.uniqueSupply[uq.name]?.length ?? 0) === 0) return '고유 유닛 3장이 모두 나가 있음'
   if ((uq?.coastalOnly || def.special === 'coastalOnly') && !isCoastalCity(city)) return '첫 5타일에 해안이 있는 도시에서만'
   if (!producible(game, p, def.id, unique, city)) return '지금 만들 수 없음'

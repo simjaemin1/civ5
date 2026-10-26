@@ -9,7 +9,7 @@ import { currentPlayer, defaultTileCity, drawTiles, flushPendingTiles, gainCultu
 import { choosePolicy } from './policies'
 import { invest, settleWonders } from './wonders'
 import {
-  anyProducible, claimFreeCard, gainGeneral, grantCard, initUniqueSupply, produceCard, sacrificeCard, upgradeCard,
+  anyProducible, claimFreeCard, discardCard, gainGeneral, grantCard, initUniqueSupply, produceCard, sacrificeCard, upgradeCard,
 } from './military'
 import { endScouting, freeWorkers, holdScouted, releaseHeld, scout } from './scouting'
 import {
@@ -204,6 +204,7 @@ export function apply(prev: GameState, action: Action): GameState {
   if (prev.phase === 'over') throw new RuleError('게임이 끝났습니다')
   const s = structuredClone(prev)
   const p = currentPlayer(s)
+  if (p.pendingCardDiscard?.length && action.type !== 'discardCard') throw new RuleError('넘친 군사 카드를 먼저 골라 버리세요')
   switch (action.type) {
     case 'wasteland': return wasteland(s, p, action.discardTileId)
     case 'buildCity': return buildCity(s, p, action)
@@ -306,6 +307,9 @@ export function apply(prev: GameState, action: Action): GameState {
       expectPhase(s, 'declare')
       if (p.pendingDiscard) throw new RuleError('버려야 하는 일꾼을 먼저 고르세요')
       settleAndEnd(s, p)
+      return s
+    case 'discardCard':
+      discardCard(s, p, action.uid)
       return s
     case 'discardWorker': {
       expectPhase(s, 'declare')

@@ -15,6 +15,7 @@ import { usePrefs } from '../ui/prefsStore'
 import { BattlePanel } from '../ui/panels/BattlePanel'
 import { ChoicesPanel } from '../ui/panels/ChoicesPanel'
 import { DeclarePanel } from '../ui/panels/DeclarePanel'
+import { CardDiscardPanel } from '../ui/panels/CardDiscardPanel'
 import { DiscardPanel } from '../ui/panels/DiscardPanel'
 import { ConfirmButton } from '../ui/ConfirmButton'
 import { PendingPanel } from '../ui/panels/PendingPanel'
@@ -178,6 +179,8 @@ export function OnlineGameScreen({ online, onExit }: Props) {
   }
 
   const yields = me.turn?.yields
+  if (me.pendingCardDiscard?.length && game.phase !== 'battle' && game.phase !== 'over') main = <CardDiscardPanel game={game} player={me} dispatch={dispatch} />
+
   const placingTile = !!me.pendingTiles?.length
   const showBoard = !over && mine && !placingTile && game.phase !== 'setup' && game.phase !== 'place' && game.phase !== 'battle'
   const inTurn = mine && !over && turnKey(game) !== null

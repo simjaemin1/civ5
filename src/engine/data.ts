@@ -77,6 +77,8 @@ export type TechEffect =
   | { kind: 'policy' }
   /** 매 차례 과학 +amount (보유하는 동안) */
   | { kind: 'sciencePerTurn'; amount: number }
+  /** 보유하는 동안 행복 +amount */
+  | { kind: 'happiness'; amount: number }
   /** 정책을 바꿀 기회: 그 정책으로 바꾸거나 지금 정책을 그대로 다시 고를 수 있다 */
   | { kind: 'policyChance'; policy: PolicyId }
   | { kind: 'setPolicy'; policy: PolicyId }

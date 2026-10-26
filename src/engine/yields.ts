@@ -133,6 +133,7 @@ export function happiness(player: Player): number {
   for (const id of player.wonders) {
     for (const e of wonderCardById(id).effects) if (e.kind === 'happiness') bonus += e.amount * mult
   }
+  for (const id of owned) for (const e of techById(id).effects) if (e.kind === 'happiness') bonus += e.amount
   return civ.happiness + luxuries.size + bonus
 }
 
