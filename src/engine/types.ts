@@ -99,6 +99,8 @@ export interface Player {
   policy: PolicyId | null
   /** 행복 상한을 넘어 이번 차례 끝에 직접 버려야 하는 일꾼 수 (도시를 눌러 한 명씩 버린다) */
   pendingDiscard?: number
+  /** 정책을 바꿀 기회로 얻은 선택권이면 고를 수 있는 정책 (이 정책이나 지금 정책) */
+  policyOnly?: PolicyId[]
   /** 지금까지 정책을 고른 횟수 (불가사의·기술로 바뀐 것은 세지 않는다) */
   policyPicks?: number
   /** 아직 고르지 않은 정책 선택 횟수 */

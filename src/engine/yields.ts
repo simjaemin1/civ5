@@ -96,6 +96,10 @@ export function computeYields(player: Player): TurnYields {
   if (ctx.techs.has('astronomy') && player.cities[0]?.tiles.some((t) => (t.role === 'city' || t.role === 'side') && t.card.terrains.includes('산'))) science += 5
   // 경제학: 다음 차례부터 금 +4
   if (ctx.techs.has('economics') && !ctx.fresh.has('economics')) gold += 4
+  for (const tech of TECHS) {
+    if (!ctx.techs.has(tech.id)) continue
+    for (const e of tech.effects) if (e.kind === 'sciencePerTurn') science += e.amount
+  }
   if (player.policy === 'rationalism') science += rationalismScience(player.civId)
   if (player.wonders.includes('colossus')) gold += 4
   // 공중정원: 다음 차례부터 첫 도시 식량 +1
