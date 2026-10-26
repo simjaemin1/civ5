@@ -1,3 +1,4 @@
+import { CityTag } from '../icons'
 import { useState } from 'react'
 import { MILITARY_CARDS, cardById, cardCost, civById, investableWonders, minHammers, producible, uniqueOf, upgradeTargets, TECHS, occupiedTiles } from '../../engine'
 import { UnitCard } from '../cards/UnitCard'
@@ -35,7 +36,7 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
         return (
           <section key={city.id} className="city-prod">
             <h4>
-              도시 {city.id + 1} · {ICON.hammer} 망치 {h} {done && <span className="ok">(생산 완료)</span>}
+              <CityTag id={city.id} /> {ICON.hammer} 망치 {h} {done && <span className="ok">(생산 완료)</span>}
             </h4>
             {!done && (
               <>
@@ -131,8 +132,12 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
         <summary>금으로 승급 ({upgrades.length}장 가능, 한 차례에 한 장{turn.upgraded ? ' — 이번 차례 사용함' : ''})</summary>
         <div className="list">
           {upgrades.map(({ inst, lower, options }) => (
-            <div key={inst.uid} className="col">
-              <b>{lower.name}</b>
+            <div key={inst.uid} className="upgrade-row">
+              <div className="policy-pick">
+                <UnitCard card={inst} width={110} title={`승급 전: ${lower.name} — 승급하면 새 카드의 방향은 무작위로 정해집니다`} />
+                <small className="muted">승급 전 {lower.name}</small>
+              </div>
+              <div className="upgrade-opts">
               {options.map((upper) => {
                 const cost = cardCost(player, upper)
                 return (
@@ -157,6 +162,7 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
                   </div>
                 )
               })}
+              </div>
             </div>
           ))}
         </div>

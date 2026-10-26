@@ -1,5 +1,7 @@
+import { CityTag } from '../icons'
 import { useState } from 'react'
 import { happiness, researchableTechs, totalWorkers } from '../../engine'
+import { TechTree } from '../InfoTabs'
 import { TechCard } from '../cards/TechCard'
 import { ICON } from '../format'
 import type { PanelProps } from './types'
@@ -56,7 +58,7 @@ export function ResearchPanel({ game, player, dispatch }: PanelProps) {
               const workers = player.cities.find((x) => x.id === c.cityId)?.workers ?? 0
               return (
                 <tr key={c.cityId}>
-                  <td>도시 {c.cityId + 1}</td>
+                  <td><CityTag id={c.cityId} /></td>
                   {canFood && (
                     <td>
                       <input type="range" min={0} max={c.food} value={foodBy[c.cityId] ?? 0} onChange={(e) => setFood(c.cityId, Number(e.target.value))} />{' '}
@@ -92,6 +94,10 @@ export function ResearchPanel({ game, player, dispatch }: PanelProps) {
         ))}
         {techs.length === 0 && <p className="muted">연구할 수 있는 기술이 없습니다.</p>}
       </div>
+      <details className="tree-peek">
+        <summary>🗺 기술표 펴보기 (선행·후행 기술 확인)</summary>
+        <TechTree player={player} />
+      </details>
       <p className="muted">카드를 누르면 바로 연구합니다. 과학이 모자란 카드는 흐리게 보입니다.</p>
       <button onClick={() => dispatch({ type: 'skipResearch' })}>이번 차례는 연구하지 않음</button>
     </div>

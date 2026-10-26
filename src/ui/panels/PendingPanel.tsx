@@ -1,3 +1,4 @@
+import { CityTag } from '../icons'
 import { useState } from 'react'
 import type { PolicyId } from '../../engine'
 import { MILITARY_CARDS, civById, happiness, producible, totalWorkers } from '../../engine'
@@ -81,7 +82,7 @@ export function PendingPanel({ game, player, dispatch }: PanelProps) {
               <div className="row">
                 {player.cities.map((c) => (
                   <button key={c.id} disabled={(trad[c.id] ?? 0) >= c.workers} onClick={() => discardOne(c.id)}>
-                    <b>도시 {c.id + 1}</b> — 일꾼 {c.workers - (trad[c.id] ?? 0)}명 <small>(누르면 1명 버림)</small>
+                    <CityTag id={c.id} /> 일꾼 {c.workers - (trad[c.id] ?? 0)}명 <small>(누르면 1명 버림)</small>
                   </button>
                 ))}
                 <button onClick={() => setTrad(null)}>취소</button>

@@ -1,4 +1,4 @@
-import { Icon } from './icons'
+import { CityTag, Icon } from './icons'
 import { useCallback, useEffect, useState } from 'react'
 import type { Action, GameState } from '../engine'
 import { RuleError, actorOf, aiStep, apply, civById, culture, happiness, totalWorkers, tourism } from '../engine'
@@ -186,7 +186,7 @@ export function GameScreen({ initial, seats, onExit }: Props) {
             <span className="yields">
               {yields.cities.map((c) => (
                 <span key={c.cityId}>
-                  도시{c.cityId + 1} {ICON.food}
+                  <CityTag id={c.cityId} /> {ICON.food}
                   {c.food} {ICON.hammer}
                   {c.hammer}{' '}
                 </span>
