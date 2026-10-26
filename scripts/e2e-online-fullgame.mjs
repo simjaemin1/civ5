@@ -25,29 +25,21 @@ await B.locator('select').first().selectOption('russia')
 await A.getByText('게임 시작').click()
 
 // 한 번의 evaluate로 화면을 읽고 누른다 (왕복을 줄여 빠르게)
-const BUTTONS = ['도시 건설', '배치 확정', '이번 차례는 연구하지 않음', '생산 끝내기', '선전포고하지 않고 차례 끝내기']
+// 이름이 이 말로 시작하는 버튼을 차례로 찾는다 (경고가 뜨면 "그래도 진행")
+const BUTTONS = ['그래도 진행', '도시 건설', '도시 1에 붙이기', '배치 확정', '이번 차례는 연구하지 않음', '생산 끝내기', '선전포고하지 않고 차례 끝내기']
 function step(p) {
   return p.evaluate((names) => {
     if (document.body.innerText.includes('게임이 끝났습니다')) return 'over'
     const buttons = [...document.querySelectorAll('button')]
-    const close = document.querySelector('.modal-backdrop button')
+    const close = document.querySelector('.modal-backdrop button.primary:not(:disabled)') ?? document.querySelector('.modal-backdrop button')
     if (close) { close.click(); return 'acted' }
     for (const name of names) {
-      const b = buttons.find((x) => x.textContent.trim() === name && !x.disabled)
+      const b = buttons.find((x) => x.textContent.trim().startsWith(name) && !x.disabled)
       if (b) { b.click(); return 'acted' }
     }
-    // 전투: 대상 선택(빈칸) 후 확정
-    const confirm = buttons.find((x) => /^확정/.test(x.textContent.trim()))
-    if (confirm) {
-      for (const s of document.querySelectorAll('.panel select')) {
-        if ([...s.options].some((o) => o.value === 'empty')) {
-          const set = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set
-          set.call(s, 'empty')
-          s.dispatchEvent(new Event('change', { bubbles: true }))
-        }
-      }
-      return 'selected' // 다음 반복에 확정을 누른다 (React가 다시 그린 뒤)
-    }
+    // 전투 대상 선택: 줄마다 "빈칸" 버튼을 고른 뒤 확정
+    const empties = buttons.filter((x) => x.closest('.chips') && x.textContent.trim().startsWith('빈칸') && !x.classList.contains('active'))
+    if (empties.length) { empties.forEach((x) => x.click()); return 'selected' }
     return 'idle'
   }, BUTTONS).catch(() => 'idle')
 }

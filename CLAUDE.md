@@ -6,7 +6,7 @@
 - 사용자는 한국어를 쓴다. 답변도 한국어로 한다.
 - **작업이 끝날 때마다 Windows PowerShell 명령어를 함께 준다** (사용자의 상시 요청):
   ```powershell
-  cd civ5
+  cd ~/civ5
   git fetch origin
   git checkout <지금 브랜치>
   git pull

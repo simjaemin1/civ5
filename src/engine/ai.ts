@@ -8,7 +8,7 @@ import { ctxOf, culture, happiness, rationalismScience, tileYield, totalWorkers,
 import { investableWonders, minHammers } from './wonders'
 import { cardCost, producible, uniqueOf, upgradeTargets } from './military'
 import { declarationTargets, occupiedTiles } from './war'
-import { currentPlayer } from './core'
+import { currentPlayer, defaultTileCity } from './core'
 
 /** 규칙 검증용 단순 휴리스틱 AI. 후보 행동을 순서대로 시도해 규칙을 어기지 않는 첫 행동을 쓴다. */
 
@@ -530,6 +530,8 @@ function battleCandidates(s: GameState): Action[] {
 export function aiCandidates(s: GameState): Action[] {
   if (s.phase === 'battle' && s.battle) return battleCandidates(s)
   const p = currentPlayer(s)
+  // 문화로 얻은 타일은 먼저 붙인다 (예전 자동 배치와 같은 도시)
+  if (p.pendingTiles?.length && s.phase !== 'setup' && s.phase !== 'over') return [{ type: 'placeGainedTile', cityId: defaultTileCity(p).id }]
   plan = p.cities.length ? lateGame(p, s) : null
   switch (s.phase) {
     case 'setup':

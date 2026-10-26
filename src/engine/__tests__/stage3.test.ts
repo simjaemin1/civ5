@@ -944,6 +944,19 @@ describe('문명 능력 (전쟁·군사 관련)', () => {
     expect(() => apply(found(startGame(['denmark'], [hand4()])), { type: 'placeWorkers', placements: [{ cityId: 0, tileId: hill, general: true }] })).toThrow(RuleError)
   })
 
+  it('스웨덴: 타일에 올린 장군으로는 선전포고할 수 없다', () => {
+    let s = round2(['sweden', 'russia'], [hand4(), hand4()])
+    const swe = s.order.find((id) => s.players[id].civId === 'sweden')!
+    s = passTurn(s) // 러시아(우선도 80) 차례를 넘김
+    expect(s.order[s.turnIdx]).toBe(swe)
+    s = mod(s, (c) => (c.players[swe].generals = 1))
+    const hill = s.players[swe].cities[0].tiles.find((t) => t.role !== 'city')!.card.id
+    const kept = apply(s, { type: 'placeWorkers', placements: [] })
+    const used = apply(s, { type: 'placeWorkers', placements: [{ cityId: 0, tileId: hill, general: true }] })
+    expect(declarationTargets(kept, kept.players[swe]).some((t) => t.kind === 'normal')).toBe(true)
+    expect(declarationTargets(used, used.players[swe]).some((t) => t.kind === 'normal')).toBe(false)
+  })
+
   it('몽골: 내 장군이 올라간 상대 타일에 일꾼을 올려 산출한다', () => {
     let s = round2(['mongolia', 'russia'], [hand4(), hand4()])
     // 우선도: 러시아 80 > 몽골 0 이므로 몽골이 2번째

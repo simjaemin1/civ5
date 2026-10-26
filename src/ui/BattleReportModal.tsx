@@ -65,7 +65,7 @@ function stepsOf(report: BattleReport): Step[] {
 }
 
 /** 전투가 끝나면 한 번 띄우는 전투 장면. 확인을 눌러야 다음으로 넘어간다. */
-export function BattleReportModal({ game, report, viewerId, onClose }: { game: GameState; report: BattleReport; viewerId?: number; onClose: () => void }) {
+export function BattleReportModal({ game, report, viewer: viewerId, onClose }: { game: GameState; report: BattleReport; viewer?: number; onClose: () => void }) {
   const att = game.players[report.attackerId]
   const def = game.players[report.defenderId]
   const unitAt = (pid: number, slot: number) => report.units.find((u) => u.owner === pid && u.slot === slot) ?? null

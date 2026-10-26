@@ -105,6 +105,8 @@ export interface Player {
   pendingPolicies: number
   /** 인쇄기술로 얻은 두 번째 도시용 타일 4장 (도시를 세울 때까지) */
   pendingCity: TileCard[] | null
+  /** 문화로 얻었지만 아직 붙이지 않은 타일 (도시가 둘 이상이면 플레이어가 타일을 보고 붙일 도시를 고른다) */
+  pendingTiles?: TileCard[]
   wonders: string[]
   military: CardInst[]
   /** 이번 차례에 일꾼처럼 타일에 올린 장군 수 (스웨덴) */
@@ -258,5 +260,6 @@ export type Action =
   | { type: 'useGreatWall' }
   | { type: 'sacrificeCard'; uid: number }
   | { type: 'claimFreeCard'; defId: string; unique?: string }
+  | { type: 'placeGainedTile'; cityId: number }
 
 export class RuleError extends Error {}

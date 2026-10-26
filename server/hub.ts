@@ -160,6 +160,11 @@ export class Hub {
         this.persistMeta(room)
         break
       }
+      case 'undoTurn':
+        room.undoTurn(seat, Number(msg.steps))
+        this.store.rewriteLog(room.id, room.log)
+        this.persistMeta(room)
+        break
       case 'undo':
         room.undo(seat)
         this.store.rewriteLog(room.id, room.log)
@@ -199,7 +204,7 @@ export class Hub {
       const seat = room.seatOf(c.token)
       if (seat < 0) continue
       c.conn.send({ type: 'room', room: info, you: { seat, host: room.isHost(seat) } })
-      if (full && room.state) c.conn.send({ type: 'state', view: room.viewFor(seat)!, seq: room.log.length })
+      if (full && room.state) c.conn.send({ type: 'state', view: room.viewFor(seat)!, seq: room.log.length, undo: room.undoInfo(seat) })
     }
   }
 }

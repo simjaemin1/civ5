@@ -36,7 +36,7 @@ export function CivCard({ civId, width = 260, zoomable = true }: Props) {
     <>
       {face(width, zoomable ? () => setZoom(true) : undefined)}
       {zoom && (
-        <div className="modal-backdrop" onClick={() => setZoom(false)} role="dialog" aria-modal="true" aria-label={civ.name}>
+        <div className="modal-backdrop" onClick={() => setZoom(false)} onKeyDown={(e) => e.key === 'Escape' && setZoom(false)} role="dialog" aria-modal="true" aria-label={civ.name}>
           <div className="zoom" onClick={(e) => e.stopPropagation()}>
             {face(Math.min(720, window.innerWidth - 48))}
             <button className="primary" autoFocus onClick={() => setZoom(false)}>

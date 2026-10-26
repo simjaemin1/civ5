@@ -58,7 +58,7 @@ h3 { font-size: 1.05rem; }
 .list { display: flex; flex-direction: column; gap: 6px; }
 
 .setup { max-width: 980px; margin: 0 auto; padding-block: 24px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
-.game { max-width: 1280px; margin: 0 auto; padding-block: 12px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.game { max-width: 1560px; margin: 0 auto; padding-block: 12px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 .top {
   display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center;
   background: var(--accent); color: var(--accent-ink); padding: 8px 12px; border-radius: 8px;
@@ -299,3 +299,134 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .place-confirm { font-size: 1.1rem; align-items: center; gap: 14px; margin-top: 8px; }
 .place-confirm .confirm-btn { font-size: 1.1rem; font-weight: 700; padding: 3px 14px; line-height: 1.3; }
 .worker-summary .chip.warn { background: #fff0d6; border-color: #e08a00; }
+/* 두 칸 배치: 왼쪽은 지금 할 일, 오른쪽은 늘 보이는 판 상황 */
+.game-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0 16px; align-items: start; }
+.side { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin: 10px 0; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+@media (min-width: 1100px) {
+  .game-body { grid-template-columns: minmax(0, 1fr) 340px; }
+  .side { position: sticky; top: 8px; max-height: calc(100vh - 16px); overflow: auto; }
+}
+.side-sec h4 { margin: 0 0 6px; font-size: 0.95rem; }
+.small { font-size: 0.82rem; }
+.plain { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 0.88rem; }
+.turn-order { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.turn-order li { display: flex; flex-direction: column; padding: 4px 8px; border-radius: 6px; border: 1px solid transparent; }
+.turn-order li .nums { font-size: 0.76rem; }
+.turn-order li.now { background: var(--now); border-color: var(--accent-2); font-weight: 600; }
+.turn-order li.done { opacity: 0.7; }
+.turn-order li.out { opacity: 0.4; text-decoration: line-through; }
+.plain li.threat { background: var(--err-bg); border: 1px solid var(--err-line); border-radius: 6px; padding: 4px 6px; }
+.plain li.mine { background: var(--own-bg); border-radius: 6px; padding: 4px 6px; }
+.tag { margin-left: 6px; background: var(--err); color: #fff; border-radius: 999px; padding: 0 8px; font-size: 0.75rem; }
+.lead { font-weight: 700; color: var(--ok); }
+.threat-banner { background: var(--err-bg); border: 1px solid var(--err-line); border-radius: 8px; padding: 8px 12px; margin: 6px 0 10px; }
+.threat-banner ul { margin-top: 4px; }
+.waiting .log { max-height: 160px; margin: 6px 0; }
+.help { margin: 4px 0 8px; }
+
+/* 확인이 필요한 버튼 */
+.confirm { display: inline-flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.confirm .warn { color: var(--err); font-size: 0.9rem; font-weight: 600; }
+
+/* 전투 배치: 상대 자리와 공격 화살표 */
+.ghost-row { margin-bottom: 0; }
+.ghost-slot { border: 1px dashed var(--line); border-radius: 8px; padding: 4px 8px; display: flex; flex-direction: column; gap: 2px; font-size: 0.85rem; min-height: 48px; }
+.ghost-slot.hit { border-style: solid; border-color: var(--err-line); background: var(--err-bg); }
+.arrows { display: block; width: 100%; height: 36px; margin: 0; }
+.arrows line { stroke: var(--err); stroke-width: 2.5; }
+.arrows circle { fill: var(--err); }
+.aim { color: var(--err); font-weight: 600; }
+.intel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; margin: 6px 0; font-size: 0.88rem; }
+.chips { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.chips button { font-size: 0.85rem; }
+
+/* 군사 카드 그림 위 공격 방향 화살표 */
+.dir-badges { position: absolute; left: 0; right: 0; top: 2px; height: 0; pointer-events: none; }
+.dir-badge { position: absolute; transform: translateX(-50%); min-width: 22px; height: 22px; line-height: 22px; border-radius: 50%; background: #b3261e; color: #fff; font-weight: 800; font-size: 14px; text-align: center; box-shadow: 0 0 0 2px #fff; }
+
+/* 선전포고 목표 타일 */
+.target-badge { background: var(--err); color: #fff; border-radius: 999px; padding: 0 6px; font-size: 0.75rem; }
+
+/* 도시 세우기: 십자 자리에 바로 놓기 */
+.build-row { align-items: flex-start; }
+.build-cell { display: flex; flex-direction: column; gap: 2px; }
+.build-cell.held { outline: 3px dashed var(--accent); border-radius: 8px; }
+button.tile.empty.build-cell { width: 100%; min-height: 92px; text-align: center; cursor: pointer; }
+button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--accent); }
+.cell-label { text-align: center; color: var(--muted); font-size: 0.78rem; }
+.tag { white-space: nowrap; }
+@media (max-width: 760px) {
+  /* 전투 배치는 마주 보는 순서와 화살표가 맞도록 좁은 화면에서도 4칸을 유지한다 */
+  .slot-row.battle-row, .slot-row.ghost-row { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+  .battle-row .drop-slot { padding: 4px; min-height: 90px; font-size: 0.8rem; }
+  .battle-row .drop-slot .unit-card { width: 100% !important; }
+  .battle-row .facing { display: none; }
+  .ghost-slot { padding: 3px 4px; font-size: 0.75rem; }
+  .top label { font-size: 0.85rem; }
+}
+
+/* 선전포고: 상대 영토에서 목표 고르기 */
+.declare-body { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+.declare-board { flex: 1 1 420px; min-width: 0; }
+.target-card { flex: 1 1 300px; max-width: 520px; position: sticky; top: 8px; background: var(--surface); border: 2px solid var(--err-line); border-radius: 10px; padding: 10px 12px; }
+.target-head { display: flex; gap: 12px; align-items: flex-start; }
+.target-head h4 { margin: 0 0 6px; }
+.target-card .warn, .confirm-bar .warn { color: var(--err); font-weight: 600; }
+.city-note { font-weight: 400; }
+.tile.unpickable { opacity: 0.45; filter: grayscale(0.6); }
+.tile.has-img.pickable img { outline: 3px solid var(--err); outline-offset: 1px; }
+.tile.pickable:not(.has-img) { outline: 3px solid var(--err); }
+.tile.has-img.pickable.selected img { outline: 4px solid var(--accent-2); }
+@media (max-width: 760px) { .target-card { position: static; max-width: none; } .target-head { flex-direction: column; } }
+
+.confirm-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: var(--now); border: 1px solid var(--accent-2); border-radius: 8px; padding: 8px 10px; margin: 8px 0; }
+.war-hint { margin: 4px 0; font-size: 0.9rem; color: var(--err); }
+.scout-box { margin: 6px 0; }
+.prod-row { margin: 2px 0; }
+.prod-row.blocked { opacity: 0.6; }
+.prod-row button { white-space: nowrap; }
+.tile.unpickable, .tile.ro.unpickable:disabled { opacity: 0.45; filter: grayscale(0.6); }
+.settings { position: relative; margin: 0; }
+.settings > summary { list-style: none; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; font-weight: 400; }
+.settings > summary::-webkit-details-marker { display: none; }
+.settings-menu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; min-width: 220px; box-shadow: 0 4px 14px rgba(0,0,0,0.25); }
+@media (max-width: 760px) { .settings-menu { right: auto; left: 0; } }
+
+/* 선전포고 목표 타일: 타일 위에 띠로 표시 */
+.tile.targeted img, .tile.targeted:not(.has-img) { outline: 3px solid var(--err); outline-offset: 1px; }
+.tile-target { position: absolute; left: 0; right: 0; top: 38%; background: rgba(179, 38, 30, 0.92); color: #fff; font-weight: 700; font-size: 0.78rem; text-align: center; padding: 3px 2px; pointer-events: none; box-shadow: 0 1px 4px rgba(0,0,0,0.4); }
+.tile.ro.targeted:disabled { opacity: 1; }
+
+/* 문화로 얻은 타일 붙이기 */
+.city.drop-zone { border: 2px dashed var(--accent); }
+.city.drop-zone.over { background: var(--now); border-style: solid; }
+.gained { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-start; }
+.gained-tile { width: 150px; cursor: grab; }
+.gained-tile:active { cursor: grabbing; }
+.gained-actions { display: flex; flex-direction: column; gap: 6px; }
+
+/* 이번 차례 단계 막대 */
+.turn-steps { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 6px 8px; margin: 8px 0; }
+.turn-steps ol { list-style: none; display: flex; flex-wrap: wrap; gap: 4px; margin: 0; padding: 0; }
+.turn-steps li { display: flex; align-items: center; font-size: 0.85rem; }
+.turn-steps li + li::before { content: '›'; color: var(--muted); margin: 0 4px 0 0; }
+.turn-steps .step-btn { border-radius: 999px; padding: 3px 10px; border: 1px solid var(--line); background: var(--surface); }
+.turn-steps li.done .step-btn { color: var(--ok); }
+.turn-steps li.done button.step-btn:hover { border-color: var(--accent); background: var(--active-bg); }
+.turn-steps li.done .back { margin-left: 4px; opacity: 0.7; }
+.turn-steps li.now .step-btn { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; }
+.turn-steps li.next .step-btn { color: var(--muted); border-style: dashed; }
+.turn-steps .undo { font-size: 0.85rem; }
+
+/* 타일 하단 산출 아이콘 줄 다시 그리기 (카드 그림에서 딴 아이콘) */
+.tile.has-img { container-type: inline-size; }
+.yield-row { position: absolute; inset: 0; pointer-events: none; }
+.yield-patch { position: absolute; left: 50%; transform: translateX(-50%); top: 85.6%; height: 11.4%; background: #f4e9d6; border-radius: 6px; }
+.yield-icons { position: absolute; left: 0; right: 0; top: 91.4%; height: 0; }
+.yield-ic { position: absolute; top: 0; transform: translate(-50%, -50%); height: auto; }
+.yield-ic.plus { filter: drop-shadow(0 0 1.5px #fff) drop-shadow(0 0 2px #2f9d38) drop-shadow(0 0 1px #2f9d38); }
+.yield-ic.minus { opacity: 0.28; filter: grayscale(1); }
+.tile.has-img img.yield-ic { display: block; outline: none !important; box-shadow: none; border-radius: 0; max-width: none; }
+.turn-steps .undo-box { margin: 0; gap: 6px; }
+.invite code { user-select: all; word-break: break-all; }
+.warn-text { color: var(--err); }

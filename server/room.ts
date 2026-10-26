@@ -1,7 +1,7 @@
-import { CIVS, RuleError, actorOf, aiStep, apply, createGame, view } from '../src/engine'
+import { CIVS, RuleError, actorOf, aiStep, apply, createGame, revealsInfo, turnKey, view } from '../src/engine'
 import type { Action, GameState, GameView } from '../src/engine'
 import { MAX_PLAYERS, MIN_PLAYERS } from '../src/online/protocol'
-import type { RoomInfo, RoomStatus, SeatInfo } from '../src/online/protocol'
+import type { RoomInfo, RoomStatus, SeatInfo, UndoInfo } from '../src/online/protocol'
 
 /** 사용자에게 그대로 보여 줄 수 있는 오류 */
 export class ServerError extends Error {}
@@ -18,6 +18,10 @@ export interface LogEntry {
   seat: number
   ai: boolean
   action: Action
+  /** 사람 행동만: 행동 직전의 차례 열쇠·단계, 무작위 결과나 덱의 카드를 보여 줬는지 (차례 안 되돌리기용) */
+  turn?: string | null
+  phase?: GameState['phase']
+  reveal?: boolean
 }
 
 export interface RoomMeta {
@@ -180,7 +184,7 @@ export class Room {
     }
     if (!next || typeof next !== 'object') throw new ServerError('알 수 없는 행동입니다')
     this.state = next
-    this.log.push({ seat, ai: false, action })
+    this.log.push({ seat, ai: false, action, turn: turnKey(s), phase: s.phase, reveal: revealsInfo(s, next) })
     this.runAI()
     this.refreshStatus()
   }
@@ -203,7 +207,41 @@ export class Room {
     this.meta.status = this.state?.phase === 'over' ? 'over' : 'playing'
   }
 
-  /** 방장 전용: 마지막 사람 행동 하나(와 그 뒤에 AI가 둔 것)를 되돌린다 */
+  /**
+   * 자기 차례 안에서 되돌릴 수 있는 행동들 (docs/online-plan.md 3.4).
+   * 지금 이 자리가 입력할 차례이고, 기록 끝에서부터 같은 차례에 이 자리가 한 행동만 센다.
+   * 무작위 결과나 덱의 카드를 보여 준 행동을 만나면 거기서 멈춘다 (그 행동과 그 전은 되돌릴 수 없다).
+   */
+  undoInfo(seat: number): UndoInfo {
+    const out: UndoInfo = { phases: [], locked: false }
+    const s = this.state
+    if (!s || this.status !== 'playing') return out
+    const key = turnKey(s)
+    if (!key || actorOf(s) !== seat) return out
+    for (let i = this.log.length - 1; i >= 0; i--) {
+      const e = this.log[i]
+      if (e.ai || e.seat !== seat || e.turn !== key) break
+      if (e.reveal) {
+        out.locked = true
+        break
+      }
+      out.phases.unshift(e.phase!)
+    }
+    return out
+  }
+
+  /** 자기 차례 안 되돌리기: 이번 차례에 내가 한 마지막 행동 steps개를 되돌린다 (누구나, 자기 것만) */
+  undoTurn(seat: number, steps: number): void {
+    const info = this.undoInfo(seat)
+    if (!Number.isInteger(steps) || steps < 1) throw new ServerError('잘못된 되돌리기입니다')
+    if (steps > info.phases.length) {
+      throw new ServerError(info.locked ? '무작위 결과(카드 방향·뽑은 타일)를 본 뒤라 그 전으로는 되돌릴 수 없습니다' : '이번 차례에 되돌릴 수 있는 내 행동이 없습니다')
+    }
+    this.replay(this.log.slice(0, this.log.length - steps))
+    this.refreshStatus()
+  }
+
+  /** 방장 전용: 차례를 넘어 마지막 사람 행동 하나(와 그 뒤에 AI가 둔 것)를 되돌린다 */
   undo(by: number): void {
     this.requireHost(by)
     if (this.status === 'lobby') throw new ServerError('아직 시작하지 않았습니다')

@@ -1,11 +1,14 @@
 import { CityTag } from '../icons'
 import { useMemo, useState } from 'react'
 import type { Placement } from '../../engine'
-import { apply, civById, totalWorkers, RuleError } from '../../engine'
+import { apply, civById, declarationTargets, totalWorkers, RuleError } from '../../engine'
 import { Board } from '../Board'
-import { TileView } from '../TileView'
+import { ScoutBox } from './ScoutBox'
+import { deckSize } from '../gameInfo'
 import { ICON } from '../format'
 import type { PanelProps } from './types'
+import { ConfirmButton } from '../ConfirmButton'
+import { Help } from '../prefs'
 
 /**
  * 지난 차례 배치 중 지금도 유효한 것을 그대로 올려 둔다.
@@ -105,6 +108,42 @@ export function PlacePanel({ game, player, dispatch }: PanelProps) {
     setPlaced(next)
   }
 
+  // 놀고 있는 일꾼이 있는데 빈 타일도 있으면 확정 전에 한 번 묻는다
+  const freeTiles = player.cities.reduce(
+    (n, c) =>
+      n +
+      Math.min(
+        c.workers - [...placed].filter((id) => cityOf(id).id === c.id).length - enemy.filter((e) => e.cityId === c.id).length,
+        c.tiles.filter((t) => t.role !== 'city' && !placed.has(t.card.id) && !generals.has(t.card.id) && (t.occupiedBy === undefined || t.occupiedBy === player.id)).length,
+      ),
+    0,
+  )
+  const idle = Math.min(total - reserved - used, Math.max(0, freeTiles))
+  const left = total - reserved - used
+  // 선전포고(내정 5단계)에는 타일에 올리지 않은 일꾼 1개가 필요하다. 일꾼을 다 올리면 그 단계가 열리지 않는다.
+  // 스웨덴: 이번에 타일에 올리려는 장군은 선전포고에 쓸 수 없다
+  const freeGenerals = player.generals - generals.size
+  const targets = declarationTargets(game, player).filter((t) => t.kind === 'retake' || freeGenerals >= 1)
+  const canWar = targets.length > 0
+  const retakeOnly = canWar && targets.every((t) => t.kind === 'retake')
+  const warHint = !canWar
+    ? null
+    : left >= 1
+      ? `${retakeOnly ? '탈환 ' : ''}선전포고하려면 타일에 올리지 않은 일꾼 1개를 남겨 두세요 (지금 남는 일꾼 ${left}${retakeOnly ? '' : `, 장군 ${freeGenerals}`}).`
+      : `일꾼을 모두 올리면 이번 차례에는 선전포고할 수 없습니다. ${retakeOnly ? '탈환 ' : ''}선전포고하려면 일꾼 1개를 남기세요.`
+  const idleWarn =
+    idle <= 0
+      ? null
+      : canWar && left === 1
+        ? null // 선전포고용으로 1개 남긴 것으로 본다
+        : `일꾼 ${idle}개가 놀고 있습니다${canWar ? ' (선전포고에는 1개면 충분)' : ''}. 빈 타일에 올리지 않으면 산출이 없습니다.`
+  const canScout =
+    deckSize(game) === 0
+      ? { ok: false, why: '타일 덱이 비어 정찰할 수 없습니다' }
+      : left < 1
+        ? { ok: false, why: '정찰하려면 올린 일꾼을 1개 내리세요' }
+        : { ok: true }
+
   // 몽골: 내 장군이 올라간 상대 타일
   const enemyTiles =
     civ.id === 'mongolia'
@@ -151,10 +190,7 @@ export function PlacePanel({ game, player, dispatch }: PanelProps) {
             지난 배치로
           </button>
         </div>
-        <p className="muted">
-          타일을 눌러 일꾼을 올립니다 (도시 타일에는 올릴 수 없고, 도시 타일은 일꾼 없이도 항상 산출합니다). 일꾼 {used}/{total - reserved} 사용
-          {reserved > 0 && ` · 정찰/선전포고/맡아둔 타일에 묶인 일꾼 ${reserved}`}
-        </p>
+        <Help>타일을 눌러 일꾼을 올립니다. 도시 타일에는 올릴 수 없고, 도시 타일은 일꾼 없이도 항상 산출합니다.</Help>
         {civ.id === 'sweden' && (
           <p>
             배치 모드:{' '}
@@ -186,31 +222,8 @@ export function PlacePanel({ game, player, dispatch }: PanelProps) {
             })}
           </div>
         )}
-        <div className="row">
-          {!player.scouting && !player.held && (
-            <button onClick={() => dispatch({ type: 'scout' })} title="일꾼 1개로 타일 덱 맨 위 카드 1장을 봅니다">
-              🔭 정찰
-            </button>
-          )}
-          {player.scouted && (
-            <span className="row">
-              <b>정찰한 타일:</b>
-              <div style={{ width: 120 }}>
-                <TileView card={player.scouted} player={player} />
-              </div>
-              {player.techs.includes('compass') && <button onClick={() => dispatch({ type: 'holdScouted' })}>🧭 맡아두기</button>}
-            </span>
-          )}
-          {player.held && (
-            <span className="row">
-              <b>맡아둔 타일:</b>
-              <div style={{ width: 120 }}>
-                <TileView card={player.held} player={player} />
-              </div>
-              <button onClick={() => dispatch({ type: 'releaseHeld' })}>돌려보내기</button>
-            </span>
-          )}
-        </div>
+        <ScoutBox game={game} player={player} dispatch={dispatch} canScout={canScout} />
+        {warHint && <p className="war-hint">⚔ {warHint}</p>}
         <div className="row place-confirm">
           {preview.ok ? (
             <span>
@@ -229,9 +242,9 @@ export function PlacePanel({ game, player, dispatch }: PanelProps) {
           ) : (
             <span className="error">{preview.msg}</span>
           )}
-          <button className="primary confirm-btn" disabled={!preview.ok} onClick={() => dispatch({ type: 'placeWorkers', placements })}>
+          <ConfirmButton hotkey className="primary confirm-btn" disabled={!preview.ok} warn={idleWarn} onClick={() => dispatch({ type: 'placeWorkers', placements })}>
             배치 확정
-          </button>
+          </ConfirmButton>
         </div>
       </div>
       <Board
