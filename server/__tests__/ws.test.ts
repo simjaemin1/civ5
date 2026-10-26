@@ -3,7 +3,7 @@ import { WebSocket } from 'ws'
 import { actorOf, aiStep } from '../../src/engine'
 import type { GameView } from '../../src/engine'
 import type { JoinResult, ServerMsg } from '../../src/online/protocol'
-import { startServer } from '../index'
+import { lanAddresses, startServer } from '../index'
 import type { RunningServer } from '../index'
 import { MemoryStore } from '../store'
 
@@ -105,5 +105,28 @@ describe('HTTP + WebSocket', () => {
     for (let i = 0; i < 100 && msgs.length < 3; i++) await new Promise((r) => setTimeout(r, 10))
     expect(msgs.map((m) => m.type)).toEqual(['error', 'error', 'error'])
     ws.close()
+  })
+
+  it('초대 주소 후보: 공개 주소(터널·PUBLIC_URL)와 같은 와이파이 주소를 알려 준다', async () => {
+    let url: string | null = null
+    running = await startServer({ port: 0, store: new MemoryStore(), publicUrl: () => url })
+    const get = async () => (await (await fetch(`http://127.0.0.1:${running!.port}/api/info`)).json()) as { publicUrl: string | null; lan: string[] }
+    expect(await get()).toMatchObject({ publicUrl: null })
+    url = 'https://abc.trycloudflare.com' // 터널 주소는 서버가 켜진 뒤에 생긴다
+    const info = await get()
+    expect(info.publicUrl).toBe(url)
+    expect(Array.isArray(info.lan)).toBe(true)
+    expect(info.lan.every((u: string) => !u.includes('127.0.0.1') && u.endsWith(`:${running!.port}`))).toBe(true)
+  })
+
+  it('같은 와이파이 주소는 실제 어댑터를 먼저, 가상 어댑터(WSL 등)를 뒤에 둔다', () => {
+    const a = (address: string, internal = false) => ({ address, family: 'IPv4', internal, netmask: '', mac: '', cidr: null }) as never
+    const list = lanAddresses(8787, {
+      'vEthernet (WSL)': [a('172.22.80.1')],
+      'Wi-Fi': [a('192.168.0.12')],
+      'Loopback Pseudo-Interface 1': [a('127.0.0.1', true)],
+      이더넷: [a('10.0.0.5')],
+    })
+    expect(list).toEqual(['http://192.168.0.12:8787', 'http://10.0.0.5:8787', 'http://172.22.80.1:8787'])
   })
 })

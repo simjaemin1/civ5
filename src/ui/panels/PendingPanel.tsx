@@ -6,6 +6,7 @@ import { PolicyCard } from '../cards/PolicyCard'
 import { CityBuilder } from './CityBuilder'
 import type { PanelProps } from './types'
 import { policyName } from '../format'
+import { Help } from '../prefs'
 import { UnitCard } from '../cards/UnitCard'
 import { catalogCard } from '../cards/unitImage'
 
@@ -13,7 +14,11 @@ const ORDER: PolicyId[] = ['tradition', 'aesthetics', 'despotism', 'regime', 'li
 
 /** 연구나 불가사의로 생긴 선택(정책, 두 번째 도시, 독일의 무료 카드)을 먼저 처리한다 */
 export function PendingPanel({ game, player, dispatch }: PanelProps) {
-  const [dismiss, setDismiss] = useState('')
+  // 외교로 파괴할 상대 장군: 있으면 첫 번째를 기본으로 골라 둔다 (고르지 않고 외교를 골라 효과를 날리지 않게)
+  const [dismiss, setDismiss] = useState(() => {
+    for (const c of player.cities) for (const t of c.tiles) if (t.occupiedBy !== undefined && t.occupiedBy !== player.id) return `${c.id}:${t.card.id}`
+    return ''
+  })
   const enemyTiles = player.cities.flatMap((c) =>
     c.tiles.filter((t) => t.occupiedBy !== undefined && t.occupiedBy !== player.id).map((t) => ({ cityId: c.id, tile: t })),
   )
@@ -42,6 +47,7 @@ export function PendingPanel({ game, player, dispatch }: PanelProps) {
     <>
       {player.pendingCity && (
         <CityBuilder
+          key={player.pendingCity.map((c) => c.id).join(',')}
           hand={player.pendingCity}
           player={player}
           label="인쇄기술: 두 번째 도시 세우기 (문화 4)"
@@ -89,7 +95,7 @@ export function PendingPanel({ game, player, dispatch }: PanelProps) {
               </div>
             </div>
           )}
-          <p className="muted">카드를 누르면 그 정책을 고릅니다.</p>
+          <Help>카드를 누르면 그 정책을 고릅니다.</Help>
         </div>
       )}
       {player.pendingFreeCards > 0 && (

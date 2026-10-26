@@ -11,7 +11,11 @@ const SAVE_KEY = 'civ5-save-v1'
 function loadSave(): { game: GameState; seats: Seat[] } | null {
   try {
     const raw = localStorage.getItem(SAVE_KEY)
-    return raw ? JSON.parse(raw) : null
+    if (!raw) return null
+    const v = JSON.parse(raw)
+    // 오래되었거나 깨진 저장은 무시한다 (이어하기 버튼을 숨김)
+    if (!v?.game?.players || !Array.isArray(v.seats) || v.seats.length !== v.game.players.length) return null
+    return v
   } catch {
     return null
   }

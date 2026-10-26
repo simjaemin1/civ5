@@ -5,7 +5,7 @@ import type { TechDef } from './data'
 import { shuffle } from './rng'
 import { computeYields, happiness, totalWorkers } from './yields'
 import { makeTileDeck } from './tileDeck'
-import { currentPlayer, drawTiles, gainCulture, onTileGained, say } from './core'
+import { currentPlayer, defaultTileCity, drawTiles, flushPendingTiles, gainCulture, onTileGained, placeGainedTile, say } from './core'
 import { choosePolicy } from './policies'
 import { invest, settleWonders } from './wonders'
 import {
@@ -17,7 +17,7 @@ import {
   startNextBattle, detonateAtomicBomb, activateGreatWall,
 } from './war'
 
-export { currentPlayer, gainCulture }
+export { currentPlayer, defaultTileCity, gainCulture }
 
 export interface CreateOptions {
   seed: number
@@ -142,6 +142,7 @@ function settleAndEnd(s: GameState, p: Player): void {
 }
 
 function endTurn(s: GameState): void {
+  flushPendingTiles(s, currentPlayer(s))
   endScouting(s, currentPlayer(s))
   if (s.turnIdx + 1 >= s.order.length) {
     // 정산: 불가사의 진척도 → 전투
@@ -259,6 +260,10 @@ export function apply(prev: GameState, action: Action): GameState {
     case 'sacrificeCard':
       expectPhase(s, 'research', 'produce')
       sacrificeCard(s, p, action.uid)
+      return s
+    case 'placeGainedTile':
+      expectPhase(s, 'place', 'research', 'produce', 'declare')
+      placeGainedTile(s, p, action.cityId)
       return s
     case 'claimFreeCard':
       expectPhase(s, 'research', 'produce')

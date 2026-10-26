@@ -39,7 +39,7 @@ export function TechCard({ tech, state = 'idle', note, disabled, onClick, width 
         {state === 'owned' && <span className="badge">✓ 보유</span>}
       </button>
       {zoom && (
-        <div className="modal-backdrop" onClick={() => setZoom(false)} role="dialog" aria-modal="true" aria-label={tech.name}>
+        <div className="modal-backdrop" onClick={() => setZoom(false)} onKeyDown={(e) => e.key === 'Escape' && setZoom(false)} role="dialog" aria-modal="true" aria-label={tech.name}>
           <div className="zoom" onClick={(e) => e.stopPropagation()}>
             <TechCard tech={tech} state={state} width={Math.min(360, window.innerWidth - 48)} zoomable={false} />
             {note && <p className="muted">{note}</p>}

@@ -257,6 +257,54 @@ describe('진행', () => {
     playOne(g)
   }, 60_000)
 
+  it('자기 차례 안에서는 누구나 자기 행동을 되돌리고, 남의 차례나 지난 차례는 못 되돌린다', () => {
+    const g = startedGame(2, 1)
+    const room = g.hub.rooms.get(g.id)!
+    // 사람이 일꾼 배치를 막 끝낸 순간(같은 차례, 연구 단계)까지 진행한다
+    let guard = 0
+    while (!(room.state!.phase === 'research' && room.log.at(-1)?.action.type === 'placeWorkers' && !room.log.at(-1)!.ai)) {
+      playOne(g)
+      if (++guard > 3000) throw new Error('배치 직후 상태를 찾지 못함')
+    }
+    const me = g.players.find((p) => p.seat === actorOf(room.state!))!
+    const other = g.players.find((p) => p !== me)!
+    const info = room.undoInfo(me.seat)
+    expect(info.phases.at(-1)).toBe('place')
+    expect(me.conn.last('state')!.undo!.phases).toEqual(info.phases)
+    expect(other.conn.last('state')!.undo!.phases).toEqual([]) // 남의 차례에는 되돌릴 것이 없다
+    expect(send(g.hub, other, { type: 'undoTurn', steps: 1 })).toMatch(/되돌릴 수 있는 내 행동이 없/)
+    const logLen = room.log.length
+    expect(send(g.hub, me, { type: 'undoTurn', steps: 1 })).toBeUndefined()
+    expect(room.state!.phase).toBe('place')
+    expect(room.log.length).toBe(logLen - 1)
+    expect(new Hub(g.store).rooms.get(g.id)!.log.length).toBe(logLen - 1) // 저장 기록도 맞다
+    expect(send(g.hub, me, { type: 'undoTurn', steps: 99 })).toBeTruthy()
+    // 차례를 끝내면 그 차례 행동은 더 못 되돌린다
+    const turn = `${room.state!.round}:${room.state!.turnIdx}`
+    while ((room.state!.phase as string) !== 'over' && `${room.state!.round}:${room.state!.turnIdx}` === turn) playOne(g)
+    expect(room.undoInfo(me.seat).phases).toEqual([])
+  }, 60_000)
+
+  it('무작위 결과나 덱의 카드를 본 행동 뒤로는 차례 안 되돌리기가 잠긴다', () => {
+    const g = startedGame(2, 1)
+    const room = g.hub.rooms.get(g.id)!
+    let guard = 0
+    // 사람이 한 행동이 잠금 행동(생산 방향·정찰·타일 뽑기)이고 아직 같은 차례인 순간
+    const lockedNow = () => {
+      const e = room.log.at(-1)
+      return !!e && !e.ai && e.reveal && room.undoInfo(e.seat).locked
+    }
+    while (!lockedNow()) {
+      playOne(g)
+      if (++guard > 3000) throw new Error('잠금 상태를 찾지 못함')
+    }
+    const me = g.players.find((p) => p.seat === room.log.at(-1)!.seat)!
+    expect(room.undoInfo(me.seat).phases).toEqual([])
+    expect(send(g.hub, me, { type: 'undoTurn', steps: 1 })).toMatch(/무작위/)
+    // 방장의 차례를 넘는 되돌리기는 잠금과 상관없다
+    expect(send(g.hub, g.players[0], { type: 'undo' })).toBeUndefined()
+  }, 60_000)
+
   it('처음으로는 더 되돌릴 수 없다', () => {
     const g = startedGame(2, 0)
     expect(send(g.hub, g.players[0], { type: 'undo' })).toMatch(/되돌릴 행동이 없/)

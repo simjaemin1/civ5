@@ -60,14 +60,17 @@ await A.p.screenshot({ path: `${SP}/afterA.png` })
 await B.p.screenshot({ path: `${SP}/afterB.png` })
 
 // 남의 손 확인: B 화면 어디에도 A의 손 타일 문구가 없어야 한다(구조 검증은 단위 테스트가 한다)
-// 방장 되돌리기
-const hostBtn = A.p.getByRole('button', { name: /되돌리기/ })
+// 방장의 차례를 넘는 되돌리기 (설정 메뉴). 손님 설정 메뉴에는 없어야 한다. 자기 차례 안 되돌리기는 단계 막대에 모두 있다
+await A.p.locator('.settings summary').click()
+const hostBtn = A.p.getByRole('button', { name: /차례를 넘어 되돌리기/ })
 await hostBtn.click(); await A.p.waitForTimeout(500)
-log('guest has undo button:', await B.p.getByRole('button', { name: /되돌리기/ }).count())
+await B.p.locator('.settings summary').click()
+log('guest has host undo:', await B.p.getByRole('button', { name: /차례를 넘어 되돌리기/ }).count())
 log('A after undo:', (await A.p.locator('header.top').innerText()).replace(/\n/g, ' | '))
 
-// 방 폭파
+// 방 폭파 (설정 메뉴)
 A.p.on('dialog', d => d.accept())
+if (!(await A.p.getByRole('button', { name: /방 폭파/ }).isVisible())) await A.p.locator('.settings summary').click()
 await A.p.getByRole('button', { name: /방 폭파/ }).click()
 await B.p.getByTestId('landing-error').waitFor()
 log('B after bomb:', await B.p.getByTestId('landing-error').innerText())

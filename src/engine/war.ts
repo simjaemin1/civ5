@@ -48,7 +48,8 @@ export function declarationTargets(s: GameState, p: Player): DeclTarget[] {
       }
     }
   }
-  if (p.generals < 1) return out
+  // 스웨덴이 일꾼처럼 타일에 올린 장군은 선전포고에 쓸 수 없다 (토큰 하나는 한 곳에만 있다)
+  if (p.generals - p.generalWorkers < 1) return out
   for (const opp of alive(s)) {
     if (opp.id === p.id) continue
     for (const city of opp.cities) {

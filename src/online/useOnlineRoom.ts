@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { GameView } from '../engine'
 import type { Creds } from './api'
-import type { ClientMsg, RoomInfo, ServerMsg } from './protocol'
+import type { ClientMsg, RoomInfo, ServerMsg, UndoInfo } from './protocol'
 
 export interface OnlineRoom {
   status: 'connecting' | 'open'
@@ -9,6 +9,8 @@ export interface OnlineRoom {
   you: { seat: number; host: boolean } | null
   view: GameView | null
   seq: number
+  /** 이번 차례에 내가 되돌릴 수 있는 행동 (서버가 판정) */
+  undo: UndoInfo
   /** 서버가 보낸 오류 (다음 상태를 받으면 지운다) */
   error: string
   send: (msg: ClientMsg) => void
@@ -26,6 +28,7 @@ export function useOnlineRoom(creds: Creds | null, onClosed: (reason: string) =>
   const [you, setYou] = useState<OnlineRoom['you']>(null)
   const [view, setView] = useState<GameView | null>(null)
   const [seq, setSeq] = useState(0)
+  const [undo, setUndo] = useState<UndoInfo>({ phases: [], locked: false })
   const [error, setError] = useState('')
   const wsRef = useRef<WebSocket | null>(null)
   const onClosedRef = useRef(onClosed)
@@ -58,6 +61,7 @@ export function useOnlineRoom(creds: Creds | null, onClosed: (reason: string) =>
         } else if (msg.type === 'state') {
           setView(msg.view)
           setSeq(msg.seq)
+          setUndo(msg.undo ?? { phases: [], locked: false })
           setError('')
         } else if (msg.type === 'error') {
           if (!gotRoom) {
@@ -92,5 +96,5 @@ export function useOnlineRoom(creds: Creds | null, onClosed: (reason: string) =>
     else setError('서버와 연결이 끊겨 있습니다. 다시 연결되면 시도해 주세요.')
   }, [])
 
-  return { status, room, you, view, seq, error, send, clearError: () => setError('') }
+  return { status, room, you, view, seq, undo, error, send, clearError: () => setError('') }
 }

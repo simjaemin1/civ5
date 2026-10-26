@@ -12,6 +12,8 @@ const post = (path: string, name: string) => call<JoinResult>(path, { method: 'P
 export const createRoom = (name: string) => post('/api/rooms', name)
 export const joinRoom = (room: string, name: string) => post(`/api/rooms/${encodeURIComponent(room)}/join`, name)
 export const fetchRoom = (room: string) => call<RoomInfo>(`/api/rooms/${encodeURIComponent(room)}`)
+/** 초대 주소 후보: 공개 주소(터널·PUBLIC_URL)와 같은 와이파이 주소 */
+export const fetchServerInfo = () => call<{ publicUrl: string | null; lan: string[] }>('/api/info')
 
 /** 재접속용 자격: 같은 브라우저에서 같은 자리로 돌아온다 */
 export type Creds = JoinResult
