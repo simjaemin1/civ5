@@ -40,6 +40,9 @@ export interface City {
   placed: number[]
   /** 지난 차례에 일꾼이 올라가 있던 타일 id (다음 배치 때 그대로 올려 둔다) */
   lastPlaced?: number[]
+  /** 지난 차례에 스웨덴이 장군을 올린 타일 / 몽골이 일꾼을 올린 상대 타일 (다음 배치 때 그대로 올려 둔다) */
+  lastGeneralPlaced?: number[]
+  lastEnemyPlaced?: { playerId: number; cityId: number; tileId: number }[]
   /** 몽골: 일꾼이 올라간 상대 타일 */
   enemyPlaced?: { playerId: number; cityId: number; tileId: number; card: TileCard }[]
   /** 스웨덴: 일꾼처럼 올린 위대한 장군이 있는 타일 */

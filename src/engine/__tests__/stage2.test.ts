@@ -667,4 +667,14 @@ describe('지난 배치 기억', () => {
     expect(me(s).cities[0].placed).toEqual([])
     expect(me(s).cities[0].lastPlaced).toEqual([tileId])
   })
+
+  it('스웨덴이 일꾼처럼 올린 장군 배치도 기억한다', () => {
+    let s = mod(solo('sweden'), (c) => (c.players[0].generals = 2))
+    const tileId = me(s).cities[0].tiles.find((t) => t.role !== 'city')!.card.id
+    s = apply(s, { type: 'placeWorkers', placements: [{ cityId: 0, tileId, general: true }] })
+    s = apply(apply(s, { type: 'skipResearch' }), { type: 'endProduction' })
+    expect(s.phase).toBe('place')
+    expect(me(s).cities[0].generalPlaced).toEqual([])
+    expect(me(s).cities[0].lastGeneralPlaced).toEqual([tileId])
+  })
 })
