@@ -4,7 +4,7 @@ import { MILITARY_CARDS, RESOURCES, TECHS, WONDERS, cardById, civById, wonderCar
 import { cardStats } from './cardstats'
 import type { TechDef } from './data'
 import { apply, researchableTechs } from './game'
-import { ctxOf, culture, happiness, rationalismScience, tileYield, totalWorkers, tourism } from './yields'
+import { canHammerScience, ctxOf, culture, happiness, rationalismScience, tileYield, totalWorkers, tourism } from './yields'
 import { investableWonders, minHammers } from './wonders'
 import { cardCost, producible, uniqueOf, upgradeTargets } from './military'
 import { declarationTargets, occupiedTiles } from './war'
@@ -20,7 +20,7 @@ export const setAiStyle = (style: 'default' | 'hammer'): void => {
 
 /** 튜닝값 (시뮬레이션으로 조정) */
 /** 시뮬레이션(30판)으로 고른 값: 정책은 과학 12 미만이면 합리주의·자유로, 과학이론 우선도 +60, 아폴로 질주는 남은 기술 8개부터 (더 일찍 달리면 오히려 판이 길어진다) */
-export const AI_TUNE = { scienceWeight: 1.3, apolloRush: 8, policyNeed: 12, theoryBonus: 60, coalition: true, cultureRush: 9, cultureSlack: 2 }
+export const AI_TUNE = { scienceWeight: 1.3, apolloRush: 8, policyNeed: 12, coalition: true, cultureRush: 9, cultureSlack: 2 }
 
 const weight = (y: { food: number; hammer: number; science: number; gold: number }) =>
   y.food * 1.6 + y.hammer * 1.1 + y.science * AI_TUNE.scienceWeight + y.gold * 0.4
@@ -139,7 +139,6 @@ function buildPriority(p: Player, t: TechDef): number {
   const mountainFirstCity = !!p.cities[0]?.tiles.some((x) => (x.role === 'city' || x.role === 'side') && x.card.terrains.includes('산'))
   if (t.id === 'writing') v += 90 // 식량을 과학으로 바꿀 수 있다
   if (t.id === 'astronomy' && mountainFirstCity) v += 80 // 과학 +5
-  if (t.id === 'scientific_theory') v += AI_TUNE.theoryBonus
   if (t.id === 'printing_press') v += 70
   if (t.id === 'economics') v += 15
   if (t.id === 'radar') v -= 60 // 정책이 전제정치로 바뀐다 (아폴로 질주 때만 감수)
@@ -159,6 +158,7 @@ function techPriority(t: TechDef, rush?: Set<string>, p?: Player): number {
     else if (e.kind === 'tourismPerCulture') v += rush ? 0 : 60 // 관광이 상대 문화를 넘으면 문화 승리
     else if (e.kind === 'policy') v += 3
     else if (e.kind === 'hammerToScience') v += 3
+    else if (e.kind === 'sciencePerTurn') v += e.amount * 10
     else if (e.kind === 'general') v += 2
     else if (e.kind === 'scienceVictory') v += 1000
   }
@@ -187,7 +187,7 @@ function researchCandidates(s: GameState, p: Player): Action[] {
       foodConv = Math.min(need, Math.max(0, p.policy === 'liberty' ? food : food - totalWorkers(p)))
       need -= foodConv
     }
-    if (need > 0 && p.techs.includes('scientific_theory')) {
+    if (need > 0 && canHammerScience(p)) {
       hammerConv = Math.min(2, hammers, need)
       need -= hammerConv
     }

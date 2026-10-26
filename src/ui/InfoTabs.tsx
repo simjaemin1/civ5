@@ -15,7 +15,7 @@ const ROOT_ROW: Record<string, number> = {
   agriculture: 0, civil_service: 0,
   writing: 1, education: 1,
   archery: 2, rifling: 2,
-  sailing: 3, interchangeable_parts: 3,
+  sailing: 3, ballistics: 3,
   animal_husbandry: 4, atomic_theory: 4,
   mining: 5, combined_arms: 5,
   bronze_working: 6,

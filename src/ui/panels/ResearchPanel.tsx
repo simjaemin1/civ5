@@ -1,6 +1,6 @@
 import { CityTag } from '../icons'
 import { useState } from 'react'
-import { TECHS, happiness, researchableTechs, totalWorkers } from '../../engine'
+import { TECHS, canHammerScience, happiness, researchableTechs, totalWorkers } from '../../engine'
 import { TechTree } from '../InfoTabs'
 import { TechCard } from '../cards/TechCard'
 import { ICON, josa } from '../format'
@@ -12,7 +12,7 @@ import { maxSciencePool, sciencePlan } from '../autoSkip'
 export function ResearchPanel({ game, player, dispatch }: PanelProps) {
   const turn = player.turn!
   const canFood = player.techs.includes('writing')
-  const canHammer = player.techs.includes('scientific_theory')
+  const canHammer = canHammerScience(player)
   const cities = turn.yields.cities
   // 도시별로 과학에 쓸 식량·망치 (도시 id → 개수)
   const [foodBy, setFoodBy] = useState<Record<number, number>>({})

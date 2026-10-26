@@ -9,6 +9,7 @@ import {
   researchableTechs,
   upgradeTargets,
 } from '../engine'
+import { canHammerScience } from '../engine'
 import { produceBlock } from './gameInfo'
 
 const hasPending = (p: Player) => p.pendingPolicies > 0 || !!p.pendingCity || p.pendingFreeCards > 0 || !!p.pendingTiles?.length
@@ -17,7 +18,7 @@ const hasPending = (p: Player) => p.pendingPolicies > 0 || !!p.pendingCity || p.
 export function maxSciencePool(p: Player): number {
   const y = p.turn!.yields
   const food = p.techs.includes('writing') ? y.cities.reduce((n, c) => n + c.food, 0) : 0
-  const hammer = p.techs.includes('scientific_theory') ? Math.min(2, y.cities.reduce((n, c) => n + c.hammer, 0)) : 0
+  const hammer = canHammerScience(p) ? Math.min(2, y.cities.reduce((n, c) => n + c.hammer, 0)) : 0
   return y.science + food + hammer
 }
 
@@ -38,7 +39,7 @@ export function sciencePlan(p: Player, need: number): { food: Record<number, num
       left -= n
     }
   let hLeft = 2
-  if (p.techs.includes('scientific_theory'))
+  if (canHammerScience(p))
     for (const c of cities) {
       const n = Math.min(left, c.hammer, hLeft)
       if (n <= 0) continue

@@ -3,7 +3,7 @@ import { RuleError, SIDES } from './types'
 import { TECHS, WONDERS, civById, techById } from './data'
 import type { TechDef } from './data'
 import { shuffle } from './rng'
-import { computeYields, happiness, totalWorkers } from './yields'
+import { canHammerScience, computeYields, happiness, totalWorkers } from './yields'
 import { makeTileDeck } from './tileDeck'
 import { currentPlayer, defaultTileCity, drawTiles, flushPendingTiles, gainCulture, onTileGained, placeGainedTile, say } from './core'
 import { choosePolicy } from './policies'
@@ -534,8 +534,8 @@ function research(
   if (foodToScience > 0 && !p.techs.includes('writing')) throw new RuleError('문자를 연구해야 식량을 과학으로 바꿀 수 있습니다')
   if (foodToScience < 0 || foodToScience > food) throw new RuleError('바꿀 식량이 잘못되었습니다')
   const hammers = turn.yields.cities.reduce((n, c) => n + c.hammer, 0)
-  if (hammerToScience > 0 && !p.techs.includes('scientific_theory')) {
-    throw new RuleError('과학이론을 연구해야 망치를 과학으로 바꿀 수 있습니다')
+  if (hammerToScience > 0 && !canHammerScience(p)) {
+    throw new RuleError('망치를 과학으로 바꿀 수 있는 기술이 없습니다')
   }
   if (hammerToScience < 0 || hammerToScience > 2 || hammerToScience > hammers) {
     throw new RuleError('망치는 가진 만큼, 최대 2개까지 과학으로 바꿀 수 있습니다')

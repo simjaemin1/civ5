@@ -1,8 +1,12 @@
 import type { City, PartialYield, Player, Terrain, TileCard, TurnYields, Yield } from './types'
-import { RESOURCES, TECHS, TERRAINS, WONDERS, civById, wonderCardById } from './data'
+import { RESOURCES, TECHS, TERRAINS, WONDERS, civById, techById, wonderCardById } from './data'
 import type { CivDef } from './data'
 
 export const ZERO: Yield = { food: 0, hammer: 0, science: 0, gold: 0 }
+
+/** 망치를 과학으로 바꿀 수 있는 기술(hammerToScience 효과)을 가졌는가 */
+export const canHammerScience = (p: Player): boolean =>
+  p.techs.some((id) => techById(id).effects.some((e) => e.kind === 'hammerToScience'))
 
 export function addYield(a: Yield, b: PartialYield): Yield {
   return {

@@ -145,8 +145,8 @@
    ],
    "effects": [
     {
-     "kind": "hammerToScience",
-     "amount": 2
+     "kind": "policyChance",
+     "policy": "rationalism"
     }
    ]
   },
@@ -247,9 +247,6 @@
    "id": "ballistics",
    "name": "탄도학",
    "column": 8,
-   "prereqs": [
-    "dynamite"
-   ],
    "effects": []
   },
   {
@@ -302,7 +299,10 @@
    "id": "interchangeable_parts",
    "name": "교체형부품",
    "column": 8,
-   "effects": []
+   "effects": [],
+   "prereqs": [
+    "dynamite"
+   ]
   },
   {
    "id": "robotics",
@@ -502,7 +502,12 @@
    "prereqs": [
     "gunpowder"
    ],
-   "effects": []
+   "effects": [
+    {
+     "kind": "sciencePerTurn",
+     "amount": 2
+    }
+   ]
   },
   {
    "id": "industrialization",

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { aiCandidates, aiDebug, apply, createGame, culture, happiness, tourism, computeYields, totalWorkers, RuleError, WONDER_CARDS, TECHS } from '..'
 import type { GameState, TileCard } from '..'
 import { found, me, play, startGame, tile } from './helpers'
@@ -336,14 +336,19 @@ describe('불가사의 데이터', () => {
   })
 })
 
-describe('과학이론: 망치를 과학으로', () => {
+describe('망치를 과학으로 (엔진 규칙)', () => {
+  // 현재 데이터에는 망치→과학 효과를 가진 기술이 없어, 엔진의 변환 규칙만 확인하려고 과학이론에 효과를 잠시 붙인다
+  const theory = TECHS.find((t) => t.id === 'scientific_theory')!
+  const saved = theory.effects
+  beforeAll(() => { theory.effects = [{ kind: 'hammerToScience', amount: 2 }] })
+  afterAll(() => { theory.effects = saved })
   // 한국(과학 2)이 비용 4 기술(공공행정)을 망치 2로 보태 연구
   const base = (techs: string[]) =>
     mod(solo('korea'), (c) => c.players[0].techs.push('machinery', ...techs))
   const placed = (s: GameState, hammers: number) =>
     mod(toResearch(s), (c) => (c.players[0].turn!.yields.cities[0].hammer = hammers))
 
-  it('과학이론이 없으면 변환할 수 없다', () => {
+  it('해당 기술이 없으면 변환할 수 없다', () => {
     const s = placed(base([]), 5)
     expect(() => apply(s, { type: 'research', techId: 'civil_service', hammerToScience: 2 })).toThrow(RuleError)
   })
@@ -366,6 +371,33 @@ describe('과학이론: 망치를 과학으로', () => {
     expect(() => apply(s, { type: 'research', techId: 'civil_service', hammerToScience: 3 })).toThrow(RuleError)
     const few = placed(base(['scientific_theory']), 1)
     expect(() => apply(few, { type: 'research', techId: 'civil_service', hammerToScience: 2 })).toThrow(RuleError)
+  })
+})
+
+describe('화학·과학이론·기술 선행', () => {
+  it('화학: 자신의 차례에 과학 +2', () => {
+    const before = computeYields(me(solo('korea'))).science
+    const s = mod(solo('korea'), (c) => c.players[0].techs.push('chemistry'))
+    expect(computeYields(me(s)).science).toBe(before + 2)
+  })
+
+  it('과학이론: 정책 1개를 합리주의로 바꾸거나 지금 정책을 다시 고르는 것만 가능', () => {
+    let s = mod(solo('korea'), (c) => { c.players[0].policy = 'tradition'; c.players[0].pendingPolicies = 0 })
+    s = toResearch(s)
+    s = mod(s, (c) => (c.players[0].techs.push('acoustics'), (c.players[0].turn!.yields.science = 99)))
+    s = apply(s, { type: 'research', techId: 'scientific_theory' })
+    expect(me(s).pendingPolicies).toBe(1)
+    expect(() => apply(s, { type: 'choosePolicy', policy: 'liberty' })).toThrow(RuleError)
+    s = apply(s, { type: 'choosePolicy', policy: 'rationalism' })
+    expect(me(s).policy).toBe('rationalism')
+  })
+
+  it('강선 → 다이너마이트 → 교체형부품 → 로봇공학, 탄도학 → 로켓공학', () => {
+    const pre = (id: string) => TECHS.find((t) => t.id === id)!.prereqs ?? []
+    expect(pre('interchangeable_parts')).toEqual(['dynamite'])
+    expect(pre('robotics')).toEqual(['interchangeable_parts'])
+    expect(pre('ballistics')).toEqual([])
+    expect(pre('rocketry')).toEqual(['ballistics'])
   })
 })
 
@@ -412,6 +444,11 @@ describe('시작 타일·음향학 문화', () => {
 })
 
 describe('도시 선택 (식량·망치 변환, 문화 타일, 일꾼 버리기)', () => {
+  // 현재 데이터에는 망치→과학 효과를 가진 기술이 없어, 엔진의 변환 규칙만 확인하려고 과학이론에 효과를 잠시 붙인다
+  const theory = TECHS.find((t) => t.id === 'scientific_theory')!
+  const saved = theory.effects
+  beforeAll(() => { theory.effects = [{ kind: 'hammerToScience', amount: 2 }] })
+  afterAll(() => { theory.effects = saved })
   /** 도시 둘: 둘째 도시는 첫 도시를 복사해 id 1로 */
   function two(): GameState {
     return mod(solo('korea'), (c) => {
