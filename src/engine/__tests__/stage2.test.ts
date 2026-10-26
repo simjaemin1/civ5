@@ -678,3 +678,20 @@ describe('지난 배치 기억', () => {
     expect(me(s).cities[0].lastGeneralPlaced).toEqual([tileId])
   })
 })
+
+describe('불모지로 뽑은 엘도라도', () => {
+  it('불모지 탈출로 엘도라도를 새로 뽑아도 처음 발견이면 손 +1, 도시를 세우면 영토 효과 +1', () => {
+    let hit = 0
+    for (let seed = 1; seed <= 400 && hit < 2; seed++) {
+      const s0 = createGame({ seed, civIds: ['denmark', 'china'] })
+      const cur = s0.order[s0.turnIdx]
+      if (s0.players[cur].hand.some((c) => c.wonder === 'eldorado')) continue
+      const s = apply(s0, { type: 'wasteland', discardTileId: s0.players[cur].hand[0].id })
+      if (!s.players[cur].hand.some((c) => c.wonder === 'eldorado')) continue
+      hit++
+      expect(s.eldoradoFound).toBe(true)
+      expect(s.players[cur].hand).toHaveLength(5) // 4장 + 불모지 1장 - 버린 1장 + 발견 보너스 1장
+    }
+    expect(hit).toBeGreaterThan(0)
+  })
+})
