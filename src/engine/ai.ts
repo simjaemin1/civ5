@@ -6,7 +6,7 @@ import type { TechDef } from './data'
 import { apply, researchableTechs } from './game'
 import { canHammerScience, ctxOf, culture, happiness, rationalismScience, tileYield, totalWorkers, tourism } from './yields'
 import { investableWonders, minHammers } from './wonders'
-import { MAX_HOLD, cardCost, producible, uniqueOf, upgradeTargets } from './military'
+import { MAX_HOLD, cardCost, heldCount, producible, uniqueOf, upgradeTargets } from './military'
 import { declarationTargets, occupiedTiles } from './war'
 import { currentPlayer, defaultTileCity } from './core'
 
@@ -422,7 +422,7 @@ function produceCandidates(s: GameState, p: Player): Action[] {
     const wonderActions: Action[] = wonders.map((w) => ({ type: 'invest', cityId: city.id, wonderId: w.id, hammers: h }))
     const cardActions: Action[] = []
     for (const o of cardOptions(p)) {
-      if (o.def.notBattle || p.military.filter((c) => c.defId === o.def.id).length >= MAX_HOLD || !producible(s, p, o.def.id, o.unique, city) || cardCost(p, o.def, o.unique ? uniqueOf(p, o.unique) : undefined) > h) continue
+      if (o.def.notBattle || (!o.unique && heldCount(p, o.def.id) >= MAX_HOLD) || !producible(s, p, o.def.id, o.unique, city) || cardCost(p, o.def, o.unique ? uniqueOf(p, o.unique) : undefined) > h) continue
       cardActions.push({ type: 'produce', cityId: city.id, defId: o.def.id, unique: o.unique })
     }
     // 군대가 3장 미만이거나 이웃의 군사에 비해 수비가 모자라면 군사 카드를 먼저, 그 뒤에는 불가사의에 망치를 모두 건다
@@ -434,7 +434,7 @@ function produceCandidates(s: GameState, p: Player): Action[] {
     for (const c of p.military) {
       for (const u of civById(p.civId).uniques) out.push({ type: 'upgrade', uid: c.uid, unique: u.name })
     }
-    for (const c of p.military) for (const t of upgradeTargets(p, c).filter((x) => p.military.filter((m) => m.defId === x.id).length < MAX_HOLD)) out.push({ type: 'upgrade', uid: c.uid, toDefId: t.id })
+    for (const c of p.military) for (const t of upgradeTargets(p, c).filter((x) => heldCount(p, x.id) < MAX_HOLD)) out.push({ type: 'upgrade', uid: c.uid, toDefId: t.id })
   }
   // 4) 장군이 없고 군대가 있으면 점령 중인 장군 1개를 불러들여 다시 전쟁에 쓴다.
   //    다만 상대에게 중요한 타일(좋은 산출·자원·자연경관)을 점령 중이면 그대로 들고 있는다. 상대의 성장을 누르는 편이 낫다.
@@ -530,10 +530,10 @@ function battleCandidates(s: GameState): Action[] {
 export function aiCandidates(s: GameState): Action[] {
   if (s.phase === 'battle' && s.battle) return battleCandidates(s)
   const p = currentPlayer(s)
-  // 보유 한도를 넘은 카드는 같은 종류 중 가장 약한 카드(고유 유닛 아님·체력이 낮은 것)를 버린다
+  // 보유 한도를 넘은 카드는 같은 종류 중 가장 약한 카드(체력이 낮은 일반 카드)를 버린다
   if (p.pendingCardDiscard?.length) {
     const kind = p.pendingCardDiscard[0]
-    const cands = p.military.filter((c) => c.defId === kind).sort((x, y) => Number(!!x.unique) - Number(!!y.unique) || (cardStats(x).hp ?? 0) - (cardStats(y).hp ?? 0))
+    const cands = p.military.filter((c) => c.defId === kind && !c.unique).sort((x, y) => (cardStats(x).hp ?? 0) - (cardStats(y).hp ?? 0))
     return cands.map((c) => ({ type: 'discardCard' as const, uid: c.uid }))
   }
   // 문화로 얻은 타일은 먼저 붙인다 (예전 자동 배치와 같은 도시)

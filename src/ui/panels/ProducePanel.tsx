@@ -1,6 +1,6 @@
 import { CityTag } from '../icons'
 import { useState } from 'react'
-import { MAX_HOLD, MILITARY_CARDS, cardById, cardCost, civById, declarationTargets, investableWonders, minHammers, uniqueOf, upgradeTargets, occupiedTiles } from '../../engine'
+import { MAX_HOLD, heldCount, MILITARY_CARDS, cardById, cardCost, civById, declarationTargets, investableWonders, minHammers, uniqueOf, upgradeTargets, occupiedTiles } from '../../engine'
 import { UnitCard } from '../cards/UnitCard'
 import { catalogCard } from '../cards/unitImage'
 import { WonderCard } from '../cards/WonderCard'
@@ -147,7 +147,7 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
                     const no = rows.filter((r) => r.block)
                     // 카드 그림으로 보여 준다: 만들 수 있는 카드는 앞에, 만들 수 없는 카드는 이유와 함께 접어 둔다
                     const card = (r: (typeof rows)[number]) => {
-                      const full = player.military.filter((c) => c.defId === r.def.id).length >= MAX_HOLD
+                      const full = !r.unique && heldCount(player, r.def.id) >= MAX_HOLD
                       return (
                       <div key={`${r.def.id}:${r.unique ?? ''}`} className={`policy-pick prod-card${r.block ? ' blocked' : ''}`}>
                         <UnitCard card={catalogCard(r.def.id, r.unique)} width={120} />

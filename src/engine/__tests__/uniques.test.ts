@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { apply, cardById, cardStats, CIVS, culture, dirsKey, producible, TECHS, UNIQUES } from '..'
+import { apply, cardById, cardStats, CIVS, culture, dirsKey, producible, heldCount, TECHS, UNIQUES } from '..'
 import type { CardInst, GameState, TileCard } from '..'
 import { found, play, startGame, tile } from './helpers'
 
@@ -89,6 +89,16 @@ describe('고유 유닛 데이터', () => {
       c.uniqueSupply['투석병사'] = []
     })
     expect(producible(s, s.players[0], 'archer', '투석병사')).toBeNull()
+  })
+
+  it('고유 유닛 3장과 같은 바탕의 일반 카드 5장을 따로 가질 수 있다', () => {
+    let s = round2(['inca', 'russia'])
+    s = mod(s, (c) => {
+      for (let i = 0; i < 3; i++) unique(c, 0, '투석병사', ['L', 'C', 'R'][i])
+      for (let i = 0; i < 5; i++) give(c, 0, 'archer', 'L')
+    })
+    expect(heldCount(s.players[0], 'archer')).toBe(5)
+    expect(s.players[0].pendingCardDiscard).toBeUndefined()
   })
 
   it('방향 마크가 없는 공성추는 같은 카드 3장', () => {

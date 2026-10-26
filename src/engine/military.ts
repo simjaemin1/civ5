@@ -32,6 +32,9 @@ export function releaseUnique(s: GameState, c: CardInst): void {
   if (c.unique && s.uniqueSupply[c.unique]) s.uniqueSupply[c.unique].push(dirsKey(c.dirs))
 }
 
+/** 일반 카드(고유 유닛 제외)로 가진 장수: 한도(MAX_HOLD)는 이 수로 센다 */
+export const heldCount = (p: Player, defId: string): number => p.military.filter((c) => c.defId === defId && !c.unique).length
+
 export const hasAny = (p: Player, wonder: string): boolean => p.wonders.includes(wonder)
 
 /** 아르테미스 사원: 전사·궁수·창병·전차(와 이 카드를 바탕으로 하는 고유 유닛) 생산 비용 -1. 고유 유닛은 카드에 적힌 비용에서 뺀다. */
@@ -93,16 +96,17 @@ function newCard(s: GameState, defId: string, unique?: string): CardInst {
 
 /** 기술 효과 등으로 카드를 바로 받는다 (핵융합의 원자폭탄) */
 /** 보유 한도(MAX_HOLD)를 넘으면 버릴 카드를 골라야 한다: 넘친 종류를 기록한다 */
-function noteOverflow(p: Player, defId: string): void {
-  if (p.military.filter((c) => c.defId === defId).length > MAX_HOLD) (p.pendingCardDiscard ??= []).push(defId)
+function noteOverflow(p: Player, defId: string, unique?: string): void {
+  if (unique) return // 고유 유닛은 3장만 존재하고 일반 카드의 한도에 세지 않는다
+  if (heldCount(p, defId) > MAX_HOLD) (p.pendingCardDiscard ??= []).push(defId)
 }
 
 /** 넘친 군사 카드 1장을 골라 버린다 (고유 유닛이면 재고로 돌아간다) */
 export function discardCard(s: GameState, p: Player, uid: number): void {
   const inst = p.military.find((c) => c.uid === uid)
   if (!inst) throw new RuleError('내 카드가 아닙니다')
-  const at = p.pendingCardDiscard?.indexOf(inst.defId) ?? -1
-  if (at < 0) throw new RuleError('버려야 하는 종류의 카드를 고르세요')
+  const at = inst.unique ? -1 : (p.pendingCardDiscard?.indexOf(inst.defId) ?? -1)
+  if (at < 0) throw new RuleError('버려야 하는 종류의 일반 카드를 고르세요')
   p.military = p.military.filter((c) => c.uid !== uid)
   releaseUnique(s, inst)
   p.pendingCardDiscard!.splice(at, 1)
@@ -135,7 +139,7 @@ export function produceCard(
   const available = turn.yields.cities.find((c) => c.cityId === a.cityId)!.hammer
   if (available < cost) throw new RuleError('도시의 망치가 모자랍니다')
   p.military.push(newCard(s, def.id, a.unique))
-  noteOverflow(p, def.id)
+  noteOverflow(p, def.id, a.unique)
   turn.produced.push(a.cityId)
   say(s, `${civById(p.civId).name} ${a.unique ?? def.name} 생산 (망치 ${cost})`)
 }
@@ -167,7 +171,7 @@ export function upgradeCard(s: GameState, p: Player, a: { uid: number; unique?: 
   p.military = p.military.filter((c) => c.uid !== a.uid)
   releaseUnique(s, inst) // 승급으로 바뀐 하위 고유 유닛은 재고로 돌아간다
   p.military.push(newCard(s, upper.id, a.unique))
-  noteOverflow(p, upper.id)
+  noteOverflow(p, upper.id, a.unique)
   turn.upgraded = true
   turn.yields.gold -= cost
   say(s, `${civById(p.civId).name} ${lower.name} → ${upper.name} 승급 (금 ${cost})`)
@@ -191,7 +195,7 @@ export function claimFreeCard(s: GameState, p: Player, a: { defId: string; uniqu
   const ok = producible(s, p, a.defId, a.unique)
   if (!ok) throw new RuleError('지금 받을 수 없는 카드입니다')
   p.military.push(newCard(s, ok.def.id, a.unique))
-  noteOverflow(p, ok.def.id)
+  noteOverflow(p, ok.def.id, a.unique)
   p.pendingFreeCards--
   say(s, `${civById(p.civId).name} 무료 군사 카드: ${a.unique ?? ok.def.name}`)
 }
