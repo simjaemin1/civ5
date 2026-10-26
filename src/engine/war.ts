@@ -40,7 +40,7 @@ export function declarationTargets(s: GameState, p: Player): DeclTarget[] {
   // 같은 타일에는 선전포고가 하나만 걸린다 (이미 누군가 노린 타일은 제외)
   const targeted = (defenderId: number, cityId: number, tileId: number) =>
     s.declarations.some((d) => d.defenderId === defenderId && d.cityId === cityId && d.tileId === tileId)
-  if (freeWorkers(p) < 1) return out
+  if (freeWorkers(p) < 1 && p.policy !== 'despotism') return out // 전제정치 시행 중에는 선전포고에 일꾼이 필요 없다
   for (const city of p.cities) {
     for (const t of city.tiles) {
       if (t.occupiedBy !== undefined && t.occupiedBy !== p.id && !s.players[t.occupiedBy].eliminated && !targeted(p.id, city.id, t.card.id)) {
@@ -96,7 +96,7 @@ export function declareWar(
   )
   if (!target) throw new RuleError('그 타일에는 선전포고할 수 없습니다')
   if (target.kind !== 'retake') p.generals -= 1
-  p.busyWorkers += 1
+  if (p.policy !== 'despotism') p.busyWorkers += 1 // 전제정치 시행 중에는 일꾼을 걸지 않는다
   s.declarations.push({ attackerId: p.id, defenderId: target.defenderId, cityId: target.cityId, tileId: target.tileId, kind: target.kind })
   const label = { normal: '선전포고', retake: '탈환 선전포고', city: '도시 공격 선전포고' }[target.kind]
   say(s, `${civById(p.civId).name} → ${civById(s.players[target.defenderId].civId).name} ${label}`)

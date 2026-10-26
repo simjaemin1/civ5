@@ -1055,3 +1055,32 @@ describe('같은 타일에는 선전포고 불가', () => {
     expect(r.players[0].greatWallUsed).toBe(true)
   })
 })
+
+describe('전제정치: 선전포고에 일꾼이 필요 없다', () => {
+  it('전제정치 시행 중에는 일꾼 없이도 선전포고하고 일꾼이 묶이지 않는다', () => {
+    let s = mod(round2(), (c) => {
+      c.players[0].generals = 1
+      c.players[0].policy = 'despotism'
+    })
+    s = toDeclare(s)
+    // 일꾼이 모두 묶여 있어도 선전포고할 수 있다
+    s = mod(s, (c) => (c.players[0].busyWorkers = c.players[0].cities[0].workers))
+    expect(freeWorkers(s.players[0])).toBeLessThan(1)
+    expect(declarationTargets(s, s.players[0]).length).toBeGreaterThan(0)
+    const before = s.players[0].busyWorkers
+    s = apply(s, { type: 'declareWar', defenderId: 1, cityId: 0, tileId: tileId(s, 1, 1) })
+    expect(s.declarations).toHaveLength(1)
+    expect(s.players[0].generals).toBe(0) // 장군은 여전히 필요하다
+    expect(s.players[0].busyWorkers).toBe(before)
+  })
+
+  it('다른 정책이면 일꾼이 없을 때 선전포고할 수 없다', () => {
+    let s = mod(round2(), (c) => {
+      c.players[0].generals = 1
+      c.players[0].policy = 'liberty'
+    })
+    s = toDeclare(s)
+    s = mod(s, (c) => (c.players[0].busyWorkers = c.players[0].cities[0].workers))
+    expect(declarationTargets(s, s.players[0])).toHaveLength(0)
+  })
+})
