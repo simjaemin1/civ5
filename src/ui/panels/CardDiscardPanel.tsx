@@ -2,7 +2,7 @@ import { MAX_HOLD, cardById } from '../../engine'
 import { UnitCard } from '../cards/UnitCard'
 import type { PanelProps } from './types'
 
-/** 보유 한도(한 종류 4장)를 넘은 군사 카드: 버릴 카드를 눌러 고른다. */
+/** 보유 한도(한 종류 5장)를 넘은 군사 카드: 버릴 카드를 눌러 고른다. */
 export function CardDiscardPanel({ player, dispatch }: PanelProps) {
   const kind = player.pendingCardDiscard?.[0]
   if (!kind) return null

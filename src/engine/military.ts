@@ -7,10 +7,10 @@ import { nextRandom } from './rng'
 import { dirsKey } from './cardstats'
 
 /**
- * 한 종류의 군사 카드는 4장까지 보유한다. 더 만들 수는 있지만, 넘친 만큼은 직접 골라 버려야 한다 (discardCard).
+ * 한 종류의 군사 카드는 5장까지 보유한다. 더 만들 수는 있지만, 넘친 만큼은 직접 골라 버려야 한다 (discardCard).
  * 공용 덱의 카드는 사실상 무제한이라 재고는 세지 않는다.
  */
-export const MAX_HOLD = 4
+export const MAX_HOLD = 5
 
 /**
  * 고유 유닛은 3장만 만들어져 있다: 방향 카드는 왼쪽·가운데·오른쪽 한 장씩, 방향이 없는 카드는 같은 카드 3장.

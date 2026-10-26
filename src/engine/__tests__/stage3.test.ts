@@ -105,18 +105,18 @@ describe('군사 카드 생산', () => {
     expect(() => apply(s, { type: 'produce', cityId: 0, defId: 'archer' })).toThrow(RuleError)
   })
 
-  it('한 종류는 4장까지: 더 만들면 넘친 1장을 골라 버려야 하고, 그동안 다른 행동은 막힌다', () => {
+  it('한 종류는 5장까지: 더 만들면 넘친 1장을 골라 버려야 하고, 그동안 다른 행동은 막힌다', () => {
     let s = mod(withHammers(at('denmark', ['agriculture']), 5), (c) => {
-      for (let i = 0; i < 4; i++) give(c, 0, 'warrior', 'L')
+      for (let i = 0; i < 5; i++) give(c, 0, 'warrior', 'L')
     })
     s = apply(s, { type: 'produce', cityId: 0, defId: 'warrior' })
-    expect(s.players[0].military.filter((c) => c.defId === 'warrior')).toHaveLength(5)
+    expect(s.players[0].military.filter((c) => c.defId === 'warrior')).toHaveLength(6)
     expect(s.players[0].pendingCardDiscard).toEqual(['warrior'])
     expect(() => apply(s, { type: 'endProduction' })).toThrow(RuleError)
     expect(() => apply(s, { type: 'discardCard', uid: 99999 })).toThrow(RuleError)
     const uid = s.players[0].military[0].uid
     s = apply(s, { type: 'discardCard', uid })
-    expect(s.players[0].military.filter((c) => c.defId === 'warrior')).toHaveLength(4)
+    expect(s.players[0].military.filter((c) => c.defId === 'warrior')).toHaveLength(5)
     expect(s.players[0].pendingCardDiscard).toBeUndefined()
     expect(() => apply(s, { type: 'endProduction' })).not.toThrow()
   })

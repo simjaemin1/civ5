@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { apply, cardById, cardStats, CIVS, culture, dirsKey, TECHS, UNIQUES } from '..'
+import { apply, cardById, cardStats, CIVS, culture, dirsKey, producible, TECHS, UNIQUES } from '..'
 import type { CardInst, GameState, TileCard } from '..'
 import { found, play, startGame, tile } from './helpers'
 
@@ -80,6 +80,15 @@ describe('고유 유닛 데이터', () => {
     const s = startGame(['china'], [hand4()])
     expect([...s.uniqueSupply['연노병']].sort()).toEqual(['CR', 'LC', 'LR'])
     expect(dirsKey(['L', 'C'])).toBe('LC')
+  })
+
+  it('고유 유닛은 3장이 다 나가 있으면 더 만들 수 없다', () => {
+    let s = round2(['inca', 'russia'])
+    s = mod(s, (c) => {
+      c.players[0].techs.push(UNIQUES['투석병사'].def.tech ?? 'archery', 'archery')
+      c.uniqueSupply['투석병사'] = []
+    })
+    expect(producible(s, s.players[0], 'archer', '투석병사')).toBeNull()
   })
 
   it('방향 마크가 없는 공성추는 같은 카드 3장', () => {
