@@ -556,6 +556,10 @@ function research(
     if (e.kind === 'culture') gainCulture(s, p, e.amount)
     else if (e.kind === 'general') gainGeneral(p, e.amount)
     else if (e.kind === 'policy') p.pendingPolicies++
+    else if (e.kind === 'policyChance') {
+      p.pendingPolicies++
+      p.policyOnly = [e.policy]
+    }
     else if (e.kind === 'freeCard') grantCard(s, p, e.defId)
     else if (e.kind === 'setPolicy') p.policy = e.policy
     else if (e.kind === 'secondCity') {
