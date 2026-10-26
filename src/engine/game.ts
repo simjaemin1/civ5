@@ -81,6 +81,19 @@ export function createGame(opts: CreateOptions): GameState {
   return state
 }
 
+/** 시작 손(불모지로 새로 뽑은 타일 포함)에서 엘도라도를 처음 발견하면 문화 +1: 타일 1장을 손에 더 받는다 (도시를 세울 때 영토 효과로 한 장 더) */
+function discoverInStartHand(s: GameState, p: Player): void {
+  for (let i = 0; i < p.hand.length; i++) {
+    const w = p.hand[i].wonder ? WONDERS[p.hand[i].wonder!] : undefined
+    if (!w?.cultureOnDiscover || s.eldoradoFound) continue
+    s.eldoradoFound = true
+    // 도시는 도시 타일 1장 + 사방 4장까지만 세울 수 있으므로, 손이 이미 5장이면 도시를 세운 뒤 영토로 붙인다
+    if (p.hand.length < 5) p.hand.push(...drawTiles(s, 1))
+    else p.startExtras = [...(p.startExtras ?? []), ...drawTiles(s, 1)]
+    say(s, `${civById(p.civId).name} 엘도라도 발견 (문화 +1)`)
+  }
+}
+
 function beginTurn(s: GameState): void {
   const p = currentPlayer(s)
   p.turn = null
@@ -93,16 +106,7 @@ function beginTurn(s: GameState): void {
     if (p.hand.length === 0) {
       const civ = civById(p.civId)
       p.hand = drawTiles(s, 4 + civ.startCulture)
-      // 시작 손에서 엘도라도를 처음 발견하면 문화 +1: 타일 1장을 손에 더 받는다 (도시를 세울 때 영토 효과로 한 장 더)
-      for (let i = 0; i < p.hand.length; i++) {
-        const w = p.hand[i].wonder ? WONDERS[p.hand[i].wonder!] : undefined
-        if (!w?.cultureOnDiscover || s.eldoradoFound) continue
-        s.eldoradoFound = true
-        // 도시는 도시 타일 1장 + 사방 4장까지만 세울 수 있으므로, 손이 이미 5장이면 도시를 세운 뒤 영토로 붙인다
-        if (p.hand.length < 5) p.hand.push(...drawTiles(s, 1))
-        else p.startExtras = [...(p.startExtras ?? []), ...drawTiles(s, 1)]
-        say(s, `${civ.name} 엘도라도 발견 (문화 +1)`)
-      }
+      discoverInStartHand(s, p)
     }
   } else {
     s.phase = 'place'
@@ -344,6 +348,7 @@ function wasteland(s: GameState, p: Player, discardTileId: number): GameState {
   s.deck.push(discarded)
   shuffle(s, s.deck)
   p.hand.push(...drawTiles(s, 1))
+  discoverInStartHand(s, p) // 새로 뽑은 타일이 엘도라도여도 처음 발견이면 문화 +1
   p.wastelandPending = true
   say(s, `${civById(p.civId).name} 불모지 탈출 (이번 차례 종료)`)
   endTurn(s)
