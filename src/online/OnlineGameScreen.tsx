@@ -6,7 +6,7 @@ import { BattleReportModal } from '../ui/BattleReportModal'
 import { CivInspector } from '../ui/CivInspector'
 import { InfoTabs, PlayersTable } from '../ui/InfoTabs'
 import { ICON } from '../ui/format'
-import { Icon } from '../ui/icons'
+import { CityTag, Icon } from '../ui/icons'
 import { BattlePanel } from '../ui/panels/BattlePanel'
 import { DeclarePanel } from '../ui/panels/DeclarePanel'
 import { DiscardPanel } from '../ui/panels/DiscardPanel'
@@ -147,7 +147,7 @@ export function OnlineGameScreen({ online, onExit }: Props) {
             <span className="yields">
               {yields.cities.map((c) => (
                 <span key={c.cityId}>
-                  도시{c.cityId + 1} {ICON.food}
+                  <CityTag id={c.cityId} /> {ICON.food}
                   {c.food} {ICON.hammer}
                   {c.hammer}{' '}
                 </span>
