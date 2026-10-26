@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { aiStep, createGame, cardById, cardStats, MILITARY_CARDS, civById, CIVS, happiness, rankTop, totalWorkers } from '..'
+import { AI_TUNE, aiStep, createGame, cardById, cardStats, MILITARY_CARDS, civById, CIVS, happiness, rankTop, totalWorkers } from '..'
 import type { GameState } from '..'
 
 /** AI끼리 게임을 끝까지(또는 maxSteps까지) 돌린다. */
@@ -115,12 +115,29 @@ describe('AI 시뮬레이션', () => {
 describe('AI 과학 승리 전략', () => {
   it('나침반 → 행복·일꾼 증식 → 아폴로로 과학 승리가 실제로 나온다', () => {
     const types: string[] = []
-    for (const seed of [1, 2, 4, 8]) {
-      const { state } = simulate(seed, ['korea', 'egypt'], 2500)
+    // 문화 승리 질주를 끄고 과학 전략만 본다
+    const saved = AI_TUNE.cultureRush
+    AI_TUNE.cultureRush = 0
+    try {
+      for (const seed of [1, 2, 4, 8]) {
+        const { state } = simulate(seed, ['korea', 'egypt'], 2500)
+        checkInvariants(state)
+        types.push(state.winner?.type ?? 'none')
+      }
+    } finally {
+      AI_TUNE.cultureRush = saved
+    }
+    expect(types).toContain('science')
+  }, 240000)
+
+  it('세계화·냉각기술 + 평등으로 관광이 상대 문화를 넘겨 문화 승리가 실제로 나온다', () => {
+    const types: string[] = []
+    for (const seed of [3, 7, 10]) {
+      const { state } = simulate(seed, ['korea', 'egypt', 'china'], 2500)
       checkInvariants(state)
       types.push(state.winner?.type ?? 'none')
     }
-    expect(types).toContain('science')
+    expect(types).toContain('culture')
   }, 240000)
 })
 

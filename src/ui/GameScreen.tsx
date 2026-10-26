@@ -1,4 +1,4 @@
-import { Icon } from './icons'
+import { CityTag, Icon } from './icons'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Action, GameState } from '../engine'
 import { RuleError, actorOf, aiStep, apply, civById, culture, happiness, totalWorkers, tourism } from '../engine'
@@ -15,6 +15,8 @@ import { BattlePanel } from './panels/BattlePanel'
 import { DeclarePanel } from './panels/DeclarePanel'
 import { PendingPanel } from './panels/PendingPanel'
 import { ChoicesPanel } from './panels/ChoicesPanel'
+import { DiscardPanel } from './panels/DiscardPanel'
+import { ConfirmButton } from './ConfirmButton'
 import { PlacePanel } from './panels/PlacePanel'
 import { ProducePanel } from './panels/ProducePanel'
 import { ResearchPanel } from './panels/ResearchPanel'
@@ -36,20 +38,13 @@ const PHASE: Record<GameState['phase'], string> = {
 }
 const WIN = { science: '과학 승리', culture: '문화 승리', conquest: '정복 승리' } as const
 
-/** 저장 파일에 게임과 함께 남기는 화면 상태 (게임마다 따로) */
-export interface UiSave {
-  /** 사람마다 지난 차례에 일꾼을 올린 타일 */
-  lastPlace?: Record<number, number[]>
-}
-
 interface Props {
   initial: GameState
   seats: Seat[]
-  initialUi?: UiSave
   onExit: () => void
 }
 
-export function GameScreen({ initial, seats, initialUi, onExit }: Props) {
+export function GameScreen({ initial, seats, onExit }: Props) {
   const [game, setGame] = useState(initial)
   const [history, setHistory] = useState<GameState[]>([])
   // 되돌릴 수 없는 지점: 무작위 결과를 보여 준 행동 직전 상태들 (이 상태와 그 이전으로는 차례 안 되돌리기 불가)
@@ -61,8 +56,6 @@ export function GameScreen({ initial, seats, initialUi, onExit }: Props) {
   const { prefs, set: setPrefs } = usePrefs()
   const speed = prefs.aiSpeed
   const [saveFailed, setSaveFailed] = useState(false)
-  // 사람마다 지난 차례 일꾼 배치 (같은 배치 다시 쓰기용, 게임 저장에 함께 남긴다)
-  const [lastPlace, setLastPlace] = useState<Record<number, number[]>>(() => initialUi?.lastPlace ?? {})
   // 전투 결과 장면: 아직 확인하지 않은 가장 최근 전투가 있으면 띄운다 (되돌리기·불러오기로 줄어들면 다시 띄우지 않는다)
   // 한 번에 전투가 여러 개 끝나도 하나씩 차례로 보여 준다 (가장 오래된 것부터)
   const reports = game.battleReports ?? []
@@ -91,10 +84,6 @@ export function GameScreen({ initial, seats, initialUi, onExit }: Props) {
       setError('')
       try {
         const next = apply(game, a)
-        if (a.type === 'placeWorkers') {
-          const tiles = a.placements.filter((x) => !x.general && !x.enemy).map((x) => x.tileId)
-          setLastPlace((m) => ({ ...m, [game.players[actorOf(game)].id]: tiles }))
-        }
         setAutoNote('')
         const added = Math.min(next.logSeq - game.logSeq, next.log.length)
         setNotice(added > 0 ? next.log.slice(-added) : [])
@@ -125,14 +114,14 @@ export function GameScreen({ initial, seats, initialUi, onExit }: Props) {
   useEffect(() => {
     const t = setTimeout(() => {
       try {
-        localStorage.setItem('civ5-save-v1', JSON.stringify({ game, seats, ui: { lastPlace } satisfies UiSave }))
+        localStorage.setItem('civ5-save-v1', JSON.stringify({ game, seats }))
         setSaveFailed(false)
       } catch {
         setSaveFailed(true) // 저장 공간이 없거나 막힌 환경: 이어하기가 안 된다고 알린다
       }
     }, 600)
     return () => clearTimeout(t)
-  }, [game, seats, lastPlace])
+  }, [game, seats])
 
   // 할 일 없는 단계 자동 넘기기 (설정)
   useEffect(() => {
@@ -221,7 +210,7 @@ export function GameScreen({ initial, seats, initialUi, onExit }: Props) {
   } else if (game.phase === 'battle' && game.battle) {
     main = <BattlePanel key={`${game.round}:${game.battle.decl.attackerId}:${game.battle.decl.tileId}:${game.battle.step}:${actor}`} game={game} player={player} dispatch={dispatch} />
   } else if (game.phase === 'place') {
-    main = <PlacePanel key={`${player.id}-${game.round}`} game={game} player={player} dispatch={dispatch} lastTiles={lastPlace[player.id]} />
+    main = <PlacePanel key={`${player.id}-${game.round}`} game={game} player={player} dispatch={dispatch} />
   } else if (game.phase === 'research') {
     main = (
       <>
@@ -241,7 +230,7 @@ export function GameScreen({ initial, seats, initialUi, onExit }: Props) {
       </>
     )
   } else if (game.phase === 'declare') {
-    main = <DeclarePanel game={game} player={player} dispatch={dispatch} />
+    main = player.pendingDiscard ? <DiscardPanel game={game} player={player} dispatch={dispatch} /> : <DeclarePanel game={game} player={player} dispatch={dispatch} />
   }
 
   const placingTile = !!player.pendingTiles?.length && !actorSeat.ai
@@ -249,7 +238,21 @@ export function GameScreen({ initial, seats, initialUi, onExit }: Props) {
 
   return (
     <div className="game">
-      {pendingReport && <BattleReportModal key={pendingReport.seq} game={game} report={pendingReport} viewer={viewer} onClose={() => setSeenBattle(pendingReport.seq)} />}
+      {pendingReport && (
+        <BattleReportModal
+          key={pendingReport.seq}
+          game={game}
+          report={pendingReport}
+          viewerId={
+            viewer === pendingReport.attackerId || viewer === pendingReport.defenderId
+              ? viewer
+              : seats[pendingReport.attackerId].ai
+                ? pendingReport.defenderId
+                : pendingReport.attackerId
+          }
+          onClose={() => setSeenBattle(pendingReport.seq)}
+        />
+      )}
       <header className="top">
         <div>
           <b>라운드 {game.round}</b> · {PHASE[game.phase]} ·{' '}
@@ -261,7 +264,7 @@ export function GameScreen({ initial, seats, initialUi, onExit }: Props) {
             <span className="yields">
               {yields.cities.map((c) => (
                 <span key={c.cityId}>
-                  도시{c.cityId + 1} {ICON.food}
+                  <CityTag id={c.cityId} /> {ICON.food}
                   {c.food} {ICON.hammer}
                   {c.hammer}{' '}
                 </span>
@@ -319,6 +322,13 @@ export function GameScreen({ initial, seats, initialUi, onExit }: Props) {
               </span>
             )}
           </div>
+          {!over && !curtain && !actorSeat.ai && game.phase !== 'setup' && game.phase !== 'battle' && player.wonders.includes('great_wall') && !player.greatWallUsed && (
+            <div className="panel row">
+              <ConfirmButton className="" warn="만리장성은 게임 중 한 번만 쓸 수 있습니다." onClick={() => dispatch({ type: 'useGreatWall' })} title="내 영토 위의 상대 장군을 모두 돌려보냅니다 (게임 중 1회)">
+                🧱 만리장성 사용 (상대 장군 모두 돌려보냄, 1회)
+              </ConfirmButton>
+            </div>
+          )}
           {key && !over && <TurnSteps game={game} phases={turnHistory.map((h) => h.phase)} locked={lockedInTurn} onJump={jumpInTurn} onUndo={undoInTurn} />}
           {main}
           {showBoard && <Board game={game} player={player} />}

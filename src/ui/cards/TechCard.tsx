@@ -22,12 +22,14 @@ interface Props {
 export function TechCard({ tech, state = 'idle', note, disabled, onClick, width = 150, zoomable = true }: Props) {
   const [zoom, setZoom] = useState(false)
   const img = cardImage('tech', tech.id)
+  // 정책을 고르게 해 주는 기술은 보라색, 위대한 장군을 주는 기술은 빨간색 광택 테두리
+  const gives = { policy: tech.effects.some((e) => e.kind === 'policy'), general: tech.effects.some((e) => e.kind === 'general') }
   const click = onClick ?? (zoomable ? () => setZoom(true) : undefined)
   return (
     <>
       <button
         type="button"
-        className={`card tech-card ${state}${img ? ' has-img' : ''}`}
+        className={`card tech-card ${state}${img ? ' has-img' : ''}${gives.policy ? ' gives-policy' : ''}${gives.general ? ' gives-general' : ''}`}
         style={{ width }}
         disabled={disabled}
         onClick={click}

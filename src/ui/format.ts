@@ -78,6 +78,7 @@ const TECH_EXTRA: Record<string, string> = {
   education: '다른 문명이 연구한 기술을 같은 차례에는 연구하지 못하는 페널티를 없앤다',
   scientific_theory: '자신의 차례에 망치 토큰을 원하는 대로 2개까지 골라 과학으로 사용할 수 있다',
   writing: '자신의 차례에 타일의 식량을 과학으로 사용할 수 있게 된다',
+  machinery: '앞으로 궁수 & 합성궁병 생산불가, 석궁병 생산가능',
 }
 
 function techEffectLine(e: TechDef['effects'][number]): string | null {
@@ -89,9 +90,9 @@ function techEffectLine(e: TechDef['effects'][number]): string | null {
     case 'freeCard': return `이 기술을 얻으면 즉시 ${cardById(e.defId).name}을(를) 1장 획득한다`
     case 'secondCity': return '문화를 4 얻으며 해당 문화로 두번째 도시를 편다'
     case 'archaeology': return '이 기술을 얻으면 얻은 시점에 자신이 보유한 사적지 타일 1장당 문화를 1씩 얻는다'
-    case 'tourismPerCulture': return '매 턴, 자신의 문화 2당 1의 관광 점수를 얻는다'
+    case 'tourismPerCulture': return `매 턴, 자신의 문화 ${e.per}당 1의 관광 점수를 얻는다`
     case 'scienceVictory': return '이 기술을 가장 먼저 획득하였다면 이 게임에서 승리한다'
-    case 'compass': return '1개의 타일까지, 정찰한 타일카드에 일꾼 토큰을 계속 배치하며 기억할 수 있다'
+    case 'compass': return '1개의 타일까지만, 정찰한 타일카드에 일꾼 토큰을 1개 계속 배치하며 기억할 수 있다. 새 타일 획득 시 드로우 대신 해당 카드를 가져올 수 있다'
     default: return null // foodToScience, hammerToScience, ignoreRoundPicks 는 TECH_EXTRA가 설명
   }
 }

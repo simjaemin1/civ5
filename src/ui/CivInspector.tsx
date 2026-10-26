@@ -48,7 +48,7 @@ export function CivInspector({ game, seats, actor }: Props) {
         <span>기술 <b>{p.techs.length}</b></span>
         <span>정책 <b>{policyName(p.policy)}</b></span>
         <span><Icon name="general" size={16} /> 장군 <b>{p.generals}</b></span>
-        <span>군사 카드 <b>{p.military.length}장</b> <small className="muted">(방향은 비공개, 생산 내역은 로그)</small></span>
+        <span>군사 카드 <b>{p.military.length}장</b> <small className="muted">(방향은 비공개, 종류별 보유 수는 군사 카드 탭에 공개)</small></span>
         <span>불가사의 <b>{p.wonders.map((w) => WONDER_CARDS.find((x) => x.id === w)?.name).join(', ') || '없음'}</b></span>
       </p>
       <div className="row">

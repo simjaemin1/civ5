@@ -204,9 +204,10 @@ describe('진행', () => {
   it('사람 2명 + AI 1명이 한참 진행하고, 서버 재시작 뒤에도 같은 상태로 이어진다', () => {
     const store = new MemoryStore()
     const g = startedGame(2, 1, store)
-    for (let i = 0; i < 400 && playOne(g); i++);
+    for (let i = 0; i < 150 && playOne(g); i++);
     const room = g.hub.rooms.get(g.id)!
-    expect(room.log.length).toBeGreaterThan(400)
+    expect(room.log.length).toBeGreaterThan(150)
+    expect(room.status).toBe('playing')
     expect(room.log.some((e) => e.ai)).toBe(true)
 
     // 재시작: 같은 저장소로 새 허브

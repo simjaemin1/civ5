@@ -1,6 +1,6 @@
 import type { Action, City, GameState, Placement, Player, Side, TileCard } from './types'
 import { RuleError, SIDES } from './types'
-import { TECHS, civById, techById } from './data'
+import { TECHS, WONDERS, civById, techById } from './data'
 import type { TechDef } from './data'
 import { shuffle } from './rng'
 import { computeYields, happiness, totalWorkers } from './yields'
@@ -93,10 +93,23 @@ function beginTurn(s: GameState): void {
     if (p.hand.length === 0) {
       const civ = civById(p.civId)
       p.hand = drawTiles(s, 4 + civ.startCulture)
+      // 시작 손에서 엘도라도를 처음 발견하면 문화 +1: 타일 1장을 손에 더 받는다 (도시를 세울 때 영토 효과로 한 장 더)
+      for (let i = 0; i < p.hand.length; i++) {
+        const w = p.hand[i].wonder ? WONDERS[p.hand[i].wonder!] : undefined
+        if (!w?.cultureOnDiscover || s.eldoradoFound) continue
+        s.eldoradoFound = true
+        // 도시는 도시 타일 1장 + 사방 4장까지만 세울 수 있으므로, 손이 이미 5장이면 도시를 세운 뒤 영토로 붙인다
+        if (p.hand.length < 5) p.hand.push(...drawTiles(s, 1))
+        else p.startExtras = [...(p.startExtras ?? []), ...drawTiles(s, 1)]
+        say(s, `${civ.name} 엘도라도 발견 (문화 +1)`)
+      }
     }
   } else {
     s.phase = 'place'
     p.cities.forEach((c) => {
+      if (c.placed.length) c.lastPlaced = [...c.placed] // 지난 차례의 배치를 기억한다 (다음 배치 때 그대로 올려 둔다)
+      if (c.generalPlaced?.length) c.lastGeneralPlaced = [...c.generalPlaced]
+      if (c.enemyPlaced?.length) c.lastEnemyPlaced = c.enemyPlaced.map((e) => ({ playerId: e.playerId, cityId: e.cityId, tileId: e.tileId }))
       c.placed = []
       c.enemyPlaced = []
       c.generalPlaced = []
@@ -107,6 +120,21 @@ function beginTurn(s: GameState): void {
 /** 탈락한 문명은 건너뛴다. */
 function skipEliminated(s: GameState): void {
   while (s.turnIdx < s.order.length - 1 && s.players[s.order[s.turnIdx]].eliminated) s.turnIdx++
+}
+
+/** 정책을 고를 차례가 남아 있으면 생산·투자·승급 전에 정책부터 고르게 한다 (정책 조건이 붙은 불가사의가 틀어지지 않도록) */
+function mustChoosePolicyFirst(p: Player): void {
+  if (p.pendingPolicies > 0) throw new RuleError('정책을 먼저 고르세요 (정책 조건이 있는 불가사의 때문에 생산·투자 전에 정책을 정해야 합니다)')
+}
+
+/** 식량 정산 뒤 차례를 끝낸다. 행복 상한을 넘은 일꾼이 있으면 다 버린 뒤(discardWorker)에 차례가 끝난다. */
+function settleAndEnd(s: GameState, p: Player): void {
+  foodSettlement(s, p)
+  if (p.pendingDiscard) {
+    s.phase = 'declare'
+    return
+  }
+  endTurn(s)
 }
 
 function endTurn(s: GameState): void {
@@ -192,7 +220,7 @@ export function apply(prev: GameState, action: Action): GameState {
     case 'setChoices': {
       p.choices = { ...p.choices }
       if (action.useHeld !== undefined) p.choices.useHeld = action.useHeld
-      for (const key of ['cultureCity', 'discardCity'] as const) {
+      for (const key of ['cultureCity'] as const) {
         const v = action[key]
         if (v === undefined) continue
         if (v === null) delete p.choices[key]
@@ -212,14 +240,17 @@ export function apply(prev: GameState, action: Action): GameState {
     case 'buildSecondCity': return buildSecondCity(s, p, action)
     case 'invest':
       expectPhase(s, 'produce')
+      mustChoosePolicyFirst(p)
       invest(s, p, action.cityId, action.wonderId, action.hammers)
       return s
     case 'produce':
       expectPhase(s, 'produce')
+      mustChoosePolicyFirst(p)
       produceCard(s, p, action)
       return s
     case 'upgrade':
       expectPhase(s, 'produce')
+      mustChoosePolicyFirst(p)
       upgradeCard(s, p, action)
       return s
     case 'sacrificeCard':
@@ -239,7 +270,7 @@ export function apply(prev: GameState, action: Action): GameState {
       detonateAtomicBomb(s, p, action)
       return s
     case 'useGreatWall':
-      expectPhase(s, 'produce')
+      expectPhase(s, 'place', 'research', 'produce', 'declare') // 자신의 차례에는 언제든 쓸 수 있다
       activateGreatWall(s, p)
       return s
     case 'endProduction':
@@ -255,8 +286,7 @@ export function apply(prev: GameState, action: Action): GameState {
         s.phase = 'declare'
         return s
       }
-      foodSettlement(s, p)
-      endTurn(s)
+      settleAndEnd(s, p)
       return s
     case 'recallGeneral':
       expectPhase(s, 'produce', 'declare')
@@ -266,14 +296,28 @@ export function apply(prev: GameState, action: Action): GameState {
     case 'declareWar':
       expectPhase(s, 'declare')
       declareWar(s, p, action)
-      foodSettlement(s, p)
-      endTurn(s)
+      settleAndEnd(s, p)
       return s
     case 'endTurn':
       expectPhase(s, 'declare')
-      foodSettlement(s, p)
-      endTurn(s)
+      if (p.pendingDiscard) throw new RuleError('버려야 하는 일꾼을 먼저 고르세요')
+      settleAndEnd(s, p)
       return s
+    case 'discardWorker': {
+      expectPhase(s, 'declare')
+      if (!p.pendingDiscard) throw new RuleError('버릴 일꾼이 없습니다')
+      const city = p.cities.find((c) => c.id === action.cityId)
+      if (!city) throw new RuleError('내 도시가 아닙니다')
+      if (city.workers <= 0) throw new RuleError('그 도시에는 일꾼이 없습니다')
+      city.workers--
+      p.pendingDiscard--
+      if (!p.pendingDiscard) {
+        p.pendingDiscard = undefined
+        say(s, `${civById(p.civId).name} 일꾼 ${totalWorkers(p)}개로 정리`)
+        endTurn(s)
+      }
+      return s
+    }
     case 'arrangeBattle':
       expectPhase(s, 'battle')
       arrangeBattle(s, action.playerId, action.slots)
@@ -348,6 +392,8 @@ function buildCity(
   const city = foundCity(p.hand, a, 0, 1)
   p.cities.push(city)
   p.hand = []
+  for (const card of p.startExtras ?? []) city.tiles.push({ card, role: 'extra' })
+  p.startExtras = undefined
   for (const t of city.tiles) if (t.card.wonder) onTileGained(s, p, t.card) // 시작 타일에 자연경관이 있어도 문화 효과를 받는다 (킬리만자로 등)
   if (p.civId === 'china') p.generals += 1 // 중국: 위대한 장군 1개로 시작
   say(s, `${civById(p.civId).name} 도시 건설 (타일 ${city.tiles.length}장)`)
@@ -414,6 +460,13 @@ function placeWorkers(s: GameState, p: Player, placements: Placement[]): GameSta
   }
   for (const city of p.cities) {
     if (city.placed.length + (city.enemyPlaced?.length ?? 0) > city.workers) throw new RuleError('일꾼이 모자랍니다')
+  }
+  if (freeWorkers(p) < 0 && placements.length === 0) {
+    // 일꾼이 굶어 줄어서 정찰·맡아둔 타일·선전포고에 묶인 일꾼조차 없다: 묶인 순서의 반대로 풀어 준다 (맡아둔 타일은 덱으로 돌아간다)
+    if (p.held) releaseHeld(s, p)
+    else if (p.scouting) p.scouting = false
+    if (freeWorkers(p) < 0) p.busyWorkers = Math.max(0, p.busyWorkers + freeWorkers(p))
+    say(s, `${civById(p.civId).name} 일꾼이 모자라 묶인 일꾼을 풀었습니다`)
   }
   if (freeWorkers(p) < 0) throw new RuleError('정찰·선전포고·맡아둔 타일에 쓰는 일꾼과 합쳐 일꾼이 모자랍니다')
   p.turn = {
@@ -547,11 +600,11 @@ function foodSettlement(s: GameState, p: Player): void {
       }
     }
   }
-  // 어떤 이유로든 일꾼이 행복을 넘으면 넘친 만큼 버린다 (가장 많은 도시부터)
-  while (totalWorkers(p) > cap) {
-    const chosen = p.cities.find((c) => c.id === p.choices?.discardCity && c.workers > 0)
-    const biggest = chosen ?? p.cities.reduce((a, b) => (b.workers > a.workers ? b : a))
-    biggest.workers--
-  }
   say(s, `${civById(p.civId).name} 일꾼 ${totalWorkers(p)} / 행복 ${cap}`)
+  // 어떤 이유로든 일꾼이 행복을 넘으면 넘친 만큼 버려야 한다: 도시를 눌러 한 명씩 직접 고른다 (discardWorker)
+  const over = totalWorkers(p) - cap
+  if (over > 0) {
+    p.pendingDiscard = over
+    say(s, `${civById(p.civId).name} 행복 상한 초과: 일꾼 ${over}개를 버려야 합니다`)
+  }
 }

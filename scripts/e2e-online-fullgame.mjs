@@ -37,6 +37,9 @@ function step(p) {
       const b = buttons.find((x) => x.textContent.trim().startsWith(name) && !x.disabled)
       if (b) { b.click(); return 'acted' }
     }
+    // 행복 상한을 넘어 일꾼을 버려야 하면 도시를 눌러 한 명씩 버린다
+    const discard = buttons.find((x) => x.textContent.includes('누르면 1명 버림') && !x.disabled)
+    if (discard) { discard.click(); return 'acted' }
     // 전투 대상 선택: 줄마다 "빈칸" 버튼을 고른 뒤 확정
     const empties = buttons.filter((x) => x.closest('.chips') && x.textContent.trim().startsWith('빈칸') && !x.classList.contains('active'))
     if (empties.length) { empties.forEach((x) => x.click()); return 'selected' }

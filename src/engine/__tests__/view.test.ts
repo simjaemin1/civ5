@@ -39,19 +39,25 @@ function checkNoLeak(s: GameState, viewer: number): void {
     p.pendingCity?.forEach((t) => hidden.add(t.id))
     if (p.scouted) hidden.add(p.scouted.id)
     if (p.held) hidden.add(p.held.id)
+    p.startExtras?.forEach((t) => hidden.add(t.id))
   }
   for (const id of hidden) expect(shown.has(id), `타일 ${id} 유출`).toBe(false)
   expect(json.deck).toEqual([])
   expect(json.rng).toBe(0)
   expect(json.deckCount).toBe(s.deck.length)
 
-  // 공격 방향은 내 카드와 끝난 전투 보고에만 있다
+  const b = s.battle
+  // 공격 방향은 내 카드, 끝난 전투 보고, (대상 선택 단계에서) 공개된 판 위의 카드에만 있다
+  const onBoard = new Set<number>()
+  if (b && b.step === 'choose') for (const slots of Object.values(b.slots)) slots?.forEach((u) => u !== null && onBoard.add(u))
   for (const path of dirPaths({ ...json, battleReports: [] })) {
-    expect(path, `방향 유출 ${path}`).toBe(`.players[${viewer}].military[${path.match(/military\[(\d+)\]/)?.[1]}]`)
+    const m = /^\.players\[(\d+)\]\.military\[(\d+)\]$/.exec(path)
+    expect(m, `방향 유출 ${path}`).not.toBeNull()
+    const [pid, idx] = [Number(m![1]), Number(m![2])]
+    if (pid !== viewer) expect(onBoard.has(s.players[pid].military[idx].uid), `방향 유출 ${path}`).toBe(true)
   }
 
   // 아직 공개 전인 상대 배치
-  const b = s.battle
   if (b && b.step === 'arrange') {
     for (const pid of Object.keys(b.slots).map(Number)) {
       const mine = json.battle!.slots[pid]
@@ -61,9 +67,8 @@ function checkNoLeak(s: GameState, viewer: number): void {
     }
   }
   if (b && b.step === 'choose') {
-    for (const k of Object.keys(json.battle!.picks)) {
-      expect(s.players[viewer].military.some((c) => c.uid === Number(k)), '상대 picks 유출').toBe(true)
-    }
+    // 공개된 판 위의 카드는 방향이 보이고, 확정한 선택(picks)도 보인다
+    expect(json.battle!.picks).toEqual(b.picks)
   }
   // 내 것은 그대로
   const me = s.players[viewer]
@@ -112,7 +117,7 @@ describe('view: 비공개 정보 걸러 보내기', () => {
     expect(view(s, other).handCounts[actor]).toBe(s.players[actor].hand.length)
   })
 
-  it('양쪽이 낸 뒤에는 배치가 공개되고, 방향은 여전히 가려진다', () => {
+  it('양쪽이 낸 뒤에는 배치와 판 위 카드의 방향이 공개되고, 나머지 카드의 방향은 가려진다', () => {
     // 전투가 처음 생기는 상태까지 AI를 돌린다
     for (const seed of [3, 11, 29, 41, 55, 60, 71]) {
       let s = createGame({ seed, civIds: CIVS.slice(0, 3) })
@@ -121,7 +126,12 @@ describe('view: 비공개 정보 걸러 보내기', () => {
           const { attackerId, defenderId } = s.battle.decl
           const v = view(s, attackerId)
           expect(v.battle!.slots[defenderId]).toEqual(s.battle.slots[defenderId])
-          expect(v.players[defenderId].military.every((m) => m.dirs === undefined)).toBe(true)
+          // 판 위의 카드는 방향이 보이고, 판 밖의 카드는 안 보인다
+          const onBoard = new Set(s.battle.slots[defenderId])
+          for (const m of v.players[defenderId].military) {
+            expect(m.dirs === undefined || onBoard.has(m.uid)).toBe(true)
+          }
+          expect(v.players[defenderId].military.filter((m) => onBoard.has(m.uid))).toEqual(s.players[defenderId].military.filter((m) => onBoard.has(m.uid)))
           return
         }
         s = aiStep(s).state

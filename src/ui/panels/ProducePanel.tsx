@@ -1,6 +1,8 @@
+import { CityTag } from '../icons'
 import { useState } from 'react'
-import { MILITARY_CARDS, cardById, cardCost, civById, declarationTargets, investableWonders, minHammers, uniqueOf, upgradeTargets, wonderCardById, occupiedTiles } from '../../engine'
+import { MILITARY_CARDS, cardById, cardCost, civById, declarationTargets, investableWonders, minHammers, uniqueOf, upgradeTargets, occupiedTiles } from '../../engine'
 import { UnitCard } from '../cards/UnitCard'
+import { catalogCard } from '../cards/unitImage'
 import { WonderCard } from '../cards/WonderCard'
 import { cardText, conditionText, ICON, wonderEffectText } from '../format'
 import type { PanelProps } from './types'
@@ -12,6 +14,10 @@ import { battleCards, declCoastal, declTileName, produceBlock, roundBids } from 
 export function ProducePanel({ game, player, dispatch }: PanelProps) {
   const turn = player.turn!
   const civ = civById(player.civId)
+  // 정책을 고를 차례가 남아 있으면 정책부터 (정책 조건이 붙은 불가사의가 틀어지지 않게)
+  const mustPolicy = player.pendingPolicies > 0
+  // 카드 묶기(만들 수 있음/없음)는 정책 조건을 빼고 본다: 정책을 고르기 전에는 버튼만 잠근다
+  const policyDone = mustPolicy ? { ...player, pendingPolicies: 0 } : player
   const [amounts, setAmounts] = useState<Record<string, number>>({})
 
   const upgrades = player.military
@@ -40,7 +46,6 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
           .join(' · ') + ' — 끝내면 사라집니다.'
       : null
 
-  const enemyGenerals = player.cities.reduce((n, c) => n + c.tiles.filter((t) => t.occupiedBy !== undefined && t.occupiedBy !== player.id).length, 0)
   const enemyExtra = game.players.flatMap((o) =>
     o.cities.flatMap((c) => c.tiles.filter((t) => t.occupiedBy === player.id && t.role === 'extra').map((t) => ({ o, c, t }))),
   )
@@ -48,6 +53,7 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
   return (
     <div className="panel">
       <h3>생산 (도시마다 1개: 군사 카드 또는 불가사의 투자)</h3>
+      {mustPolicy && <p className="enemy-pick">정책을 먼저 고르세요. 정책을 고른 뒤에 생산·투자·승급할 수 있습니다.</p>}
       {threats.length > 0 && (
         <div className="threat-banner">
           <b>⚔ 이번 라운드에 선전포고를 받았습니다</b> — 정산 때 전투합니다. 지금 군사 카드를 만들어 대비할 수 있습니다.
@@ -72,7 +78,7 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
         return (
           <section key={city.id} className="city-prod">
             <h4>
-              도시 {city.id + 1} · {ICON.hammer} 망치 {h} {done && <span className="ok">(생산 완료)</span>}
+              <CityTag id={city.id} /> {ICON.hammer} 망치 {h} {done && <span className="ok">(생산 완료)</span>}
             </h4>
             {!done && (
               <>
@@ -110,7 +116,7 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
                                 step={1}
                                 onChange={(e) => setAmounts({ ...amounts, [`${city.id}:${w.id}`]: Math.max(0, Math.floor(Number(e.target.value) || 0)) })}
                               />
-                              <button disabled={amt < minHammers(player, w) || amt > h} onClick={() => dispatch({ type: 'invest', cityId: city.id, wonderId: w.id, hammers: amt })}>
+                              <button disabled={mustPolicy || amt < minHammers(player, w) || amt > h} onClick={() => dispatch({ type: 'invest', cityId: city.id, wonderId: w.id, hammers: amt })}>
                                 투자
                               </button>
                               {h < minHammers(player, w) ? (
@@ -135,37 +141,40 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
                     const rows = MILITARY_CARDS.flatMap((def) =>
                       [...(def.uniqueOnly ? [] : [undefined]), ...civ.uniques.filter((u) => u.base === def.id).map((u) => u.name)]
                         .filter((u) => player.techs.includes((u ? uniqueOf(player, u)?.tech : undefined) ?? def.tech))
-                        .map((u) => ({ def, unique: u, block: produceBlock(game, player, def, u, city, h), cost: cardCost(player, def, u ? uniqueOf(player, u) : undefined) })),
+                        .map((u) => ({ def, unique: u, block: produceBlock(game, policyDone, def, u, city, h), cost: cardCost(player, def, u ? uniqueOf(player, u) : undefined) })),
                     )
                     const ok = rows.filter((r) => !r.block)
                     const no = rows.filter((r) => r.block)
-                    const row = (r: (typeof rows)[number]) => (
-                      <div key={`${r.def.id}:${r.unique ?? ''}`} className={`row prod-row${r.block ? ' blocked' : ''}`}>
-                        <button disabled={!!r.block} title={r.block ?? ''} onClick={() => dispatch({ type: 'produce', cityId: city.id, defId: r.def.id, unique: r.unique })}>
+                    // 카드 그림으로 보여 준다: 만들 수 있는 카드는 앞에, 만들 수 없는 카드는 이유와 함께 접어 둔다
+                    const card = (r: (typeof rows)[number]) => (
+                      <div key={`${r.def.id}:${r.unique ?? ''}`} className={`policy-pick prod-card${r.block ? ' blocked' : ''}`}>
+                        <UnitCard card={catalogCard(r.def.id, r.unique)} width={120} />
+                        {r.unique && <small className="muted">고유 유닛 — 남은 {game.uniqueSupply[r.unique]?.length ?? 0}/3장</small>}
+                        <button
+                          disabled={mustPolicy || !!r.block}
+                          title={r.block ?? cardText({ defId: r.def.id, unique: r.unique })}
+                          onClick={() => dispatch({ type: 'produce', cityId: city.id, defId: r.def.id, unique: r.unique })}
+                        >
                           생산 {ICON.hammer}
                           {r.cost}
                         </button>
-                        <span>
-                          {cardText({ defId: r.def.id, unique: r.unique })}
-                          {r.unique ? ` — 고유 유닛, 남은 ${game.uniqueSupply[r.unique]?.length ?? 0}/3장` : ''}
-                        </span>
                         {r.block && <small className="muted">{r.block}</small>}
                       </div>
                     )
                     return (
-                      <div className="list">
-                        {ok.map(row)}
-                        {ok.length === 0 && <small className="muted">지금 이 도시에서 만들 수 있는 군사 카드가 없습니다.</small>}
+                      <>
+                        <div className="unit-row">{ok.map(card)}</div>
+                        {ok.length === 0 && rows.length > 0 && <small className="muted">지금 이 도시에서 만들 수 있는 군사 카드가 없습니다.</small>}
                         {no.length > 0 && (
                           <details>
                             <summary className="muted">만들 수 없는 카드 {no.length}종 (이유 보기)</summary>
-                            <div className="list">{no.map(row)}</div>
+                            <div className="unit-row">{no.map(card)}</div>
                           </details>
                         )}
                         {rows.length === 0 && (
                           <small className="muted">아직 군사 카드를 해금하지 않았습니다. 농업(전사)·궁술(궁수)·청동기술(창병)·목축업(전차)을 연구하세요.</small>
                         )}
-                      </div>
+                      </>
                     )
                   })()}
                 </details>
@@ -179,30 +188,37 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
         <summary>금으로 승급 ({upgrades.length}장 가능, 한 차례에 한 장{turn.upgraded ? ' — 이번 차례 사용함' : ''})</summary>
         <div className="list">
           {upgrades.map(({ inst, lower, options }) => (
-            <div key={inst.uid} className="col">
-              <b>{lower.name}</b>
+            <div key={inst.uid} className="upgrade-row">
+              <div className="policy-pick">
+                <UnitCard card={inst} width={110} title={`승급 전: ${lower.name} — 승급하면 새 카드의 방향은 무작위로 정해집니다`} />
+                <small className="muted">승급 전 {lower.name}</small>
+              </div>
+              <div className="upgrade-opts">
               {options.map((upper) => {
                 const cost = cardCost(player, upper)
                 return (
                   <div key={upper.id} className="row">
-                    <span>→ {cardText({ defId: upper.id })} (방향은 무작위, 중간 등급 건너뛰기 가능)</span>
+                    <span>→</span>
+                    <UnitCard card={catalogCard(upper.id)} width={100} />
+                    <small className="muted">방향은 무작위, 중간 등급 건너뛰기 가능</small>
                     <b>
                       {ICON.gold}
                       {cost}
                     </b>
-                    <button disabled={turn.upgraded || turn.yields.gold < cost} onClick={() => dispatch({ type: 'upgrade', uid: inst.uid, toDefId: upper.id })}>
+                    <button disabled={mustPolicy || turn.upgraded || turn.yields.gold < cost} onClick={() => dispatch({ type: 'upgrade', uid: inst.uid, toDefId: upper.id })}>
                       승급
                     </button>
                     {civ.uniques
                       .filter((u) => u.base === upper.id && (game.uniqueSupply[u.name]?.length ?? 0) > 0)
                       .map((u) => (
-                        <button key={u.name} disabled={turn.upgraded || turn.yields.gold < cost || !player.techs.includes(u.tech ?? upper.tech)} onClick={() => dispatch({ type: 'upgrade', uid: inst.uid, unique: u.name })}>
+                        <button key={u.name} disabled={mustPolicy || turn.upgraded || turn.yields.gold < cost || !player.techs.includes(u.tech ?? upper.tech)} onClick={() => dispatch({ type: 'upgrade', uid: inst.uid, unique: u.name })}>
                           {u.name}(으)로 승급 (남은 {game.uniqueSupply[u.name].length}/3장)
                         </button>
                       ))}
                   </div>
                 )
               })}
+              </div>
             </div>
           ))}
         </div>
@@ -256,11 +272,6 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
               ☢ 원자폭탄: {civById(o.civId).name} 도시{c.id + 1} {t.card.terrains.join('·') || '자연경관'} 파괴
             </ConfirmButton>
           ))}
-        {player.wonders.includes('great_wall') && !player.greatWallUsed && enemyGenerals > 0 && (
-          <ConfirmButton className="" warn="만리장성은 게임 중 한 번만 쓸 수 있습니다." onClick={() => dispatch({ type: 'useGreatWall' })} title={wonderCardById('great_wall').name}>
-            🧱 만리장성 사용 (내 영토의 상대 장군 {enemyGenerals}개 돌려보냄, 1회)
-          </ConfirmButton>
-        )}
         <ConfirmButton hotkey warn={endWarn} onClick={() => dispatch({ type: 'endProduction' })}>
           {declarationTargets(game, player).length > 0 ? '생산 끝내기 → ⑤ 선전포고' : '생산 끝내기 → 식량 정산·차례 끝'}
         </ConfirmButton>

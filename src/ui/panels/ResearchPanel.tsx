@@ -1,5 +1,7 @@
+import { CityTag } from '../icons'
 import { useState } from 'react'
 import { TECHS, happiness, researchableTechs, totalWorkers } from '../../engine'
+import { TechTree } from '../InfoTabs'
 import { TechCard } from '../cards/TechCard'
 import { ICON, josa } from '../format'
 import type { PanelProps } from './types'
@@ -95,7 +97,7 @@ export function ResearchPanel({ game, player, dispatch }: PanelProps) {
               const workers = player.cities.find((x) => x.id === c.cityId)?.workers ?? 0
               return (
                 <tr key={c.cityId}>
-                  <td>도시 {c.cityId + 1}</td>
+                  <td><CityTag id={c.cityId} /></td>
                   {canFood && (
                     <td>
                       <input type="range" min={0} max={c.food} value={foodBy[c.cityId] ?? 0} onChange={(e) => setFood(c.cityId, Number(e.target.value))} />{' '}
@@ -158,6 +160,10 @@ export function ResearchPanel({ game, player, dispatch }: PanelProps) {
           {' '}(교육학을 연구하면 이 제한이 사라집니다)
         </p>
       )}
+      <details className="tree-peek">
+        <summary>🗺 기술표 펴보기 (선행·후행 기술 확인)</summary>
+        <TechTree player={player} />
+      </details>
       <Help>카드를 누르면 바로 연구합니다. 흐린 카드는 식량·망치를 모두 바꿔도 과학이 모자랍니다. 바꿔야 하는 카드를 누르면 필요한 만큼 바꾸는 안을 보여 줍니다.</Help>
       <ConfirmButton className="" hotkey warn={skipWarn} onClick={() => dispatch({ type: 'skipResearch' })}>
         이번 차례는 연구하지 않음

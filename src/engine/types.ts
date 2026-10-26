@@ -38,6 +38,11 @@ export interface City {
   workers: number
   /** 일꾼이 올라간 타일 id */
   placed: number[]
+  /** 지난 차례에 일꾼이 올라가 있던 타일 id (다음 배치 때 그대로 올려 둔다) */
+  lastPlaced?: number[]
+  /** 지난 차례에 스웨덴이 장군을 올린 타일 / 몽골이 일꾼을 올린 상대 타일 (다음 배치 때 그대로 올려 둔다) */
+  lastGeneralPlaced?: number[]
+  lastEnemyPlaced?: { playerId: number; cityId: number; tileId: number }[]
   /** 몽골: 일꾼이 올라간 상대 타일 */
   enemyPlaced?: { playerId: number; cityId: number; tileId: number; card: TileCard }[]
   /** 스웨덴: 일꾼처럼 올린 위대한 장군이 있는 타일 */
@@ -78,7 +83,6 @@ export interface PlayerChoices {
   /** false면 맡아둔 타일을 두고 덱에서 새로 뽑는다 */
   useHeld?: boolean
   cultureCity?: number
-  discardCity?: number
 }
 
 export interface Player {
@@ -93,6 +97,10 @@ export interface Player {
   wastelandPending: boolean
   turn: TurnData | null
   policy: PolicyId | null
+  /** 행복 상한을 넘어 이번 차례 끝에 직접 버려야 하는 일꾼 수 (도시를 눌러 한 명씩 버린다) */
+  pendingDiscard?: number
+  /** 지금까지 정책을 고른 횟수 (불가사의·기술로 바뀐 것은 세지 않는다) */
+  policyPicks?: number
   /** 아직 고르지 않은 정책 선택 횟수 */
   pendingPolicies: number
   /** 인쇄기술로 얻은 두 번째 도시용 타일 4장 (도시를 세울 때까지) */
@@ -115,6 +123,8 @@ export interface Player {
   held: TileCard | null
   eliminated: boolean
   greatWallUsed: boolean
+  /** 시작 손이 이미 5장이라 손에 더 못 받는 엘도라도 발견 타일: 도시를 세울 때 영토로 붙는다 */
+  startExtras?: TileCard[]
   /** 선택 사항: 문화로 얻는 타일을 맡아둔 타일로 받을지(기본), 붙일 도시, 일꾼을 버릴 도시 */
   choices?: PlayerChoices
   /** 독일: 장군을 얻어서 생기는 무료 군사 카드 선택권 */
@@ -229,7 +239,8 @@ export type Action =
   | { type: 'wasteland'; discardTileId: number }
   | { type: 'placeWorkers'; placements: Placement[] }
   | { type: 'research'; techId: string; foodToScience?: number; hammerToScience?: number; foodByCity?: Record<number, number>; hammerByCity?: Record<number, number> }
-  | { type: 'setChoices'; useHeld?: boolean; cultureCity?: number | null; discardCity?: number | null }
+  | { type: 'setChoices'; useHeld?: boolean; cultureCity?: number | null }
+  | { type: 'discardWorker'; cityId: number }
   | { type: 'skipResearch' }
   | { type: 'endProduction' }
   | { type: 'choosePolicy'; policy: PolicyId; discard?: { cityId: number; count: number }[]; dismiss?: { cityId: number; tileId: number } }

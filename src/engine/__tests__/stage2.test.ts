@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { apply, culture, happiness, tourism, computeYields, RuleError, WONDER_CARDS, TECHS } from '..'
+import { aiCandidates, aiDebug, apply, createGame, culture, happiness, tourism, computeYields, totalWorkers, RuleError, WONDER_CARDS, TECHS } from '..'
 import type { GameState, TileCard } from '..'
 import { found, me, play, startGame, tile } from './helpers'
 
@@ -94,26 +94,28 @@ describe('정책', () => {
     expect(me(s).cities[0].workers).toBe(2)
   })
 
-  it('합리주의: 매 차례 과학 +3 (한국은 5)', () => {
+  it('합리주의: 매 차례 과학 +4 (한국은 6)', () => {
     const base = solo('denmark')
     const withP = mod(base, (c) => (c.players[0].policy = 'rationalism'))
-    expect(computeYields(me(withP)).science - computeYields(me(base)).science).toBe(3)
+    expect(computeYields(me(withP)).science - computeYields(me(base)).science).toBe(4)
     const k = solo('korea')
     const kp = mod(k, (c) => (c.players[0].policy = 'rationalism'))
-    expect(computeYields(me(kp)).science - computeYields(me(k)).science).toBe(5)
+    expect(computeYields(me(kp)).science - computeYields(me(k)).science).toBe(6)
   })
 
-  it('평등: 일꾼 2개당 관광 1', () => {
+  it('평등: 문화 3당 관광 1', () => {
     const s = mod(solo(), (c) => {
       c.players[0].policy = 'equality'
-      c.players[0].cities[0].workers = 5
     })
-    expect(tourism(me(s))).toBe(2)
+    expect(tourism(me(s))).toBe(Math.floor(culture(me(s)) / 3))
   })
 
-  it('세계화·냉각기술: 문화 2당 관광 1', () => {
-    const s = mod(solo(), (c) => c.players[0].techs.push('globalization', 'refrigeration'))
-    expect(tourism(me(s))).toBe(2 * Math.floor(culture(me(s)) / 2))
+  it('세계화·냉각기술: 문화 3당 관광 1씩', () => {
+    let s = mod(solo(), (c) => c.players[0].techs.push('globalization', 'refrigeration'))
+    const third = Math.floor(culture(me(s)) / 3)
+    expect(tourism(me(s))).toBe(2 * third)
+    s = mod(s, (c) => (c.players[0].policy = 'equality'))
+    expect(tourism(me(s))).toBe(3 * third)
   })
 })
 
@@ -296,8 +298,8 @@ describe('불가사의 완성 효과', () => {
   })
 
   it('관광: 루브르 +2, 에펠탑 +3, 프랑스는 불가사의 관광 2배', () => {
-    expect(tourism(me(owning('denmark', ['louvre', 'eiffel_tower'])))).toBe(5)
-    expect(tourism(me(owning('france', ['louvre', 'eiffel_tower'])))).toBe(10)
+    expect(tourism(me(owning('denmark', ['louvre', 'eiffel_tower'])))).toBe(7)
+    expect(tourism(me(owning('france', ['louvre', 'eiffel_tower'])))).toBe(14)
   })
 
   it('페트라: 사막 타일 식량 +1', () => {
@@ -480,5 +482,213 @@ describe('도시 선택 (식량·망치 변환, 문화 타일, 일꾼 버리기)
     }
     expect(me(run(true)).held).toBeNull()
     expect(me(run(false)).held?.id).toBe(held.id)
+  })
+})
+
+describe('시작 타일 엘도라도', () => {
+  const eldoradoIn = (hand: TileCard[]) => hand.some((c) => c.wonder === 'eldorado')
+  it('시작 손에서 엘도라도를 처음 발견하면 손이 5장, 도시를 세우면 영토 효과로 6장', () => {
+    let hit = 0
+    for (let seed = 1; seed <= 400 && hit < 3; seed++) {
+      let s = createGame({ seed, civIds: ['denmark', 'china'] })
+      const hand = s.players[s.order[0]].hand
+      if (!eldoradoIn(hand)) continue
+      hit++
+      expect(hand).toHaveLength(5)
+      expect(s.eldoradoFound).toBe(true)
+      s = found(s)
+      expect(culture(me(s))).toBe(6)
+    }
+    expect(hit).toBeGreaterThan(0)
+  })
+  it('시작 손이 이미 5장인 문명(시작 문화 1)은 발견 타일을 도시를 세운 뒤 영토로 받는다', () => {
+    let hit = 0
+    for (let seed = 1; seed <= 600 && hit < 2; seed++) {
+      let s = createGame({ seed, civIds: ['persia', 'greece'] })
+      const p = s.players[s.order[0]]
+      if (p.civId !== 'persia' || !eldoradoIn(p.hand)) continue
+      hit++
+      expect(p.hand).toHaveLength(5)
+      expect(p.startExtras).toHaveLength(1)
+      s = found(s)
+      expect(culture(me(s))).toBe(7)
+    }
+    expect(hit).toBeGreaterThan(0)
+  })
+  it('엘도라도가 없는 시작 손은 4장', () => {
+    for (let seed = 1; seed <= 40; seed++) {
+      const s = createGame({ seed, civIds: ['denmark', 'china'] })
+      const hand = s.players[s.order[0]].hand
+      if (!eldoradoIn(hand)) expect(hand).toHaveLength(4)
+    }
+  })
+})
+
+describe('일꾼이 모자랄 때', () => {
+  it('일꾼이 0명인데 맡아둔 타일이 있으면 타일을 덱으로 돌려주고 배치를 계속한다 (진행 불능 방지)', () => {
+    const held = tile(['평지'])
+    let s = mod(solo(), (c) => {
+      c.players[0].cities[0].workers = 0
+      c.players[0].held = held
+    })
+    s = apply(s, { type: 'placeWorkers', placements: [] })
+    expect(me(s).held).toBeNull()
+    expect(s.deck.some((c) => c.id === held.id)).toBe(true)
+    expect(s.phase).toBe('research')
+  })
+})
+
+describe('AI 정책 고르기 (타일·불가사의·성장에 따라)', () => {
+  const firstPolicy = (s: GameState) => {
+    const a = aiCandidates(s).find((x) => x.type === 'choosePolicy')
+    return a && a.type === 'choosePolicy' ? a.policy : undefined
+  }
+  const ready = (hand: TileCard[], fn: (c: GameState) => void = () => undefined) => {
+    let s = toResearch(solo('denmark', hand))
+    s = mod(s, (c) => {
+      c.players[0].pendingPolicies = 1
+      c.players[0].policyPicks = 1 // 첫 정책이 아닌 경우
+      fn(c)
+    })
+    return s
+  }
+
+  it('후반 지향형 타일(석유 등)을 두 장 이상 들고 있으면 자유나 합리주의로 스퍼트한다', () => {
+    const s = ready(hand4([{}, { resource: 'oil' }, { resource: 'coal' }, {}]))
+    expect(['liberty', 'rationalism']).toContain(firstPolicy(s))
+    expect(aiDebug.policyReason).toBe('후반 타일')
+  })
+
+  it('후반 타일이 한 장뿐이면 스퍼트하지 않는다', () => {
+    const s = ready(hand4([{}, { resource: 'oil' }, {}, {}]))
+    firstPolicy(s)
+    expect(aiDebug.policyReason).not.toBe('후반 타일')
+  })
+
+  it('타일이 좋지 못하면 전통', () => {
+    const poor = [tile(['설원']), tile(['설원']), tile(['산']), tile(['산'])]
+    const s = ready(poor, (c) => {
+      c.players[0].cities[0].tiles.push({ card: tile(['설원']), role: 'extra' }, { card: tile(['산']), role: 'extra' })
+    })
+    expect(firstPolicy(s)).toBe('tradition')
+  })
+
+  it('꼭 지어야 할 불가사의(루브르)가 미학을 요구하고 아직 지어지지 않았으면 미학', () => {
+    const s = ready(hand4(), (c) => {
+      c.players[0].techs.push('archaeology')
+    })
+    expect(firstPolicy(s)).toBe('aesthetics')
+  })
+
+  it('맨 처음 고르는 정책: 남는 식량이 있으면 전통, 없으면 미학', () => {
+    const withFood = (food: number) =>
+      ready(hand4(), (c) => {
+        c.players[0].policyPicks = 0
+        c.players[0].turn!.yields.cities[0].food = food
+        c.players[0].cities[0].workers = 1
+      })
+    expect(firstPolicy(withFood(3))).toBe('tradition')
+    expect(aiDebug.policyReason).toBe('첫 정책')
+    expect(firstPolicy(withFood(1))).toBe('aesthetics')
+    expect(firstPolicy(withFood(0))).toBe('aesthetics')
+  })
+
+  it('정책을 고르면 횟수가 올라가고, 두 번째부터는 자유롭게 고른다', () => {
+    let s = ready(hand4(), (c) => {
+      c.players[0].policyPicks = 0
+      c.players[0].techs.push('archaeology')
+    })
+    expect(firstPolicy(s)).not.toBe('liberty')
+    s = apply(s, { type: 'choosePolicy', policy: 'aesthetics' })
+    expect(me(s).policyPicks).toBe(1)
+  })
+
+  it('전통을 고를 때는 일꾼 3명을 버려 문화 2를 얻는다', () => {
+    let s = ready(hand4(), (c) => {
+      c.players[0].policyPicks = 0
+      c.players[0].cities[0].workers = 5
+      c.players[0].turn!.yields.cities[0].food = 9
+    })
+    const a = aiCandidates(s).find((x) => x.type === 'choosePolicy')!
+    expect(a.type === 'choosePolicy' && a.policy).toBe('tradition')
+    expect(a.type === 'choosePolicy' && a.discard?.reduce((n, d) => n + d.count, 0)).toBe(3)
+    const before = culture(me(s))
+    s = apply(s, a)
+    expect(me(s).cities[0].workers).toBe(2)
+    expect(culture(me(s))).toBe(before + 2)
+  })
+
+  it('일꾼이 행복 상한만큼 차면 문화를 최우선으로: 음향학부터 연구한다', () => {
+    const firstResearch = (workers: number) => {
+      const s = mod(toResearch(solo('denmark')), (c) => {
+        c.players[0].techs.push('education')
+        c.players[0].cities[0].workers = workers
+        c.players[0].cities[0].tiles.forEach((t) => (t.card = { ...t.card, terrains: ['평지'] })) // 타일이 시원찮지 않게
+        c.players[0].turn!.yields.science = 99
+      })
+      const a = aiCandidates(s).find((x) => x.type === 'research')
+      return a && a.type === 'research' ? a.techId : undefined
+    }
+    expect(firstResearch(30)).toBe('acoustics')
+    expect(firstResearch(1)).not.toBe('acoustics')
+  })
+})
+
+describe('정책 먼저, 일꾼 직접 버리기', () => {
+  it('정책을 고를 차례가 남아 있으면 생산·투자·승급 전에 정책부터 고르게 한다', () => {
+    let s = mod(toProduce(solo('denmark')), (c) => {
+      c.players[0].pendingPolicies = 1
+      c.players[0].techs.push('bronze_working', 'archery')
+      c.players[0].turn!.yields.cities[0].hammer = 9
+      c.players[0].turn!.yields.gold = 20
+    })
+    expect(() => apply(s, { type: 'produce', cityId: 0, defId: 'archer' })).toThrow(RuleError)
+    expect(() => apply(s, { type: 'invest', cityId: 0, wonderId: 'temple_of_artemis', hammers: 3 })).toThrow(RuleError)
+    expect(() => apply(s, { type: 'upgrade', uid: 1 })).toThrow(RuleError)
+    s = apply(s, { type: 'choosePolicy', policy: 'aesthetics' })
+    expect(() => apply(s, { type: 'produce', cityId: 0, defId: 'archer' })).not.toThrow(RuleError)
+  })
+
+  it('행복 상한을 넘은 일꾼은 차례가 끝날 때 도시를 눌러 한 명씩 직접 버린다', () => {
+    let s = mod(toProduce(solo('denmark')), (c) => {
+      c.players[0].cities[0].workers = 12
+      c.players[0].turn!.skipFoodSettle = true
+    })
+    const round = s.round
+    s = apply(s, { type: 'endProduction' })
+    const over = totalWorkers(me(s)) - happiness(me(s))
+    expect(over).toBeGreaterThan(0)
+    expect(me(s).pendingDiscard).toBe(over)
+    expect(s.phase).toBe('declare')
+    expect(s.round).toBe(round) // 아직 차례가 끝나지 않았다
+    expect(() => apply(s, { type: 'endTurn' })).toThrow(RuleError)
+    expect(aiCandidates(s)[0]).toMatchObject({ type: 'discardWorker' })
+    for (let i = 0; i < over; i++) s = apply(s, { type: 'discardWorker', cityId: 0 })
+    expect(totalWorkers(me(s))).toBe(happiness(me(s)))
+    expect(me(s).pendingDiscard).toBeUndefined()
+    expect(s.round).toBe(round + 1)
+    expect(() => apply(s, { type: 'discardWorker', cityId: 0 })).toThrow(RuleError)
+  })
+})
+
+describe('지난 배치 기억', () => {
+  it('차례가 돌아오면 지난 차례에 일꾼이 올라가 있던 타일을 기억한다', () => {
+    let s = solo('denmark')
+    const tileId = me(s).cities[0].tiles.find((t) => t.role !== 'city')!.card.id
+    s = apply(s, { type: 'placeWorkers', placements: [{ cityId: 0, tileId }] })
+    s = apply(apply(s, { type: 'skipResearch' }), { type: 'endProduction' })
+    expect(s.phase).toBe('place')
+    expect(me(s).cities[0].placed).toEqual([])
+    expect(me(s).cities[0].lastPlaced).toEqual([tileId])
+  })
+
+  it('스웨덴이 일꾼처럼 올린 장군 배치도 기억한다', () => {
+    let s = mod(solo('sweden'), (c) => (c.players[0].generals = 2))
+    const tileId = me(s).cities[0].tiles.find((t) => t.role !== 'city')!.card.id
+    s = apply(s, { type: 'placeWorkers', placements: [{ cityId: 0, tileId, general: true }] })
+    s = apply(apply(s, { type: 'skipResearch' }), { type: 'endProduction' })
+    expect(s.phase).toBe('place')
+    expect(me(s).cities[0].generalPlaced).toEqual([])
+    expect(me(s).cities[0].lastGeneralPlaced).toEqual([tileId])
   })
 })

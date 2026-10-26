@@ -981,12 +981,12 @@ describe('문명 능력 (전쟁·군사 관련)', () => {
     ).toThrow(RuleError)
   })
 
-  it('일본: 물고기 타일은 망치 +1 (식량은 그대로)', () => {
+  it('일본: 물고기 타일은 식량 +1 (망치는 그대로)', () => {
     const fish = tile(['해안'], { resource: 'fish' })
     const jp = tileYield(fish, ctxOf(found(startGame(['japan'], [hand4()])).players[0]))
     const kr = tileYield(fish, ctxOf(found(startGame(['korea'], [hand4()])).players[0]))
-    expect(jp.hammer - kr.hammer).toBe(1)
-    expect(jp.food - kr.food).toBe(0)
+    expect(jp.food - kr.food).toBe(1)
+    expect(jp.hammer - kr.hammer).toBe(0)
   })
 
   it('일본: 물고기 타일을 얻을 때마다 문화 1 (연쇄)', () => {
@@ -1011,7 +1011,7 @@ describe('문명 능력 (전쟁·군사 관련)', () => {
 
   it('브라질: 기계를 얻을 때 영토의 정글 1장당 문화 1', () => {
     let s = found(startGame(['brazil'], [[tile(['정글']), tile(['정글']), tile(['평지']), tile(['해안'])]]))
-    s = mod(s, (c) => c.players[0].techs.push('compass'))
+    s = mod(s, (c) => c.players[0].techs.push('trapping'))
     s = apply(s, { type: 'placeWorkers', placements: [] })
     s = mod(s, (c) => (c.players[0].turn!.yields.science = 9))
     const before = culture(me(s))
@@ -1034,5 +1034,37 @@ describe('군사 카드 데이터', () => {
     const s = startGame(['korea'], [hand4()])
     void s
     expect(MILITARY_CARDS.find((c) => c.id === 'cannon')).toBeTruthy()
+  })
+})
+
+describe('같은 타일에는 선전포고 불가', () => {
+  it('이미 누군가 선전포고한 타일은 다른 문명의 목표에서 빠진다', () => {
+    let s = mod(round2(['korea', 'russia', 'china'], [hand4(), hand4(), hand4()]), (c) => {
+      c.players[0].generals = 1
+      c.players[2].generals = 1
+    })
+    const target = tileId(s, 1, 1)
+    expect(declarationTargets(s, s.players[2]).some((t) => t.defenderId === 1 && t.tileId === target)).toBe(true)
+    s = toDeclare(s)
+    s = apply(s, { type: 'declareWar', defenderId: 1, cityId: 0, tileId: target })
+    expect(declarationTargets(s, s.players[2]).some((t) => t.defenderId === 1 && t.tileId === target)).toBe(false)
+    expect(declarationTargets(s, s.players[2]).some((t) => t.defenderId === 1 && t.tileId === tileId(s, 1, 2))).toBe(true)
+  })
+
+  it('만리장성은 자신의 차례 어느 단계에서든 쓸 수 있다', () => {
+    const base = mod(round2(['korea', 'russia']), (c) => {
+      c.players[0].wonders.push('great_wall')
+      c.players[1].generals = 0
+      c.players[1].cities[0].tiles[1].occupiedBy = 0
+      c.players[0].cities[0].tiles[1].occupiedBy = 1
+    })
+    // place 단계에서 바로
+    const s = apply(base, { type: 'useGreatWall' })
+    expect(s.players[0].greatWallUsed).toBe(true)
+    expect(s.players[0].cities[0].tiles[1].occupiedBy).toBeUndefined()
+    expect(() => apply(s, { type: 'useGreatWall' })).toThrow(RuleError)
+    // research 단계에서도
+    const r = apply(apply(base, { type: 'placeWorkers', placements: [] }), { type: 'useGreatWall' })
+    expect(r.players[0].greatWallUsed).toBe(true)
   })
 })

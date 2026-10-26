@@ -10,11 +10,13 @@ import { TurnSteps } from '../ui/TurnSteps'
 import { autoSkipAction } from '../ui/autoSkip'
 import { ICON } from '../ui/format'
 import { useEnterHotkey, useTurnTitle } from '../ui/hooks'
-import { Icon } from '../ui/icons'
+import { CityTag, Icon } from '../ui/icons'
 import { usePrefs } from '../ui/prefsStore'
 import { BattlePanel } from '../ui/panels/BattlePanel'
 import { ChoicesPanel } from '../ui/panels/ChoicesPanel'
 import { DeclarePanel } from '../ui/panels/DeclarePanel'
+import { DiscardPanel } from '../ui/panels/DiscardPanel'
+import { ConfirmButton } from '../ui/ConfirmButton'
 import { PendingPanel } from '../ui/panels/PendingPanel'
 import { PlacePanel } from '../ui/panels/PlacePanel'
 import { ProducePanel } from '../ui/panels/ProducePanel'
@@ -46,16 +48,6 @@ function isMyTurn(game: GameView): boolean {
   return actorOf(game) === me
 }
 
-/** 지난 차례 일꾼 배치 (같은 배치 다시 쓰기용): 방마다 이 브라우저에 남긴다 */
-const lastPlaceKey = (room: string) => `civ5-online-lastplace-${room}`
-function loadLastPlace(room: string): number[] | undefined {
-  try {
-    return JSON.parse(localStorage.getItem(lastPlaceKey(room)) ?? 'null') ?? undefined
-  } catch {
-    return undefined
-  }
-}
-
 interface Props {
   online: OnlineRoom
   onExit: () => void
@@ -67,7 +59,6 @@ export function OnlineGameScreen({ online, onExit }: Props) {
   const [notice, setNotice] = useState<string[]>([])
   const [seenBattle, setSeenBattle] = useState<number | null>(null)
   const [autoNote, setAutoNote] = useState('')
-  const [lastTiles, setLastTiles] = useState<number[] | undefined>()
   const { prefs, set: setPrefs } = usePrefs()
   // 되돌린 직후에는 자동 넘기기를 멈춘다 (되돌리자마자 다시 넘어가지 않게). 같은 상태에 두 번 보내지 않게 보낸 seq를 기억한다
   const autoPaused = useRef(false)
@@ -91,15 +82,6 @@ export function OnlineGameScreen({ online, onExit }: Props) {
 
   const dispatch = (a: Action, auto = false) => {
     if (!auto) autoPaused.current = false
-    if (a.type === 'placeWorkers' && room) {
-      const tiles = a.placements.filter((x) => !x.general && !x.enemy).map((x) => x.tileId)
-      setLastTiles(tiles)
-      try {
-        localStorage.setItem(lastPlaceKey(room.id), JSON.stringify(tiles))
-      } catch {
-        /* 무시 */
-      }
-    }
     if (!auto) setAutoNote('')
     send({ type: 'action', action: a })
   }
@@ -172,7 +154,7 @@ export function OnlineGameScreen({ online, onExit }: Props) {
   } else if (game.phase === 'battle' && game.battle) {
     main = <BattlePanel key={`${game.round}:${game.battle.decl.attackerId}:${game.battle.decl.tileId}:${game.battle.step}`} game={game} player={me} dispatch={dispatch} />
   } else if (game.phase === 'place') {
-    main = <PlacePanel key={`${me.id}-${game.round}`} game={game} player={me} dispatch={dispatch} lastTiles={lastTiles ?? loadLastPlace(room.id)} />
+    main = <PlacePanel key={`${me.id}-${game.round}`} game={game} player={me} dispatch={dispatch} />
   } else if (game.phase === 'research') {
     main = (
       <>
@@ -192,7 +174,7 @@ export function OnlineGameScreen({ online, onExit }: Props) {
       </>
     )
   } else if (game.phase === 'declare') {
-    main = <DeclarePanel game={game} player={me} dispatch={dispatch} />
+    main = me.pendingDiscard ? <DiscardPanel game={game} player={me} dispatch={dispatch} /> : <DeclarePanel game={game} player={me} dispatch={dispatch} />
   }
 
   const yields = me.turn?.yields
@@ -202,7 +184,7 @@ export function OnlineGameScreen({ online, onExit }: Props) {
 
   return (
     <div className="game">
-      {pendingReport && <BattleReportModal key={pendingReport.seq} game={game} report={pendingReport} viewer={me.id} onClose={() => setSeenBattle(pendingReport.seq)} />}
+      {pendingReport && <BattleReportModal key={pendingReport.seq} game={game} report={pendingReport} viewerId={pendingReport.attackerId === game.viewer || pendingReport.defenderId === game.viewer ? game.viewer : pendingReport.attackerId} onClose={() => setSeenBattle(pendingReport.seq)} />}
       <header className="top">
         <div>
           <b>라운드 {game.round}</b> · {PHASE[game.phase]} · <span className="who">{civById(actorPlayer.civId).name}</span>
@@ -216,7 +198,7 @@ export function OnlineGameScreen({ online, onExit }: Props) {
             <span className="yields">
               {yields.cities.map((c) => (
                 <span key={c.cityId}>
-                  도시{c.cityId + 1} {ICON.food}
+                  <CityTag id={c.cityId} /> {ICON.food}
                   {c.food} {ICON.hammer}
                   {c.hammer}{' '}
                 </span>
@@ -280,6 +262,13 @@ export function OnlineGameScreen({ online, onExit }: Props) {
               </span>
             )}
           </div>
+          {mine && !over && game.phase !== 'setup' && game.phase !== 'battle' && me.wonders.includes('great_wall') && !me.greatWallUsed && (
+            <div className="panel row">
+              <ConfirmButton className="" warn="만리장성은 게임 중 한 번만 쓸 수 있습니다." onClick={() => dispatch({ type: 'useGreatWall' })} title="내 영토 위의 상대 장군을 모두 돌려보냅니다 (게임 중 1회)">
+                🧱 만리장성 사용 (상대 장군 모두 돌려보냄, 1회)
+              </ConfirmButton>
+            </div>
+          )}
           {inTurn && <TurnSteps game={game} phases={undo.phases} locked={undo.locked} onUndo={() => undoTurn(1)} onJump={(i) => undoTurn(undo.phases.length - i)} />}
           {main}
           {showBoard && <Board game={game} player={me} />}
