@@ -211,7 +211,7 @@ export function PlacePanel({ game, player, dispatch }: PanelProps) {
             </span>
           )}
         </div>
-        <div className="row">
+        <div className="row place-confirm">
           {preview.ok ? (
             <span>
               예상 산출:{' '}
@@ -229,7 +229,7 @@ export function PlacePanel({ game, player, dispatch }: PanelProps) {
           ) : (
             <span className="error">{preview.msg}</span>
           )}
-          <button className="primary" disabled={!preview.ok} onClick={() => dispatch({ type: 'placeWorkers', placements })}>
+          <button className="primary confirm-btn" disabled={!preview.ok} onClick={() => dispatch({ type: 'placeWorkers', placements })}>
             배치 확정
           </button>
         </div>

@@ -282,10 +282,6 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .holders .none { color: var(--muted); }
 
 .worker-summary { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; margin: 6px 0 8px; }
-.worker-summary .chip { background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 3px 12px; font-size: 0.95rem; }
-.worker-summary .chip.total { font-size: 1.05rem; border-width: 2px; border-color: var(--own-line); }
-.worker-summary .chip.warn { background: #fff0d6; border-color: #e08a00; }
-.worker-summary .chip b { font-size: 1.15em; }
 .citytag { display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; min-width: 30px; margin-right: 2px; }
 .citytag img { border-radius: 50%; }
 .citytag small { margin-left: 2px; }
@@ -293,3 +289,13 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .upgrade-opts { display: flex; flex-direction: column; gap: 8px; }
 .city h3 small.unplaced { color: #b36b00; font-weight: 700; }
 .tree-peek { margin: 8px 0; } .tree-peek summary { cursor: pointer; font-weight: 600; width: fit-content; padding: 3px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+
+/* 일꾼 배치: 요약 칩은 작고 일정한 글씨, 예상 산출과 배치 확정은 크게 */
+.worker-summary { font-size: 0.8rem; }
+.worker-summary .chip { background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; font-size: 0.8rem; }
+.worker-summary .chip.total { border-width: 2px; border-color: var(--own-line); font-weight: 600; }
+.worker-summary .chip b, .worker-summary .chip small { font-size: inherit; }
+.worker-summary button { font-size: 0.8rem; padding: 3px 10px; }
+.place-confirm { font-size: 1.1rem; align-items: center; gap: 14px; margin-top: 8px; }
+.place-confirm .confirm-btn { font-size: 1.3rem; font-weight: 800; padding: 10px 28px; }
+.worker-summary .chip.warn { background: #fff0d6; border-color: #e08a00; }
