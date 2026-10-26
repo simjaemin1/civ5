@@ -518,10 +518,10 @@ function battleCandidates(s: GameState): Action[] {
   const hpOf = (uid: number) => cardStats(enemy.military.find((c) => c.uid === uid)!).hp ?? 99
   const sorted = [...enemyBoard].sort((x, y) => hpOf(x) - hpOf(y))
   const antiTank = enemyBoard.filter((u) => cardStats(enemy.military.find((c) => c.uid === u)!).baseId === 'anti_tank_gun')
-  const picks: Record<number, number> = {}
+  const picks: Record<number, number | null> = {}
   for (const uid of head.uids) {
     const me = p.military.find((c) => c.uid === uid)!
-    picks[uid] = cardStats(me).baseId === 'tank' && antiTank.length ? antiTank[0] : sorted[0]
+    picks[uid] = cardStats(me).baseId === 'tank' && antiTank.length ? antiTank[0] : (sorted[0] ?? null)
   }
   return [{ type: 'chooseTargets', playerId: pid, picks }]
 }

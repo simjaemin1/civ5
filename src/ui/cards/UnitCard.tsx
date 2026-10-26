@@ -80,7 +80,7 @@ export function UnitCard({ card, width = 150, selected, dim, onClick, zoomable =
             {st.name}
             {isBase && <small>({base.name})</small>}
           </div>
-          <div className="face-text">{st.choose !== undefined ? <p>카드를 1개 골라 공격</p> : null}{st.text ? <p>{st.text}</p> : null}</div>
+          <div className="face-text">{st.choose !== undefined ? <p>상대 1-4번 위치 중 1개를 골라 공격</p> : null}{st.text ? <p>{st.text}</p> : null}</div>
           <div className="unit-foot">
             <span className="hp">체력 {st.hp ?? '-'}</span>
             <span className="def">방어력 {st.def}</span>

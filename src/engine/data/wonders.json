@@ -1,5 +1,5 @@
 {
-  "kilimanjaro":{"name":"킬리만자로","yield":{"food":3},"cultureOnClaim":1},
+  "kilimanjaro":{"name":"킬리만자로","yield":{"food":2},"cultureOnClaim":1},
   "eldorado":{"name":"엘도라도","yield":{},"cultureOnClaim":1,"cultureOnDiscover":1},
   "old_faithful":{"name":"올드 페이스풀 간헐천","yield":{"science":2},"happinessOnClaim":1},
   "king_solomons_mines":{"name":"솔로몬 왕의 광산","yield":{"hammer":4}},

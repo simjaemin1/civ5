@@ -273,9 +273,11 @@ function Choose({ game, me, enemy, dispatch }: { game: GameState; me: Player; en
           <div key={uid} className="row">
             <span>{label(me, mine)} →</span>
             <span className="chips" role="radiogroup">
-              <button className={picks[uid] === null ? 'active' : ''} onClick={() => setPicks({ ...picks, [uid]: null })} title="대미지도 반격도 없음">
-                빈칸 (공격 안 함)
-              </button>
+              {enemyBoard.length < 4 && (
+                <button className={picks[uid] === null ? 'active' : ''} onClick={() => setPicks({ ...picks, [uid]: null })} title="대미지도 반격도 없음 (상대가 4장을 꽉 채웠으면 선택할 수 없음)">
+                  빈칸 (공격 안 함)
+                </button>
+              )}
               {enemyBoard.map(({ u, i }) => {
                 const c = enemy.military.find((m) => m.uid === u)!
                 return (
@@ -290,7 +292,7 @@ function Choose({ game, me, enemy, dispatch }: { game: GameState; me: Player; en
                 )
               })}
             </span>
-            {must && <small className="muted">탱크가 카드를 고른다면 대전차포를 골라야 합니다 (빈칸은 가능)</small>}
+            {must && <small className="muted">탱크가 카드를 고른다면 대전차포를 골라야 합니다{enemyBoard.length < 4 ? ' (빈칸은 가능)' : ''}</small>}
           </div>
         )
       })}

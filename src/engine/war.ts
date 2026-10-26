@@ -199,7 +199,7 @@ function beginChoosing(s: GameState): void {
   if (b.chooseQueue.length === 0) resolveBattle(s)
 }
 
-/** picks: 카드 → 상대 카드. null이면 일부러 빈칸을 공격한다 (대미지도 반격도 없다). */
+/** picks: 카드 → 상대 카드. null이면 일부러 빈칸(허공)을 공격한다 (대미지도 반격도 없다). 상대가 4장을 꽉 채워 냈으면 빈칸이 없으므로 허공 공격은 불가능하다. */
 export function chooseTargets(s: GameState, playerId: number, picks: Record<number, number | null>): void {
   const b = s.battle
   if (!b || b.step !== 'choose' || b.chooseQueue.length === 0) throw new RuleError('지금은 대상을 고르는 단계가 아닙니다')
@@ -211,6 +211,7 @@ export function chooseTargets(s: GameState, playerId: number, picks: Record<numb
   for (const uid of head.uids) {
     const target = picks[uid]
     if (target === undefined || (target !== null && !enemyBoard.includes(target))) throw new RuleError('모든 카드의 대상을 상대 카드(또는 빈칸) 중에서 골라야 합니다')
+    if (target === null && enemyBoard.length >= 4) throw new RuleError('상대가 카드 4장을 꽉 채워 냈으면 빈칸(허공)을 공격할 수 없습니다. 상대 카드를 골라야 합니다')
     // 대전차포: 상대 탱크는 카드를 고른다면 반드시 대전차포를 골라야 한다 (내 쪽에 임피가 있으면 대전차포의 효과는 무시된다). 일부러 빈칸을 고르는 것은 괜찮다.
     const me = cardStats(instOf(s.players[playerId], uid)!)
     const hasAT = enemyBoard.some((u) => cardStats(instOf(enemy, u)!).baseId === 'anti_tank_gun')

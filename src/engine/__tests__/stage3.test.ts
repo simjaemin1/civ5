@@ -1097,3 +1097,30 @@ describe('전제정치: 선전포고에 일꾼이 필요 없다', () => {
     expect(declarationTargets(s, s.players[0])).toHaveLength(0)
   })
 })
+
+describe('허공 공격(빈칸 선택)은 상대가 4장을 꽉 채우지 않았을 때만', () => {
+  const T = { pid: 1, idx: 1 }
+  const setup = (enemyCards: number) => {
+    let a = 0
+    const ws: number[] = []
+    let s = toBattle(round2(), (c) => {
+      c.players[0].generals = 1
+      a = give(c, 0, 'chariot')
+      for (let i = 0; i < enemyCards; i++) ws.push(give(c, 1, 'warrior', 'C'))
+    }, T)
+    s = arrange(s, 0, [a, null, null, null])
+    s = arrange(s, 1, [ws[0] ?? null, ws[1] ?? null, ws[2] ?? null, ws[3] ?? null])
+    return { s, a, ws }
+  }
+
+  it('상대가 4장을 꽉 채워 냈으면 대상을 고르는 카드는 빈칸을 고를 수 없다', () => {
+    const { s, a, ws } = setup(4)
+    expect(() => apply(s, { type: 'chooseTargets', playerId: 0, picks: { [a]: null } })).toThrow(RuleError)
+    expect(() => apply(s, { type: 'chooseTargets', playerId: 0, picks: { [a]: ws[0] } })).not.toThrow()
+  })
+
+  it('상대가 3장 이하로 냈으면 빈칸(허공)을 고를 수 있다', () => {
+    const { s, a } = setup(3)
+    expect(() => apply(s, { type: 'chooseTargets', playerId: 0, picks: { [a]: null } })).not.toThrow()
+  })
+})
