@@ -170,7 +170,6 @@ export function PlacePanel({ game, player, dispatch }: PanelProps) {
               </span>
             )
           })}
-          {reserved > 0 && <span className="chip">정찰·선전포고·맡아둔 타일에 묶임 {reserved}명</span>}
           {initial.returned > 0 && <span className="chip warn">타일을 빼앗기거나 일꾼이 줄어 돌아온 일꾼 {initial.returned}명</span>}
           <button
             onClick={() => {
@@ -192,7 +191,7 @@ export function PlacePanel({ game, player, dispatch }: PanelProps) {
             지난 배치로
           </button>
         </div>
-        <Help>타일을 눌러 일꾼을 올립니다. 도시 타일에는 올릴 수 없고, 도시 타일은 일꾼 없이도 항상 산출합니다. 지난 차례 배치가 미리 올라가 있습니다.</Help>
+        <Help>타일을 눌러 일꾼을 올립니다. 도시 타일은 일꾼 없이도 항상 산출합니다.</Help>
         {civ.id === 'sweden' && (
           <p>
             배치 모드:{' '}

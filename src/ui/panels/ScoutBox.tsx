@@ -15,6 +15,7 @@ export function ScoutBox({ game, player, dispatch, canScout }: PanelProps & { ca
           🔭 정찰
         </button>
       )}
+      {placePhase && canScout?.ok && !player.scouting && !player.held && <small className="muted">일꾼 1을 사용합니다</small>}
       {placePhase && canScout && !canScout.ok && !player.scouting && !player.held && <small className="muted">{canScout.why}</small>}
       {player.scouted && (
         <span className="row">
