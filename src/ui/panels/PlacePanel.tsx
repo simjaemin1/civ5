@@ -160,13 +160,13 @@ export function PlacePanel({ game, player, dispatch }: PanelProps) {
         <h3>일꾼 배치</h3>
         <div className="worker-summary">
           <span className={`chip total${total - reserved - used > 0 ? ' warn' : ''}`}>
-            배치 안 한 일꾼 <b>{Math.max(0, total - reserved - used)}</b>명 <small>(전체 {total}명 중)</small>
+            전체 일꾼 <b>{total}</b> · 미배치 <b>{Math.max(0, total - reserved - used)}</b>
           </span>
-          {player.cities.map((c) => {
+          {player.cities.length > 1 && player.cities.map((c) => {
             const onCity = [...placed].filter((id) => cityOf(id).id === c.id).length + enemy.filter((e) => e.cityId === c.id).length
             return (
               <span key={c.id} className="chip">
-                <CityTag id={c.id} /> 일꾼 {c.workers}명 · 배치 {onCity} · 남음 {Math.max(0, c.workers - onCity)}
+                <CityTag id={c.id} /> 일꾼 {c.workers} · 미배치 {Math.max(0, c.workers - onCity)}
               </span>
             )
           })}

@@ -3,11 +3,11 @@ import type { GameState } from '../engine'
 /** 한 문명의 내정 단계 (규칙서 3장). 식량 정산은 선전포고 단계가 끝나면 자동으로 하고 차례가 끝난다. */
 const STEPS: { phase: GameState['phase'] | 'end'; label: string; note?: string }[] = [
   { phase: 'setup', label: '도시 세우기' },
-  { phase: 'place', label: '①② 일꾼 배치·산출' },
-  { phase: 'research', label: '③ 기술 연구' },
-  { phase: 'produce', label: '④ 생산' },
-  { phase: 'declare', label: '⑤ 선전포고', note: '할 수 있을 때만' },
-  { phase: 'end', label: '⑥ 식량 정산 → 차례 끝', note: '되돌릴 수 없음' },
+  { phase: 'place', label: '① 일꾼 배치' },
+  { phase: 'research', label: '② 기술 연구' },
+  { phase: 'produce', label: '③ 생산' },
+  { phase: 'declare', label: '④ 선전포고', note: '할 수 있을 때만' },
+  { phase: 'end', label: '⑤ 식량 정산 → 차례 끝', note: '되돌릴 수 없음' },
 ]
 
 interface Props {

@@ -8,10 +8,10 @@ import { Board4 } from '../ui/panels/BattlePanel'
 /** 한 문명의 내정 단계 (규칙서 3장): 기다리는 동안 지금 어디쯤인지 보여 준다 */
 const STEPS: { phase: GameView['phase']; label: string; doing: string }[] = [
   { phase: 'setup', label: '도시 세우기', doing: '첫 도시를 세우는 중' },
-  { phase: 'place', label: '①② 일꾼 배치·산출', doing: '일꾼을 배치하는 중' },
-  { phase: 'research', label: '③ 기술 연구', doing: '기술을 연구하는 중' },
-  { phase: 'produce', label: '④ 생산', doing: '생산·투자를 하는 중' },
-  { phase: 'declare', label: '⑤ 선전포고', doing: '선전포고를 정하는 중' },
+  { phase: 'place', label: '① 일꾼 배치', doing: '일꾼을 배치하는 중' },
+  { phase: 'research', label: '② 기술 연구', doing: '기술을 연구하는 중' },
+  { phase: 'produce', label: '③ 생산', doing: '생산·투자를 하는 중' },
+  { phase: 'declare', label: '④ 선전포고', doing: '선전포고를 정하는 중' },
 ]
 
 interface Props {

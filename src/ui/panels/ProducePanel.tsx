@@ -264,7 +264,7 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
 
       <div className="row">
         <ConfirmButton hotkey warn={endWarn} onClick={() => dispatch({ type: 'endProduction' })}>
-          {declarationTargets(game, player).length > 0 ? '생산 끝내기 → ⑤ 선전포고' : '생산 끝내기 → 식량 정산·차례 끝'}
+          {declarationTargets(game, player).length > 0 ? '생산 끝내기 → ④ 선전포고' : '생산 끝내기 → 식량 정산·차례 끝'}
         </ConfirmButton>
       </div>
     </div>

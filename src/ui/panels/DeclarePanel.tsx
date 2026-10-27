@@ -50,7 +50,7 @@ export function DeclarePanel({ game, player, dispatch }: PanelProps) {
 
   return (
     <div className="panel declare">
-      <h3>⑤ 선전포고 (한 차례에 1번)</h3>
+      <h3>④ 선전포고 (한 차례에 1번)</h3>
       <p className="summary">
         <span>
           장군 <b>{freeGenerals}</b>
