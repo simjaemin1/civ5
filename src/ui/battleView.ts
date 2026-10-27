@@ -18,4 +18,3 @@ export function plannedAttacks(card: CardInst, slot: number): PlannedAttack[] {
   })
 }
 
-export const DIR_ARROW: Record<Dir, string> = { L: '↖', C: '↑', R: '↗' }

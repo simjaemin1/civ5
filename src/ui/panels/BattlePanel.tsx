@@ -1,15 +1,13 @@
 import { useState } from 'react'
 import { cardStats, civById, usableInBattle } from '../../engine'
-import type { CardInst, GameState, Player } from '../../engine'
+import type { GameState, Player } from '../../engine'
 import { UnitCard } from '../cards/UnitCard'
 import { cardText } from '../format'
 import type { PanelProps } from './types'
 import { ConfirmButton } from '../ConfirmButton'
 import { Help } from '../prefs'
-import { DIR_ARROW, plannedAttacks } from '../battleView'
-import { DIR_LABEL } from '../format'
+import { plannedAttacks } from '../battleView'
 
-const label = (_p: Player, c: CardInst) => cardText(c, false)
 
 /** 전투: 비공개로 카드를 1~4번 자리에 놓고, 공개 후 대상을 고르는 카드는 대상을 고른다. */
 export function BattlePanel({ game, player, dispatch }: PanelProps) {
@@ -105,13 +103,6 @@ function Arrange({ game, me, enemy, dispatch }: { game: GameState; me: Player; e
           return (
             <div key={j} className={`ghost-slot${incoming.length ? ' hit' : ''}`}>
               <b>상대 {j}번</b>
-              {incoming.length ? (
-                <small>
-                  ⚔{incoming.reduce((n, a) => n + a.power, 0)} 받음 ({incoming.map((a) => `내 ${a.from}번`).join(', ')})
-                </small>
-              ) : (
-                <small className="muted">공격 안 함</small>
-              )}
             </div>
           )
         })}
@@ -149,19 +140,7 @@ function Arrange({ game, me, enemy, dispatch }: { game: GameState; me: Player; e
               }}
             >
               <b>{i + 1}번</b>
-              <small className="muted facing">상대 {4 - i}번과 마주 봄</small>
-              <div className="slot-card">{c ? <UnitCard card={c} width={120} zoomable={false} /> : <span className="muted">(비어 있음)</span>}</div>
-              {c && (
-                <small className="aim">
-                  {plannedAttacks(c, i + 1)
-                    .map((a) =>
-                      a.dir === 'choose'
-                        ? `⚔${a.power} 대상은 공개 후 고름`
-                        : `${DIR_ARROW[a.dir]} ${DIR_LABEL[a.dir]} ⚔${a.power} → ${a.enemySlot ? `상대 ${a.enemySlot}번` : '빈 공간 (공격 없음)'}`,
-                    )
-                    .join(' · ') || '공격 없음'}
-                </small>
-              )}
+              <div className="slot-card">{c ? <UnitCard card={c} width={120} zoomable={false} /> : <div className="empty-card" style={{ width: 120 }} />}</div>
               {c && (
                 <button
                   className="link"
@@ -200,7 +179,7 @@ export function Board4({ game, pid, mirror }: { game: GameState; pid: number; mi
             <b>
               {civById(p.civId).name} {i + 1}번
             </b>
-            <div>{c ? <UnitCard card={c} width={120} flip={mirror} /> : '(빈칸)'}</div>
+            <div>{c ? <UnitCard card={c} width={120} flip={mirror} /> : <div className="empty-card" style={{ width: 120 }} />}</div>
           </div>
         )
       })}
@@ -236,10 +215,6 @@ function Choose({ game, me, enemy, dispatch }: { game: GameState; me: Player; en
   const hasAT = enemyBoard.some((x) => cardStats(enemy.military.find((m) => m.uid === x.u)!).baseId === 'anti_tank_gun')
   return (
     <>
-      <p>카드가 공개되었습니다. 대상을 고르는 카드는 우선도가 높은 쪽부터 대상을 고릅니다 (코사크는 모두 고른 뒤에).</p>
-      <p className="muted">
-        위쪽이 상대 카드(마주 보도록 뒤집어 놓음), 아래쪽이 내 카드입니다. 공격 방향과 전투력은 카드에 그려진 마크를 보세요.
-      </p>
       <Board4 game={game} pid={enemy.id} mirror />
       <div style={{ height: 36 }} />
       <Board4 game={game} pid={me.id} />
@@ -254,14 +229,12 @@ function Choose({ game, me, enemy, dispatch }: { game: GameState; me: Player; en
         const must = cardStats(mine).baseId === 'tank' && hasAT
         return (
           <div key={uid} className="row">
-            <span>{label(me, mine)} →</span>
+            <span>
+              {slotOf(me.id, uid)}번 {cardStats(mine).name} →
+            </span>
             <span className="chips" role="radiogroup">
-              {enemyBoard.length < 4 && (
-                <button className={picks[uid] === null ? 'active' : ''} onClick={() => setPicks({ ...picks, [uid]: null })} title="대미지도 반격도 없음 (상대가 4장을 꽉 채웠으면 선택할 수 없음)">
-                  빈칸 (공격 안 함)
-                </button>
-              )}
-              {enemyBoard.map(({ u, i }) => {
+              {/* 위에 마주 보고 놓인 상대 카드와 같은 순서: 상대 4번 → 3번 → 2번 → 1번 */}
+              {[...enemyBoard].sort((a, b) => b.i - a.i).map(({ u, i }) => {
                 const c = enemy.military.find((m) => m.uid === u)!
                 return (
                   <button
@@ -270,10 +243,15 @@ function Choose({ game, me, enemy, dispatch }: { game: GameState; me: Player; en
                     disabled={must && cardStats(c).baseId !== 'anti_tank_gun'}
                     onClick={() => setPicks({ ...picks, [uid]: u })}
                   >
-                    상대 {i + 1}번 {label(enemy, c)}
+                    상대 {i + 1}번 {cardStats(c).name}
                   </button>
                 )
               })}
+              {enemyBoard.length < 4 && (
+                <button className={picks[uid] === null ? 'active' : ''} onClick={() => setPicks({ ...picks, [uid]: null })} title="대미지도 반격도 없음 (상대가 4장을 꽉 채웠으면 선택할 수 없음)">
+                  빈칸
+                </button>
+              )}
             </span>
             {must && <small className="muted">탱크가 카드를 고른다면 대전차포를 골라야 합니다{enemyBoard.length < 4 ? ' (빈칸은 가능)' : ''}</small>}
           </div>
