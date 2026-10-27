@@ -511,3 +511,10 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
 .wasteland-cell button.tile.empty.build-cell { border-style: dashed; border-color: var(--err); color: var(--err); }
 .build-cell.drop-over, button.tile.empty.build-cell.drop-over { outline: 3px solid var(--accent); border-radius: 8px; }
 [draggable="true"].build-cell { cursor: grab; }
+/* 첫 도시 세우기: 타일을 빼도 칸 크기가 그대로 (빈 칸도 타일 카드 비율 255:364) */
+.build-row .cross { grid-template-columns: repeat(3, min(118px, calc((100vw - 96px) / 3))); }
+.build-row button.tile.empty.build-cell { aspect-ratio: 255 / 364; min-height: 0; height: auto; }
+.build-row .c-n, .build-row .c-w, .build-row .c-e, .build-row .c-s, .build-row .c-c { min-width: 0; }
+.wasteland-cell { width: min(118px, calc((100vw - 96px) / 3)); }
+/* 오른쪽 칸 맨 위: 내 문명 카드 */
+.side-civ .civ-card { width: 100% !important; max-width: 100%; }

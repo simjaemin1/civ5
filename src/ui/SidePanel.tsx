@@ -2,6 +2,7 @@ import type { GameState } from '../engine'
 import { WONDER_CARDS, civById, culture, happiness, totalWorkers, tourism } from '../engine'
 import { declTileName, roundBids } from './gameInfo'
 import { Icon } from './icons'
+import { CivCard } from './cards/CivCard'
 import { ICON, policyName } from './format'
 
 const civName = (game: GameState, pid: number) => civById(game.players[pid].civId).name
@@ -131,6 +132,9 @@ export function RecentLog({ game, lines = 12 }: { game: GameState; lines?: numbe
 export function SidePanel({ game, seats, actor, viewer, onView, viewing }: { game: GameState; seats: { ai: boolean }[]; actor: number; viewer: number; onView?: (id: number) => void; viewing?: number | null }) {
   return (
     <aside className="side">
+      <div className="side-civ">
+        <CivCard civId={game.players[viewer].civId} width={376} />
+      </div>
       <TurnOrder game={game} seats={seats} actor={actor} onView={onView} viewing={viewing} />
       <Threats game={game} viewer={viewer} />
       <WonderRace game={game} viewer={viewer} />
