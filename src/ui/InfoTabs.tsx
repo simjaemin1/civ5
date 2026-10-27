@@ -9,6 +9,7 @@ import { UnitCard } from './cards/UnitCard'
 import { catalogCard } from './cards/unitImage'
 import { WonderCard } from './cards/WonderCard'
 import { ICON, josa } from './format'
+import { civEmblem } from './civEmblems'
 
 /** 도표의 줄 배치: 줄이 시작되는 기술(선행 기술 없음)이 어느 줄에 놓이는지. 이어지는 기술은 선행 기술과 같은 줄에 놓인다. */
 const ROOT_ROW: Record<string, number> = {
@@ -211,31 +212,7 @@ function TabContent({ game, viewer, tab }: { game: GameState; viewer: number; ta
         </div>
         </div>
       )}
-      {tab === 'unique' && (
-        <div>
-          <p className="muted">고유 유닛은 문명마다 3장만 존재합니다 (방향 카드는 방향마다 한 장). 효과를 적용할 때는 괄호 안의 기초 카드로 취급합니다. 카드를 누르면 크게 보입니다.</p>
-          <div className="unit-row">
-            {CIVS.flatMap((c) =>
-              c.uniques.map((u) => (
-                <div key={u.name} className="unit-group">
-                  <b>
-                    {c.name} · {u.name}
-                  </b>
-                  <div className="unit-row">
-                    {(u.variants ?? [undefined]).map((v) => (
-                      <UnitCard key={v?.join('') ?? 'x'} card={{ defId: u.base, unique: u.name, dirs: v }} width={130} />
-                    ))}
-                  </div>
-                  <small className="muted">
-                    {ICON.hammer}{u.cost}
-                    {u.variants ? '' : ' · 방향 없는 카드 (3장 모두 같음)'}
-                  </small>
-                </div>
-              )),
-            )}
-          </div>
-        </div>
-      )}
+      {tab === 'unique' && <UniqueTab civId={me.civId} />}
     </>
   )
 }
@@ -249,6 +226,48 @@ export function LogPanel({ game }: { game: GameState }) {
         {[...game.log].reverse().map((l, i) => (
           <div key={i}>{l}</div>
         ))}
+      </div>
+    </div>
+  )
+}
+
+/** 고유 유닛 탭: 문명 기호를 늘어놓고, 기호를 누르면 그 문명의 고유 유닛 카드를 보여 준다 (처음에는 내 문명) */
+function UniqueTab({ civId }: { civId: string }) {
+  const [sel, setSel] = useState(civId)
+  const civ = CIVS.find((c) => c.id === sel) ?? CIVS[0]
+  return (
+    <div>
+      <div className="emblem-grid" role="tablist" aria-label="문명">
+        {CIVS.map((c) => {
+          const img = civEmblem(c.id)
+          return (
+            <button key={c.id} role="tab" aria-selected={c.id === sel} className={`emblem-pick${c.id === sel ? ' on' : ''}`} onClick={() => setSel(c.id)} title={`${c.name} 고유 유닛`}>
+              {img ? <img src={img} alt="" draggable={false} /> : <span className="emblem-letter">{c.name.slice(0, 1)}</span>}
+              <small>{c.name}</small>
+            </button>
+          )
+        })}
+      </div>
+      <h4>
+        {civ.name}의 고유 유닛 <small className="muted">(문명마다 3장 · 효과는 괄호 안의 기초 카드로 취급 · 카드를 누르면 크게)</small>
+      </h4>
+      <div className="unit-row">
+        {civ.uniques.map((u) => (
+          <div key={u.name} className="unit-group">
+            <b>{u.name}</b>
+            <div className="unit-row">
+              {(u.variants ?? [undefined]).map((v) => (
+                <UnitCard key={v?.join('') ?? 'x'} card={{ defId: u.base, unique: u.name, dirs: v }} width={130} />
+              ))}
+            </div>
+            <small className="muted">
+              {ICON.hammer}
+              {u.cost}
+              {u.variants ? '' : ' · 방향 없는 카드 (3장 모두 같음)'}
+            </small>
+          </div>
+        ))}
+        {civ.uniques.length === 0 && <p className="muted">고유 유닛이 없습니다.</p>}
       </div>
     </div>
   )

@@ -525,3 +525,11 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
 .cross .wasteland-cell { grid-area: z; align-self: start; width: auto; margin-left: 14px; }
 /* 오른쪽 칸 맨 위: 내 문명 카드 */
 .side-civ .civ-card { width: 100% !important; max-width: 100%; }
+/* 고유 유닛 탭: 문명 기호를 눌러 고른다 */
+.emblem-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 6px; margin-bottom: 10px; }
+.emblem-pick { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 2px; background: none; border: 2px solid transparent; border-radius: 10px; cursor: pointer; color: var(--ink); }
+.emblem-pick img { width: 48px; height: 48px; object-fit: contain; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45)); transition: transform 0.12s; }
+.emblem-pick:hover img, .emblem-pick:focus-visible img { transform: scale(1.1); }
+.emblem-pick.on { border-color: var(--accent); background: var(--active-bg); }
+.emblem-pick small { font-size: 0.72rem; white-space: nowrap; }
+.emblem-letter { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; background: #12303a; color: #fff; font-weight: 800; }
