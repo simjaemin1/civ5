@@ -2,10 +2,10 @@ import type { Action, CardInst, GameState, Player, Side, TileCard } from './type
 import { RuleError, SIDES } from './types'
 import { MILITARY_CARDS, RESOURCES, TECHS, WONDERS, cardById, civById, wonderCardById } from './data'
 import { cardStats } from './cardstats'
-import type { TechDef } from './data'
+import type { TechDef, WonderCardDef } from './data'
 import { apply, researchableTechs } from './game'
-import { canHammerScience, ctxOf, culture, happiness, rationalismScience, tileYield, totalWorkers, tourism } from './yields'
-import { investableWonders, minHammers } from './wonders'
+import { canHammerScience, computeYields, ctxOf, culture, happiness, rationalismScience, tileYield, totalWorkers, tourism } from './yields'
+import { conditionMet, investableWonders, minHammers } from './wonders'
 import { MAX_HOLD, cardCost, heldCount, producible, uniqueOf, upgradeTargets } from './military'
 import { declarationTargets, findTile, occupiedTiles, targetSlot, usableInBattle } from './war'
 import { currentPlayer, defaultTileCity } from './core'
@@ -491,6 +491,65 @@ const isInfantryAction = (a: Action): boolean => a.type === 'produce' && !a.uniq
 const facesImpi = (s: GameState, p: Player): boolean => s.players.some((o) => o.id !== p.id && !o.eliminated && o.civId === 'zulu')
 const isSiegeAction = (a: Action): boolean => a.type === 'produce' && (cardById(a.defId).line === 'siege' || a.unique === '공성추')
 
+/**
+ * 한 도시가 낼 수 있는 망치의 상한 (공개 정보만: 영토 타일 산출, 도시별 일꾼 수, 문명 보너스).
+ * 일꾼을 망치가 많은 타일부터 올렸다고 본다.
+ */
+function hammerCeiling(o: Player): Map<number, number> {
+  const q = structuredClone(o)
+  const ctx = ctxOf(q)
+  for (const c of q.cities) {
+    c.placed = c.tiles
+      .filter((t) => t.role !== 'city' && (t.occupiedBy === undefined || t.occupiedBy === o.id))
+      .sort((a, b) => tileYield(b.card, ctx).hammer - tileYield(a.card, ctx).hammer)
+      .slice(0, c.workers)
+      .map((t) => t.card.id)
+    c.enemyPlaced = []
+    c.generalPlaced = []
+  }
+  return new Map(computeYields(q).cities.map((y) => [y.cityId, y.hammer]))
+}
+
+/**
+ * 불가사의 경매 읽기 (순차 공개 전액지불 경매: 최다 투자 한 명만 진척도, 동률이면 아무도 못 얻고, 망치는 모두 사라진다).
+ * - sure: 앞사람보다 많고, 뒤에 둘 문명이 공개 정보로 낼 수 있는 망치 상한보다도 많다 (또는 넘길 수 있는 문명이 없다)
+ * - risky: 앞사람보다 많지만 뒤 문명이 넘길 수 있다 → 군사 카드를 만들 수 없을 때만
+ * - spoil: 앞사람과 같은 금액밖에 못 내지만 그 앞사람이 이번에 이기면 완성한다 → 동률로 막는다
+ * 이미 앞사람 이상인 불가사의(막을 이유가 없는 것)와, 상대의 진척도가 2 이상 앞선 불가사의(매몰비용)는 버린다.
+ */
+function wonderBids(s: GameState, p: Player, wonders: WonderCardDef[], h: number): { sure: WonderCardDef[]; risky: WonderCardDef[]; spoil: WonderCardDef[] } {
+  const out = { sure: [] as WonderCardDef[], risky: [] as WonderCardDef[], spoil: [] as WonderCardDef[] }
+  const later = s.order.slice(s.turnIdx + 1).map((id) => s.players[id]).filter((o) => !o.eliminated && o.cities.length > 0)
+  const ceilings = new Map(later.map((o) => [o.id, hammerCeiling(o)]))
+  for (const w of wonders) {
+    const prog = s.wonderProgress[w.id] ?? {}
+    const mine = prog[p.id] ?? 0
+    const prior = s.investments.filter((i) => i.wonderId === w.id && i.playerId !== p.id)
+    const best = prior.reduce((n, i) => Math.max(n, i.hammers), 0)
+    const winner = prior.find((i) => i.hammers === best)
+    const finishing = !!winner && prior.filter((i) => i.hammers === best).length === 1 && (prog[winner.playerId] ?? 0) + 1 >= w.progressNeeded
+    if (best > h) continue
+    if (best === h) {
+      if (finishing) out.spoil.push(w)
+      continue
+    }
+    if (finishing) {
+      out.spoil.push(w) // 더 많이 내서 이기면 막으면서 내 진척도도 얻는다
+      continue
+    }
+    const rivalProg = Math.max(0, ...Object.entries(prog).filter(([id]) => Number(id) !== p.id).map(([, v]) => v))
+    if (rivalProg >= mine + 2) continue
+    // 뒤 문명 중 이 불가사의에 투자할 수 있고, 그 도시의 망치 상한이 내 투자 이상인 문명이 있는가
+    const threat = later.some((o) =>
+      o.techs.includes(w.tech) &&
+      !s.investments.some((i) => i.wonderId === w.id && i.playerId === o.id) &&
+      o.cities.some((c) => conditionMet(o, c, w) && minHammers(o, w) <= (ceilings.get(o.id)!.get(c.id) ?? 0) && (ceilings.get(o.id)!.get(c.id) ?? 0) >= h),
+    )
+    ;(threat ? out.risky : out.sure).push(w)
+  }
+  return out
+}
+
 function produceCandidates(s: GameState, p: Player): Action[] {
   const out: Action[] = []
   const turn = p.turn!
@@ -503,7 +562,10 @@ function produceCandidates(s: GameState, p: Player): Action[] {
       // 과학 정책(합리주의·자유)을 평등 등으로 덮어쓰는 불가사의는 피한다
       .filter((w) => !(['rationalism', 'liberty'].includes(p.policy ?? '') && w.effects.some((e) => e.kind === 'setPolicy' && e.policy !== 'liberty')))
       .sort((a, b) => (isWarlord(p) ? Number(b.id === 'statue_of_zeus') - Number(a.id === 'statue_of_zeus') : 0) || (cultureFirst(p) ? Number(b.id === 'sistine_chapel') - Number(a.id === 'sistine_chapel') : 0) || b.minHammers - a.minHammers)
-    const wonderActions: Action[] = wonders.map((w) => ({ type: 'invest', cityId: city.id, wonderId: w.id, hammers: h }))
+    const bids = wonderBids(s, p, wonders, h)
+    const wonderActions: Action[] = bids.sure.map((w) => ({ type: 'invest', cityId: city.id, wonderId: w.id, hammers: h }))
+    const spoilActions: Action[] = bids.spoil.map((w) => ({ type: 'invest', cityId: city.id, wonderId: w.id, hammers: h }))
+    const riskyActions: Action[] = bids.risky.map((w) => ({ type: 'invest', cityId: city.id, wonderId: w.id, hammers: h }))
     const cardActions: Action[] = []
     for (const o of cardOptions(p)) {
       if (o.def.notBattle || (!o.unique && heldCount(p, o.def.id) >= MAX_HOLD) || !producible(s, p, o.def.id, o.unique, city) || cardCost(p, o.def, o.unique ? uniqueOf(p, o.unique) : undefined) > h) continue
@@ -518,7 +580,10 @@ function produceCandidates(s: GameState, p: Player): Action[] {
     if ((warRush || joinSiege) && !hasSiege(p)) cardActions.sort((x, y) => Number(isSiegeAction(y)) - Number(isSiegeAction(x)))
     // 줄루의 임피는 상대 카드의 효과 칸 공격과 효과(원거리의 반격 없음 등)를 없애므로, 줄루가 상대면 마크로만 싸우는 보병 계열을 먼저 만든다
     if (facesImpi(s, p)) cardActions.sort((x, y) => Number(isInfantryAction(y)) - Number(isInfantryAction(x)))
+    // 완성 직전인 상대를 동률로 막는 투자가 가장 먼저, 뒤 문명이 넘길 수 있는 투자는 군사 카드 뒤로
+    out.push(...spoilActions)
     out.push(...(army < 3 || needDefense || rush || aiStyle === 'hammer' ? [...cardActions, ...wonderActions] : [...wonderActions, ...cardActions]))
+    out.push(...riskyActions)
   }
   // 3) 금으로 승급 (가장 높은 단계부터 시도한다)
   if (!turn.upgraded && turn.yields.gold > 0) {
