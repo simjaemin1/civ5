@@ -437,3 +437,7 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
 .res-icon { height: 1.15em; width: auto; vertical-align: -0.2em; margin: 0 1px; }
 .res-amount { display: inline-flex; align-items: center; gap: 1px; margin-right: 4px; }
 .tile-yield .res-icon { height: 1.2em; }
+
+/* 점령당한 타일: 일꾼 토큰처럼 위대한 장군 토큰을 올려 두고, 점령한 문명 이름을 작게 붙인다 */
+.occupier { display: inline-flex; flex-direction: column; align-items: center; line-height: 1; }
+.occupier small { white-space: nowrap; font-size: 0.6rem; font-weight: 700; color: #fff; text-shadow: 0 0 3px #000, 0 0 3px #000; }

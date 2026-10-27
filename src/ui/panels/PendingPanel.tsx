@@ -54,6 +54,21 @@ export function PendingPanel({ game, player, dispatch }: PanelProps) {
           onBuild={(cityTileId, sideTiles) => dispatch({ type: 'buildSecondCity', cityTileId, sideTiles })}
         />
       )}
+      {player.policyOffer && (
+        <div className="panel">
+          <h3>과학이론: 정책을 {policyName(player.policyOffer)}(으)로 바꾸시겠습니까?</h3>
+          <p className="muted">
+            얻은 시점에 한 번만 정할 수 있습니다. 바꾸지 않으면 지금 정책({policyName(player.policy)})이 그대로 이어지고 아무 효과도 다시 발동하지 않습니다.
+          </p>
+          <div className="row">
+            <PolicyCard policy={player.policyOffer} width={150} onClick={() => dispatch({ type: 'policyOffer', accept: true })} />
+            <button className="primary" onClick={() => dispatch({ type: 'policyOffer', accept: true })}>
+              {policyName(player.policyOffer)}(으)로 바꾸기
+            </button>
+            <button onClick={() => dispatch({ type: 'policyOffer', accept: false })}>바꾸지 않기 (지금 정책 유지)</button>
+          </div>
+        </div>
+      )}
       {player.pendingPolicies > 0 && (
         <div className="panel">
           <h3>정책 선택 ({player.pendingPolicies}회) <small className="muted">현재 정책: {policyName(player.policy)}</small></h3>

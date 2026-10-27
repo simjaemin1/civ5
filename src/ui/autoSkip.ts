@@ -12,7 +12,7 @@ import {
 import { canHammerScience } from '../engine'
 import { produceBlock } from './gameInfo'
 
-const hasPending = (p: Player) => p.pendingPolicies > 0 || !!p.pendingCity || p.pendingFreeCards > 0 || !!p.pendingTiles?.length
+const hasPending = (p: Player) => p.pendingPolicies > 0 || !!p.policyOffer || !!p.pendingCity || p.pendingFreeCards > 0 || !!p.pendingTiles?.length
 
 /** 쓸 수 있는 과학의 최댓값: 과학 + (문자) 식량 전부 + (과학이론) 망치 2 */
 export function maxSciencePool(p: Player): number {

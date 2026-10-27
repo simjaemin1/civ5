@@ -14,10 +14,6 @@ export function choosePolicy(
   dismiss?: { cityId: number; tileId: number },
 ): void {
   if (p.pendingPolicies <= 0) throw new RuleError('고를 수 있는 정책 선택권이 없습니다')
-  if (p.policyOnly?.length) {
-    if (policy !== p.policy && !p.policyOnly.includes(policy)) throw new RuleError('이번 선택권은 정해진 정책으로 바꾸거나 지금 정책을 다시 고르는 것만 가능합니다')
-    p.policyOnly = undefined
-  }
   p.pendingPolicies--
   p.policyPicks = (p.policyPicks ?? 0) + 1
   p.policy = policy // 새 정책을 고르면 기존 정책은 끝난다 (같은 정책을 다시 골라도 효과가 다시 발동)
@@ -70,4 +66,19 @@ export function choosePolicy(
     case 'equality':
       break
   }
+}
+
+/** 과학이론: 정책을 합리주의로 바꿀지 말지. 바꾸지 않으면 아무 일도 없다 (지금 정책을 다시 고르는 효과 재발동도 없다) */
+export function answerPolicyOffer(s: GameState, p: Player, accept: boolean): void {
+  const offer = p.policyOffer
+  if (!offer) throw new RuleError('정책을 바꿀 기회가 없습니다')
+  p.policyOffer = undefined
+  const name = civById(p.civId).name
+  if (!accept) {
+    say(s, `${name} 정책 유지: ${p.policy ? POLICIES[p.policy].name : '없음'}`)
+    return
+  }
+  p.policy = offer
+  p.policyPicks = (p.policyPicks ?? 0) + 1
+  say(s, `${name} 정책: ${POLICIES[offer].name} (과학이론)`)
 }

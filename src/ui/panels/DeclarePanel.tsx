@@ -77,7 +77,7 @@ export function DeclarePanel({ game, player, dispatch }: PanelProps) {
               setSel(null)
             }}
           >
-            {g === 'retake' ? `🚩 내 타일 탈환 (${retakes.length})` : `${civById(game.players[g].civId).name} (${targets.filter((t) => t.kind !== 'retake' && t.defenderId === g).length})`}
+            {g === 'retake' ? `내 타일 탈환 (${retakes.length})` : `${civById(game.players[g].civId).name} (${targets.filter((t) => t.kind !== 'retake' && t.defenderId === g).length})`}
           </button>
         ))}
       </div>

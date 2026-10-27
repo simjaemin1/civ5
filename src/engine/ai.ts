@@ -431,6 +431,13 @@ function pendingCandidates(s: GameState, p: Player): Action[] {
       out.push({ type: 'choosePolicy', policy })
     }
   }
+  if (p.policyOffer) {
+    // 과학이론: 지금 정책보다 합리주의를 더 좋게 보면 바꾼다
+    const order = policyOrder(s, p)
+    const now = p.policy ? order.indexOf(p.policy) : -1
+    const want = now < 0 || order.indexOf(p.policyOffer) < now
+    out.push({ type: 'policyOffer', accept: want }, { type: 'policyOffer', accept: !want })
+  }
   if (p.pendingFreeCards > 0) {
     for (const o of cardOptions(p)) {
       out.push({ type: 'claimFreeCard', defId: o.def.id, unique: o.unique })

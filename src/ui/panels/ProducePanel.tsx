@@ -15,9 +15,9 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
   const turn = player.turn!
   const civ = civById(player.civId)
   // 정책을 고를 차례가 남아 있으면 정책부터 (정책 조건이 붙은 불가사의가 틀어지지 않게)
-  const mustPolicy = player.pendingPolicies > 0
+  const mustPolicy = player.pendingPolicies > 0 || !!player.policyOffer
   // 카드 묶기(만들 수 있음/없음)는 정책 조건을 빼고 본다: 정책을 고르기 전에는 버튼만 잠근다
-  const policyDone = mustPolicy ? { ...player, pendingPolicies: 0 } : player
+  const policyDone = mustPolicy ? { ...player, pendingPolicies: 0, policyOffer: undefined } : player
   const [amounts, setAmounts] = useState<Record<string, number>>({})
 
   const upgrades = player.military
@@ -53,7 +53,7 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
   return (
     <div className="panel">
       <h3>생산 (도시마다 1개: 군사 카드 또는 불가사의 투자)</h3>
-      {mustPolicy && <p className="enemy-pick">정책을 먼저 고르세요. 정책을 고른 뒤에 생산·투자·승급할 수 있습니다.</p>}
+      {mustPolicy && <p className="enemy-pick">정책을 먼저 정하세요. 정책을 정한 뒤에 생산·투자·승급할 수 있습니다.</p>}
       {threats.length > 0 && (
         <div className="threat-banner">
           <b>⚔ 이번 라운드에 선전포고를 받았습니다</b> — 정산 때 전투합니다. 지금 군사 카드를 만들어 대비할 수 있습니다.
