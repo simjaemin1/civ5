@@ -12,6 +12,7 @@ export function choosePolicy(
   policy: PolicyId,
   discard: { cityId: number; count: number }[] = [],
   dismiss?: { cityId: number; tileId: number },
+  addWorkers?: { cityId: number; count: number }[],
 ): void {
   if (p.pendingPolicies <= 0) throw new RuleError('고를 수 있는 정책 선택권이 없습니다')
   p.pendingPolicies--
@@ -43,9 +44,18 @@ export function choosePolicy(
       break
     case 'regime': {
       turn.skipFoodSettle = true
-      // 임시: 얻은 일꾼은 첫 도시에 붙이고, 행복을 넘는 만큼 버린다
-      const room = Math.max(0, happiness(p) - totalWorkers(p))
-      p.cities[0].workers += Math.min(3, room)
+      // 일꾼 3개를 얻되 행복 한도를 넘는 만큼은 못 얻는다. 일꾼 1개마다 어느 도시에 붙일지 고른다 (고르지 않으면 첫 도시)
+      const gain = Math.min(3, Math.max(0, happiness(p) - totalWorkers(p)))
+      if (addWorkers?.length) {
+        const total = addWorkers.reduce((n, a) => n + a.count, 0)
+        if (total !== gain || addWorkers.some((a) => !Number.isInteger(a.count) || a.count < 0 || !p.cities.some((c) => c.id === a.cityId))) {
+          throw new RuleError(`일꾼 ${gain}개를 내 도시에 나누어 붙여야 합니다`)
+        }
+        for (const a of addWorkers) p.cities.find((c) => c.id === a.cityId)!.workers += a.count
+      } else {
+        p.cities[0].workers += gain
+      }
+      if (gain > 0) say(s, `${name} 체제: 일꾼 ${gain}개 추가`)
       break
     }
     case 'diplomacy': {

@@ -84,6 +84,30 @@ describe('정책', () => {
     expect(me(t).cities[0].workers).toBe(3) // 행복 3이 한도
   })
 
+  it('체제: 도시가 둘이면 일꾼 1개씩 어느 도시에 붙일지 고른다', () => {
+    const two = () =>
+      mod(toProduce(solo()), (c) => {
+        const p = c.players[0]
+        p.pendingPolicies = 1
+        p.cities.push({ ...structuredClone(p.cities[0]), id: 1, workers: 1, placed: [] })
+      })
+    const s0 = two()
+    const gain = Math.min(3, happiness(me(s0)) - totalWorkers(me(s0)))
+    expect(gain).toBeGreaterThanOrEqual(2)
+    const before = me(s0).cities.map((c) => c.workers)
+    // 도시1에 1개, 나머지는 도시2에
+    let s = apply(s0, { type: 'choosePolicy', policy: 'regime', addWorkers: [{ cityId: 0, count: 1 }, { cityId: 1, count: gain - 1 }] })
+    expect(me(s).cities.map((c) => c.workers)).toEqual([before[0] + 1, before[1] + gain - 1])
+    // 모두 도시2에
+    s = apply(s0, { type: 'choosePolicy', policy: 'regime', addWorkers: [{ cityId: 1, count: gain }] })
+    expect(me(s).cities.map((c) => c.workers)).toEqual([before[0], before[1] + gain])
+    // 개수가 안 맞거나 없는 도시면 거절
+    expect(() => apply(s0, { type: 'choosePolicy', policy: 'regime', addWorkers: [{ cityId: 1, count: gain + 1 }] })).toThrow(RuleError)
+    expect(() => apply(s0, { type: 'choosePolicy', policy: 'regime', addWorkers: [{ cityId: 9, count: gain }] })).toThrow(RuleError)
+    // 고르지 않으면 첫 도시 (AI 기본)
+    expect(me(apply(s0, { type: 'choosePolicy', policy: 'regime' })).cities.map((c) => c.workers)).toEqual([before[0] + gain, before[1]])
+  })
+
   it('자유: 식량이 모자라도 일꾼을 잃지 않는다', () => {
     let s = mod(toProduce(solo()), (c) => {
       c.players[0].policy = 'liberty'

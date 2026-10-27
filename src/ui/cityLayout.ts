@@ -1,3 +1,4 @@
+import { extraSlotOf } from '../engine'
 import type { City, Side } from '../engine'
 import { SIDE_LABEL } from './format'
 
@@ -26,7 +27,12 @@ export function cityGrid(city: City, side: (s: Side) => City['tiles'][number] | 
     tile: c.side ? side(c.side) : city.tiles.find((t) => t.role === 'city'),
     label: c.side ? SIDE_LABEL[c.side] : undefined,
   }))
-  city.tiles.filter((t) => t.role === 'extra').forEach((t, i) => cells.push({ key: `x${t.card.id}`, ...extraPosition(i), tile: t }))
+  // 추가 타일은 자리 번호대로 놓는다. 원자폭탄으로 타일이 사라진 자리는 빈 칸으로 남고, 새 타일이 먼저 메운다
+  const extras = city.tiles.filter((t) => t.role === 'extra')
+  const used = new Set(extras.map((t) => extraSlotOf(city, t)))
+  for (const t of extras) cells.push({ key: `x${t.card.id}`, ...extraPosition(extraSlotOf(city, t)), tile: t })
+  const top = Math.max(-1, ...used)
+  for (let i = 0; i < top; i++) if (!used.has(i)) cells.push({ key: `hole${i}`, ...extraPosition(i), label: '' })
   const minX = Math.min(...cells.map((c) => c.x))
   const minY = Math.min(...cells.map((c) => c.y))
   const maxX = Math.max(...cells.map((c) => c.x))

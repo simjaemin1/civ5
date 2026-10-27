@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { actorOf, apply, cardById, culture, ctxOf, RuleError, MILITARY_CARDS, declarationTargets, freeWorkers, tileYield, isCoastalCity, happiness } from '..'
+import { actorOf, apply, defaultTileCity, extraHoles, gainCulture, cardById, culture, ctxOf, RuleError, MILITARY_CARDS, declarationTargets, freeWorkers, tileYield, isCoastalCity, happiness } from '..'
 import type { GameState, TileCard } from '..'
 import { found, me, play, startGame, tile } from './helpers'
 
@@ -829,6 +829,37 @@ describe('도시 공격·탈환·탈락', () => {
     expect(culture(s.players[1])).toBe(before - 1)
     expect(s.players[0].generals).toBe(1)
     expect(s.players[0].military.some((c) => c.defId === 'atomic_bomb')).toBe(false)
+  })
+
+  it('원자폭탄으로 사라진 추가 타일의 빈 자리를 새 타일이 먼저 메운다', () => {
+    let s = round2()
+    s = mod(s, (c) => {
+      const city = c.players[1].cities[0]
+      city.openSides = []
+      for (let i = 0; i < 3; i++) city.tiles.push({ card: tile(['평지']), role: 'extra', slot: i })
+      city.tiles.at(-2)!.occupiedBy = 0 // 가운데(자리 1) 타일을 점령 중
+      give(c, 0, 'atomic_bomb')
+    })
+    const middle = s.players[1].cities[0].tiles.at(-2)!.card.id
+    s = play(s, { type: 'placeWorkers', placements: [] }, { type: 'skipResearch' })
+    s = apply(s, { type: 'useAtomicBomb', defenderId: 1, cityId: 0, tileId: middle })
+    const slots = (st: GameState) => st.players[1].cities[0].tiles.filter((t) => t.role === 'extra').map((t) => t.slot)
+    expect(slots(s)).toEqual([0, 2]) // 자리 1이 비었다
+    expect(extraHoles(s.players[1].cities[0])).toBe(1)
+    s = mod(s, (c) => gainCulture(c, c.players[1], 2))
+    expect(slots(s)).toEqual([0, 2, 1, 3]) // 먼저 비어 있던 1번을 메우고, 그다음 맨 끝(3번)
+    expect(extraHoles(s.players[1].cities[0])).toBe(0)
+  })
+
+  it('빈 자리가 있는 도시는 기본 붙일 도시로 먼저 고른다 (열린 면이 없을 때)', () => {
+    let s = round2()
+    s = mod(s, (c) => {
+      const p = c.players[1]
+      p.cities.push({ ...structuredClone(p.cities[0]), id: 1 })
+      for (const city of p.cities) city.openSides = []
+      p.cities[1].tiles.push({ card: tile(['평지']), role: 'extra', slot: 1 }) // 자리 0이 비어 있는 도시
+    })
+    expect(defaultTileCity(s.players[1]).id).toBe(1)
   })
 
   it('만리장성: 게임 중 1번, 내 영토 위 상대 장군을 모두 돌려보낸다', () => {

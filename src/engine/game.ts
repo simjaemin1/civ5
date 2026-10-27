@@ -5,7 +5,7 @@ import type { TechDef } from './data'
 import { shuffle } from './rng'
 import { canHammerScience, computeYields, happiness, totalWorkers } from './yields'
 import { makeTileDeck } from './tileDeck'
-import { currentPlayer, defaultTileCity, drawTiles, returnToDeck, flushPendingTiles, gainCulture, onTileGained, placeGainedTile, say } from './core'
+import { currentPlayer, defaultTileCity, extraHoles, extraSlotOf, freeExtraSlot, drawTiles, returnToDeck, flushPendingTiles, gainCulture, onTileGained, placeGainedTile, say } from './core'
 import { answerPolicyOffer, choosePolicy } from './policies'
 import { invest, settleWonders } from './wonders'
 import {
@@ -17,7 +17,7 @@ import {
   startNextBattle, detonateAtomicBomb, activateGreatWall,
 } from './war'
 
-export { currentPlayer, defaultTileCity, gainCulture }
+export { currentPlayer, defaultTileCity, extraHoles, extraSlotOf, freeExtraSlot, gainCulture }
 
 export interface CreateOptions {
   seed: number
@@ -240,7 +240,7 @@ export function apply(prev: GameState, action: Action): GameState {
       return s
     case 'choosePolicy':
       expectPhase(s, 'research', 'produce')
-      choosePolicy(s, p, action.policy, action.discard, action.dismiss)
+      choosePolicy(s, p, action.policy, action.discard, action.dismiss, action.addWorkers)
       return s
     case 'policyOffer':
       expectPhase(s, 'research', 'produce')
@@ -404,7 +404,7 @@ function buildCity(
   const city = foundCity(p.hand, a, 0, 1)
   p.cities.push(city)
   p.hand = []
-  for (const card of p.startExtras ?? []) city.tiles.push({ card, role: 'extra' })
+  for (const card of p.startExtras ?? []) city.tiles.push({ card, role: 'extra', slot: freeExtraSlot(city) })
   p.startExtras = undefined
   for (const t of city.tiles) if (t.card.wonder) onTileGained(s, p, t.card) // 시작 타일에 자연경관이 있어도 문화 효과를 받는다 (킬리만자로 등)
   if (p.civId === 'china') p.generals += 1 // 중국: 위대한 장군 1개로 시작

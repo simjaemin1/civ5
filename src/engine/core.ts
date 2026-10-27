@@ -1,4 +1,4 @@
-import type { City, GameState, Player, TileCard } from './types'
+import type { City, GameState, PlacedTile, Player, TileCard } from './types'
 import { RuleError } from './types'
 import { WONDERS, civById } from './data'
 import { shuffle } from './rng'
@@ -51,13 +51,37 @@ export function gainCulture(s: GameState, p: Player, n: number): void {
 /** 고르지 않았을 때 붙일 도시: 설정한 도시 → 빈 면이 있는 도시 → 첫 도시 */
 export function defaultTileCity(p: Player): City {
   const preferred = p.choices?.cultureCity !== undefined ? p.cities.find((c) => c.id === p.choices!.cultureCity) : undefined
-  return preferred ?? p.cities.find((c) => c.openSides.length > 0) ?? p.cities[0]
+  // 설정한 도시 → 첫 5타일에 빈 면이 있는 도시 → 원자폭탄 등으로 빈 자리가 생긴 도시 → 첫 도시
+  return preferred ?? p.cities.find((c) => c.openSides.length > 0) ?? p.cities.find((c) => extraHoles(c) > 0) ?? p.cities[0]
+}
+
+/** 추가 타일의 자리 번호. slot이 없는 옛 저장은 놓인 순서대로 센다 */
+export function extraSlotOf(city: City, t: PlacedTile): number {
+  if (t.slot !== undefined) return t.slot
+  return city.tiles.filter((x) => x.role === 'extra' && x.slot === undefined).indexOf(t)
+}
+
+const usedExtraSlots = (city: City): Set<number> => new Set(city.tiles.filter((t) => t.role === 'extra').map((t) => extraSlotOf(city, t)))
+
+/** 다음 추가 타일이 놓일 자리: 사라진 타일의 빈 자리가 있으면 가장 앞의 빈 자리, 없으면 맨 끝 */
+export function freeExtraSlot(city: City): number {
+  const used = usedExtraSlots(city)
+  let i = 0
+  while (used.has(i)) i++
+  return i
+}
+
+/** 가운데가 비어 있는 자리 수 (원자폭탄으로 타일이 사라진 자리) */
+export function extraHoles(city: City): number {
+  const used = usedExtraSlots(city)
+  const max = Math.max(-1, ...used)
+  return max + 1 - used.size
 }
 
 /** 타일을 도시에 붙인다: 첫 5타일의 빈 면이 있으면 반드시 그 면에, 아니면 추가 타일로 */
 export function attachTile(s: GameState, p: Player, city: City, card: TileCard): void {
   const side = city.openSides.shift()
-  city.tiles.push(side ? { card, role: 'side', side, late: true } : { card, role: 'extra', late: true })
+  city.tiles.push(side ? { card, role: 'side', side, late: true } : { card, role: 'extra', late: true, slot: freeExtraSlot(city) })
   onTileGained(s, p, card)
 }
 

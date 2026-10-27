@@ -32,6 +32,8 @@ export interface PlacedTile {
   side?: Side
   /** 도시를 세운 뒤에 붙은 타일 (첫 5타일에 속하지 않는다: 해안 도시 판정 등) */
   late?: boolean
+  /** 추가 타일(extra)이 놓인 자리 번호 (0부터). 원자폭탄으로 타일이 사라져도 번호는 그대로 남아 그 자리는 비고, 새 타일이 먼저 메운다 */
+  slot?: number
 }
 
 export interface City {
@@ -251,7 +253,7 @@ export type Action =
   | { type: 'discardCard'; uid: number }
   | { type: 'skipResearch' }
   | { type: 'endProduction' }
-  | { type: 'choosePolicy'; policy: PolicyId; discard?: { cityId: number; count: number }[]; dismiss?: { cityId: number; tileId: number } }
+  | { type: 'choosePolicy'; policy: PolicyId; discard?: { cityId: number; count: number }[]; dismiss?: { cityId: number; tileId: number }; addWorkers?: { cityId: number; count: number }[] }
   | { type: 'policyOffer'; accept: boolean }
   | { type: 'buildSecondCity'; cityTileId: number; sideTiles: Partial<Record<Side, number>> }
   | { type: 'invest'; cityId: number; wonderId: string; hammers: number }
