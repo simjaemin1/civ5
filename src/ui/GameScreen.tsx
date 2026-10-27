@@ -258,6 +258,7 @@ export function GameScreen({ initial, seats, onExit }: Props) {
                 : pendingReport.attackerId
           }
           onClose={() => setSeenBattle(pendingReport.seq)}
+          lossSound={!seats[pendingReport.attackerId].ai || !seats[pendingReport.defenderId].ai}
         />
       )}
       <header className="top">

@@ -131,7 +131,7 @@ export function BattleLab({ onBack }: { onBack: () => void }) {
         </button>
       </p>
       {game && report && showReport && (
-        <BattleReportModal game={game} report={report} viewerId={0} onClose={() => setShowReport(false)} />
+        <BattleReportModal game={game} report={report} viewerId={0} lossSound onClose={() => setShowReport(false)} />
       )}
       {game && report && !showReport && (
         <p>

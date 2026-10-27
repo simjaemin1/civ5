@@ -85,13 +85,8 @@ export function soundsFor(prev: GameState, next: GameState, me?: number): Sound[
   if (me !== undefined && next.phase === 'place' && next.players[me] && `${prev.round}:${prev.turnIdx}` !== `${next.round}:${next.turnIdx}` && next.order[next.turnIdx] === me) {
     if (next.players[me].cities.some((c) => c.tiles.some((t) => t.occupiedBy !== undefined && t.occupiedBy !== me))) out.add('enemyBorder')
   }
-  // 전쟁에서 내 군사 카드가 파괴되었다
-  if (me !== undefined) {
-    const seen = prev.battleReports?.at(-1)?.seq ?? 0
-    for (const r of next.battleReports ?? []) {
-      if (r.seq > seen && r.units.some((u) => u.owner === me && u.destroyed)) out.add('killed')
-    }
-  }
+  // 내 군사 카드 파괴 소리는 여기서 내지 않는다: 내 전투 장면이 끝날 때 전투 장면이 낸다 (BattleReportModal).
+  // 여러 전투가 한꺼번에 정산되면 남의 전투를 관전하는 중에 들리기 때문이다.
   return [...out]
 }
 

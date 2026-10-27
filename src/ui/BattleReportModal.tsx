@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { BattleReport, BattleUnitReport, GameState } from '../engine'
 import { civById } from '../engine'
 import { UnitCard } from './cards/UnitCard'
+import { playSound } from './sounds'
+import { usePrefs } from './prefsStore'
 
 type Live = { dmg: number; attacking: boolean; hit: number }
 
@@ -80,7 +82,10 @@ function stepsOf(report: BattleReport): Step[] {
 }
 
 /** 전투가 끝나면 한 번 띄우는 전투 장면. 확인을 눌러야 다음으로 넘어간다. */
-export function BattleReportModal({ game, report, viewerId, onClose }: { game: GameState; report: BattleReport; viewerId?: number; onClose: () => void }) {
+/**
+ * lossSound: 내 전투일 때만 true. 재생이 끝났을 때 아래쪽(내) 카드가 파괴되었으면 파괴 효과음을 낸다 (관전 중에는 소리 없음).
+ */
+export function BattleReportModal({ game, report, viewerId, onClose, lossSound = false }: { game: GameState; report: BattleReport; viewerId?: number; onClose: () => void; lossSound?: boolean }) {
   const att = game.players[report.attackerId]
   const def = game.players[report.defenderId]
   const unitAt = (pid: number, slot: number) => report.units.find((u) => u.owner === pid && u.slot === slot) ?? null
@@ -105,6 +110,14 @@ export function BattleReportModal({ game, report, viewerId, onClose }: { game: G
     return () => clearTimeout(t)
   }, [run, step, steps.length])
   const done = step >= steps.length
+  const { prefs } = usePrefs()
+  const lostMine = lossSound && report.units.some((u) => u.owner === bottomId && u.destroyed)
+  const played = useRef(false)
+  useEffect(() => {
+    if (!done || !lostMine || played.current) return
+    played.current = true
+    playSound('killed', prefs.sound)
+  }, [done, lostMine, prefs.sound])
   const current = step > 0 ? steps[step - 1] : null
   /** 지금까지 쌓인 대미지와 지금 진행 중인 공격 */
   const liveOf = (pid: number, slot: number): Live => {

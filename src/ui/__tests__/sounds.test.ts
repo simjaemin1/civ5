@@ -69,11 +69,11 @@ describe('효과음', () => {
     expect(soundsFor(moved, back, s.order[1])).toEqual([])
   })
 
-  it('전쟁에서 내 군사 카드가 파괴되면 소리', () => {
+  it('군사 카드 파괴 소리는 상태가 바뀔 때 내지 않는다 (내 전투 장면이 끝날 때 전투 장면이 낸다)', () => {
     const s = base()
     const report = (owner: number, destroyed: boolean) => ({ seq: 1, units: [{ owner, destroyed }] }) as never
     const lost = next(s, ['전투 결과'], (c) => { c.battleReports = [report(0, true)] })
-    expect(soundsFor(s, lost, 0)).toEqual(['killed'])
+    expect(soundsFor(s, lost, 0)).toEqual([])
     expect(soundsFor(s, lost, 1)).toEqual([])
   })
 
