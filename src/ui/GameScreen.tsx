@@ -89,7 +89,8 @@ export function GameScreen({ initial, seats, onExit }: Props) {
         const next = apply(game, a)
         setAutoNote('')
         const added = Math.min(next.logSeq - game.logSeq, next.log.length)
-        setNotice(added > 0 ? next.log.slice(-added) : [])
+        // 전투 결과는 글자로 띄우지 않고 전투 장면(애니메이션)으로 보여 준다
+        setNotice(added > 0 ? next.log.slice(-added).filter((l) => !/^\[R\d+\] 전투/.test(l)) : [])
         setHistory((h) => [...h.slice(-99), game])
         if (revealsInfo(game, next)) setLocked((l) => new Set(l).add(game))
         setGame(next)

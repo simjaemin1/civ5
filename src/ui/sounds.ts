@@ -10,13 +10,14 @@ import wonderMineUrl from '../assets/sounds/wonder_mine.mp3'
 import wonderOtherUrl from '../assets/sounds/wonder_other.mp3'
 import borderUrl from '../assets/sounds/enemy_border.mp3'
 import killedUrl from '../assets/sounds/unit_killed.mp3'
+import promoteUrl from '../assets/sounds/unit_promotion.mp3'
 import { usePrefs } from './prefsStore'
 
 /**
  * 효과음: 선전포고 / 문화로 새 타일 / 새 시대 / 새 정책 / 새 기술 /
- * 내가 불가사의를 완성 / 남이 불가사의를 완성 / 내 타일 위에 상대 장군(내 차례 시작) / 내 군사 카드 파괴
+ * 내가 불가사의를 완성 / 남이 불가사의를 완성 / 내 타일 위에 상대 장군(내 차례 시작) / 내 군사 카드 파괴 / 금으로 승급
  */
-export type Sound = 'war' | 'borders' | 'era' | 'policy' | 'tech' | 'wonderMine' | 'wonderOther' | 'enemyBorder' | 'killed'
+export type Sound = 'war' | 'borders' | 'era' | 'policy' | 'tech' | 'wonderMine' | 'wonderOther' | 'enemyBorder' | 'killed' | 'promote'
 
 const URLS: Record<Sound, string> = {
   war: warUrl,
@@ -28,6 +29,7 @@ const URLS: Record<Sound, string> = {
   wonderOther: wonderOtherUrl,
   enemyBorder: borderUrl,
   killed: killedUrl,
+  promote: promoteUrl,
 }
 /** 같은 소리가 겹쳐 따닥거리지 않도록 최소 간격 (ms) */
 const MIN_GAP = 400
@@ -61,6 +63,7 @@ export function soundsFor(prev: GameState, next: GameState, me?: number): Sound[
     if (line.includes('선전포고')) out.add('war')
     else if (/ 문화 \+\d+$/.test(line)) out.add('borders')
     else if (line.includes(' 정책: ')) out.add('policy')
+    else if (line.includes(' 승급 (금')) out.add('promote')
   }
   // 새 기술: 그 문명이 처음 도달한 시대의 기술이면 새 시대 소리, 아니면 기술 소리
   next.players.forEach((p, i) => {
