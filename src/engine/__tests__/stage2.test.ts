@@ -75,10 +75,10 @@ describe('정책', () => {
     expect(() => apply(s, { type: 'choosePolicy', policy: 'tradition', discard: [{ cityId: 0, count: 2 }] })).toThrow(RuleError)
   })
 
-  it('체제: 일꾼 3개를 얻되 행복(덴마크 5)을 넘으면 버린다', () => {
+  it('체제: 일꾼 4개를 얻되 행복(덴마크 5)을 넘으면 버린다', () => {
     let s = mod(toProduce(solo()), (c) => (c.players[0].pendingPolicies = 1))
     s = apply(s, { type: 'choosePolicy', policy: 'regime' })
-    expect(me(s).cities[0].workers).toBe(4) // 1 + 3 (행복 5 이내)
+    expect(me(s).cities[0].workers).toBe(5) // 1 + 4 (행복 5 이내)
     let t = mod(toProduce(solo('korea')), (c) => (c.players[0].pendingPolicies = 1))
     t = apply(t, { type: 'choosePolicy', policy: 'regime' })
     expect(me(t).cities[0].workers).toBe(3) // 행복 3이 한도
@@ -92,7 +92,7 @@ describe('정책', () => {
         p.cities.push({ ...structuredClone(p.cities[0]), id: 1, workers: 1, placed: [] })
       })
     const s0 = two()
-    const gain = Math.min(3, happiness(me(s0)) - totalWorkers(me(s0)))
+    const gain = Math.min(4, happiness(me(s0)) - totalWorkers(me(s0)))
     expect(gain).toBeGreaterThanOrEqual(2)
     const before = me(s0).cities.map((c) => c.workers)
     // 도시1에 1개, 나머지는 도시2에

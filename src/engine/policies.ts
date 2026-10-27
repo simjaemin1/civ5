@@ -6,6 +6,9 @@ import { gainCulture, say } from './core'
 import { happiness, totalWorkers } from './yields'
 import { gainGeneral } from './military'
 
+/** 체제 정책으로 얻는 일꾼 수 (행복 한도 안에서) */
+export const REGIME_WORKERS = 4
+
 export function choosePolicy(
   s: GameState,
   p: Player,
@@ -44,8 +47,8 @@ export function choosePolicy(
       break
     case 'regime': {
       turn.skipFoodSettle = true
-      // 일꾼 3개를 얻되 행복 한도를 넘는 만큼은 못 얻는다. 일꾼 1개마다 어느 도시에 붙일지 고른다 (고르지 않으면 첫 도시)
-      const gain = Math.min(3, Math.max(0, happiness(p) - totalWorkers(p)))
+      // 일꾼 4개를 얻되 행복 한도를 넘는 만큼은 못 얻는다. 일꾼 1개마다 어느 도시에 붙일지 고른다 (고르지 않으면 첫 도시)
+      const gain = Math.min(REGIME_WORKERS, Math.max(0, happiness(p) - totalWorkers(p)))
       if (addWorkers?.length) {
         const total = addWorkers.reduce((n, a) => n + a.count, 0)
         if (total !== gain || addWorkers.some((a) => !Number.isInteger(a.count) || a.count < 0 || !p.cities.some((c) => c.id === a.cityId))) {

@@ -467,9 +467,12 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
 .unit.doomed .state { color: var(--err); font-size: 0.78rem; }
 
 /* 맨 위 줄의 네모 칸(2×2) 기술표 버튼과, 그 아래로 겹쳐 펼쳐지는 기술표 */
-.tree-btn { width: 44px; height: 44px; padding: 0; display: inline-flex; align-items: center; justify-content: center; color: #12303a; background: #fffaf0; border: 2px solid #12303a; border-radius: 4px; cursor: pointer; flex: none; }
-.tree-btn:hover, .tree-btn.on { background: #12303a; color: #fffaf0; }
-.tree-float { position: fixed; z-index: 40; left: 12px; right: 12px; top: 72px; max-height: calc(100vh - 88px); overflow: auto; background: var(--panel); border: 2px solid var(--accent); border-radius: 10px; padding: 8px 10px; box-shadow: 0 10px 32px rgba(0,0,0,0.4); }
+.tree-btn { width: 44px; height: 44px; padding: 0; display: inline-flex; align-items: center; justify-content: center; background: none; border: 0; border-radius: 50%; cursor: pointer; flex: none; transition: transform 0.12s; }
+.tree-btn img { width: 44px; height: 44px; object-fit: contain; filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5)); }
+.tree-btn:hover, .tree-btn:focus-visible { transform: scale(1.08); }
+.tree-btn:active { transform: scale(0.92); }
+.tree-btn.on { box-shadow: 0 0 0 3px #fffaf0, 0 0 0 5px #12303a; }
+.tree-float { color: var(--ink); text-align: left; position: fixed; z-index: 40; right: 12px; top: 72px; width: max-content; max-width: calc(100vw - 24px); max-height: calc(100vh - 84px); overflow: auto; background: var(--panel); border: 2px solid var(--accent); border-radius: 10px; padding: 8px 10px; box-shadow: 0 10px 32px rgba(0,0,0,0.4); }
 .tree-float .tree-overlay-head b { color: #2a1d0e; font-size: 1.05rem; }
 
 /* 모의 전투 랩 */
