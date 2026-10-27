@@ -450,3 +450,6 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
 .watch-steps li.now { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 700; }
 .watch-grid { display: flex; flex-wrap: wrap; gap: 8px 24px; }
 .turn-watch h4 { margin: 10px 0 4px; }
+/* 전투 장면: 재생 중 체력이 0이 된 카드 (파괴는 재생이 끝난 뒤 한꺼번에) */
+.unit.doomed { border-color: var(--err); box-shadow: 0 0 0 2px var(--err-line) inset; }
+.unit.doomed .state { color: var(--err); font-size: 0.78rem; }

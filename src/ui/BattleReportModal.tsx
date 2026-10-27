@@ -9,10 +9,13 @@ type Live = { dmg: number; attacking: boolean; hit: number }
 function Unit({ u, live, dir, final }: { u: BattleUnitReport | null; live: Live; dir: 'up' | 'down'; final: boolean }) {
   if (!u) return <div className="unit empty">빈칸</div>
   const left = Math.max(0, u.hp - live.dmg)
-  const dead = live.dmg >= u.hp
+  // 모든 카드는 동시에 공격하므로 파괴는 재생이 끝난 뒤에 한꺼번에 보여 준다 (그 전에는 치명상 표시만).
+  // 끝난 뒤의 파괴 여부는 엔진 판정(destroyed)을 따른다: 예니체리처럼 체력 0이어도 살아남는 효과가 있다.
+  const dead = final && u.destroyed
+  const doomed = !final && live.dmg >= u.hp
   const taken = u.attackDamage + u.counterDamage
   return (
-    <div className={`unit ${dead ? 'dead' : 'alive'}${live.attacking ? ` lunge-${dir}` : ''}${live.hit ? ' hit' : ''}`} key={live.hit}>
+    <div className={`unit ${dead ? 'dead' : 'alive'}${doomed ? ' doomed' : ''}${live.attacking ? ` lunge-${dir}` : ''}${live.hit ? ' hit' : ''}`} key={live.hit}>
       <div className="cardwrap">
         <UnitCard card={u.inst} width={150} zoomable={false} flip={dir === 'down'} />
         {live.hit > 0 && <span className="pop">−{live.hit}</span>}
@@ -32,7 +35,7 @@ function Unit({ u, live, dir, final }: { u: BattleUnitReport | null; live: Live;
           </small>
         )}
       </span>
-      <span className="state">{dead ? '💥 파괴' : final ? '✔ 생존' : '\u00a0'}</span>
+      <span className="state">{dead ? '💥 파괴' : final ? '✔ 생존' : doomed ? '⚠ 치명상 (전투 끝에 파괴)' : '\u00a0'}</span>
     </div>
   )
 }
@@ -45,7 +48,21 @@ interface Step {
   counter: number
 }
 function stepsOf(report: BattleReport): Step[] {
-  const hits = [...report.hits].sort((a, b) => a.from.pid - b.from.pid || a.from.slot - b.from.slot)
+  // 양쪽 공격이 고루 보이도록 공격 측·수비 측 카드를 번갈아 재생한다 (같은 카드의 여러 공격은 붙여서)
+  const bySide = (pid: number) => [...report.hits].filter((h) => h.from.pid === pid).sort((a, b) => a.from.slot - b.from.slot)
+  const cardsOf = (pid: number) => {
+    const out: (typeof report.hits)[] = []
+    for (const h of bySide(pid)) {
+      const last = out[out.length - 1]
+      if (last && last[0].from.slot === h.from.slot) last.push(h)
+      else out.push([h])
+    }
+    return out
+  }
+  const a = cardsOf(report.attackerId)
+  const d = cardsOf(report.defenderId)
+  const hits: typeof report.hits = []
+  for (let i = 0; i < Math.max(a.length, d.length); i++) hits.push(...(a[i] ?? []), ...(d[i] ?? []))
   const unitOf = (pid: number, slot: number) => report.units.find((u) => u.owner === pid && u.slot === slot)
   const seen = new Map<string, number>()
   const total = new Map<string, number>()
