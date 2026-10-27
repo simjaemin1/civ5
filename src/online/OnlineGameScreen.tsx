@@ -230,7 +230,7 @@ export function OnlineGameScreen({ online, onExit }: Props) {
           </details>
           <button onClick={onExit}>나가기</button>
           <TechTreeButton player={me} />
-          <CivEmblem player={me} />
+          <CivEmblem player={peekId !== null ? game.players[peekId] : me} />
         </div>
       </header>
       {error && (
