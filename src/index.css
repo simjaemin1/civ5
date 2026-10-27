@@ -483,3 +483,13 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
 .lab-add select { flex: 1; min-width: 0; }
 .lab-flags { display: flex; flex-wrap: wrap; gap: 4px 14px; }
 .lab .hand { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* 오른쪽 정보 칸: 넓은 화면에서 내 문명 카드와 기술표를 펼쳐 둔다 (사용자 스케치) */
+.dock-top { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+.dock-top > .side-sec { flex: 1 1 220px; min-width: 0; }
+.dock-civ { flex: none; max-width: 100%; }
+.dock-civ .civ-card { max-width: 100%; height: auto; }
+@media (min-width: 1200px) {
+  .game-body:has(> .dock.wide) { grid-template-columns: minmax(0, 1fr) clamp(600px, 48vw, 880px); }
+}
+.civ-emblem.on { box-shadow: 0 0 0 3px #fffaf0, 0 0 0 5px #12303a; }

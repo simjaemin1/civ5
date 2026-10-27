@@ -8,8 +8,11 @@ export interface Prefs {
   aiSpeed: number
   /** 효과음 (선전포고·새 타일·새 시대·새 정책·새 기술) */
   sound: boolean
+  /** 넓은 화면의 오른쪽 정보 칸에 내 문명 카드·기술표를 펼쳐 둘지 (맨 위 문명 기호·네모 버튼으로 켜고 끈다) */
+  dockCiv: boolean
+  dockTech: boolean
 }
-export const DEFAULT_PREFS: Prefs = { help: true, autoSkip: false, aiSpeed: 300, sound: true }
+export const DEFAULT_PREFS: Prefs = { help: true, autoSkip: false, aiSpeed: 300, sound: true, dockCiv: true, dockTech: true }
 
 export const PrefsCtx = createContext<{ prefs: Prefs; set: (p: Partial<Prefs>) => void }>({ prefs: DEFAULT_PREFS, set: () => {} })
 

@@ -7,7 +7,7 @@ import { CivEmblem } from '../ui/CivEmblem'
 import { TechTreeButton } from '../ui/TechTreeButton'
 import { CivInspector } from '../ui/CivInspector'
 import { InfoTabs } from '../ui/InfoTabs'
-import { SidePanel } from '../ui/SidePanel'
+import { InfoDock } from '../ui/InfoDock'
 import { TurnSteps } from '../ui/TurnSteps'
 import { autoSkipAction } from '../ui/autoSkip'
 import { ICON } from '../ui/format'
@@ -61,8 +61,6 @@ interface Props {
 
 export function OnlineGameScreen({ online, onExit }: Props) {
   const { view: game, room, you, send, error, undo, seq } = online
-  const prev = useRef<GameView | null>(null)
-  const [notice, setNotice] = useState<string[]>([])
   // 접속한 시점까지의 전투는 이미 본 것으로 치고, 그 뒤에 끝난 전투부터 장면을 보여 준다 (렌더 때마다 새로 계산하면 영영 안 뜬다)
   const [seenBattle, setSeenBattle] = useState<number>(() => online.view?.battleReports?.at(-1)?.seq ?? 0)
   const [autoNote, setAutoNote] = useState('')
@@ -71,15 +69,6 @@ export function OnlineGameScreen({ online, onExit }: Props) {
   // 되돌린 직후에는 자동 넘기기를 멈춘다 (되돌리자마자 다시 넘어가지 않게). 같은 상태에 두 번 보내지 않게 보낸 seq를 기억한다
   const autoPaused = useRef(false)
   const autoSentSeq = useRef(-1)
-
-  // 방금 일어난 일: 직전 뷰와 로그 줄 수를 비교한다
-  useEffect(() => {
-    if (!game) return
-    const p = prev.current
-    prev.current = game
-    if (p && game.logSeq > p.logSeq) setNotice(game.log.slice(-Math.min(game.logSeq - p.logSeq, game.log.length)))
-    else if (!p) setNotice([])
-  }, [game])
 
   const mine = !!game && isMyTurn(game)
   const over = game?.phase === 'over'
@@ -245,14 +234,6 @@ export function OnlineGameScreen({ online, onExit }: Props) {
           ⚠ {error}
         </div>
       )}
-      {!error && notice.length > 0 && (
-        <div className="notice">
-          <b>방금 일어난 일</b>
-          {notice.map((l, i) => (
-            <div key={i}>{l.replace(/^\[R\d+\] /, '')}</div>
-          ))}
-        </div>
-      )}
       {autoNote && <div className="notice">⏭ {autoNote}</div>}
       {me.turn?.skipFoodSettle && mine && <div className="notice">📜 이번 차례는 식량 정산을 하지 않습니다 (전통/체제). 일꾼 수는 그대로입니다.</div>}
       <div className="game-body">
@@ -279,7 +260,7 @@ export function OnlineGameScreen({ online, onExit }: Props) {
           {showBoard && <Board game={game} player={me} />}
           {!mine && !over && me.cities.length > 0 && <Board game={game} player={me} />}
         </div>
-        <SidePanel game={game} seats={seats} actor={actor} viewer={me.id} />
+        <InfoDock game={game} seats={seats} actor={actor} viewer={me.id} player={me} />
       </div>
       <CivInspector game={game} seats={seats} actor={actor} />
       <InfoTabs game={game} viewer={me.id} />

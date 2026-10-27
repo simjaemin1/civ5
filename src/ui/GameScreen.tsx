@@ -7,7 +7,7 @@ import { CivEmblem } from './CivEmblem'
 import { TechTreeButton } from './TechTreeButton'
 import { CivInspector } from './CivInspector'
 import { InfoTabs } from './InfoTabs'
-import { SidePanel } from './SidePanel'
+import { InfoDock } from './InfoDock'
 import { usePrefs } from './prefsStore'
 import { useGameSounds } from './sounds'
 import { autoSkipAction } from './autoSkip'
@@ -55,7 +55,6 @@ export function GameScreen({ initial, seats, onExit }: Props) {
   // 되돌릴 수 없는 지점: 무작위 결과를 보여 준 행동 직전 상태들 (이 상태와 그 이전으로는 차례 안 되돌리기 불가)
   const [locked, setLocked] = useState<ReadonlySet<GameState>>(() => new Set())
   const [error, setError] = useState('')
-  const [notice, setNotice] = useState<string[]>([])
   const [revealed, setRevealed] = useState('')
   const [autoNote, setAutoNote] = useState('')
   const { prefs, set: setPrefs } = usePrefs()
@@ -91,9 +90,6 @@ export function GameScreen({ initial, seats, onExit }: Props) {
       try {
         const next = apply(game, a)
         setAutoNote('')
-        const added = Math.min(next.logSeq - game.logSeq, next.log.length)
-        // 전투 결과는 글자로 띄우지 않고 전투 장면(애니메이션)으로 보여 준다
-        setNotice(added > 0 ? next.log.slice(-added).filter((l) => !/^\[R\d+\] 전투/.test(l)) : [])
         setHistory((h) => [...h.slice(-99), game])
         if (revealsInfo(game, next)) setLocked((l) => new Set(l).add(game))
         setGame(next)
@@ -153,7 +149,6 @@ export function GameScreen({ initial, seats, onExit }: Props) {
     setHistory(kept)
     setLocked((l) => new Set([...l].filter((g) => kept.includes(g))))
     setError('')
-    setNotice([])
     setAutoNote('')
     if (curtainAgain) setRevealed('') // 되돌린 자리가 다른 사람 차례일 수 있으니 가림막을 다시 띄운다
   }
@@ -316,14 +311,6 @@ export function GameScreen({ initial, seats, onExit }: Props) {
       </header>
       {error && <div className="error banner-error">⚠ {error}</div>}
       {saveFailed && <div className="error banner-error">⚠ 자동 저장에 실패했습니다 (브라우저 저장 공간이 없거나 막힘). 창을 닫으면 이어하기를 할 수 없습니다.</div>}
-      {!error && notice.length > 0 && !actorSeat.ai && (
-        <div className="notice">
-          <b>방금 일어난 일</b>
-          {notice.map((l, i) => (
-            <div key={i}>{l.replace(/^\[R\d+\] /, '')}</div>
-          ))}
-        </div>
-      )}
       {autoNote && <div className="notice">⏭ {autoNote}</div>}
       {skipsFood && !actorSeat.ai && <div className="notice">📜 이번 차례는 식량 정산을 하지 않습니다 (전통/체제). 일꾼 수는 그대로입니다.</div>}
       <div className="game-body">
@@ -349,7 +336,7 @@ export function GameScreen({ initial, seats, onExit }: Props) {
           {showBoard && <Board game={game} player={player} />}
           {actorSeat.ai && !over && <Board game={game} player={player} />}
         </div>
-        <SidePanel game={game} seats={seats} actor={actor} viewer={viewer} />
+        <InfoDock game={game} seats={seats} actor={actor} viewer={viewer} player={player} />
       </div>
       <CivInspector game={game} seats={seats} actor={actor} />
       <InfoTabs game={game} viewer={player.id} />
