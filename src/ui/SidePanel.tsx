@@ -1,6 +1,7 @@
 import type { GameState } from '../engine'
 import { WONDER_CARDS, civById, culture, happiness, totalWorkers, tourism } from '../engine'
 import { declTileName, roundBids } from './gameInfo'
+import { recentSummary } from './recentLog'
 import { Icon } from './icons'
 import { CivCard } from './cards/CivCard'
 import { ICON, policyName } from './format'
@@ -116,12 +117,15 @@ export function WonderRace({ game, viewer }: { game: GameState; viewer: number }
   )
 }
 
+/** 오른쪽 "최근 기록": 생산과 불가사의 투자는 그대로, 인구·행복·문화는 바뀐 경우만 "3→4"로 보여 준다 (나머지는 아래 로그 칸에 모두 있다) */
 export function RecentLog({ game, lines = 12 }: { game: GameState; lines?: number }) {
+  const rows = recentSummary(game.log).slice(-lines).reverse()
   return (
     <section className="side-sec">
       <h4>최근 기록</h4>
       <div className="log small">
-        {game.log.slice(-lines).reverse().map((l, i) => (
+        {rows.length === 0 && <span className="muted">아직 없습니다.</span>}
+        {rows.map((l, i) => (
           <div key={i}>{l}</div>
         ))}
       </div>

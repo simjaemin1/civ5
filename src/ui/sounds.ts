@@ -64,7 +64,7 @@ export function soundsFor(prev: GameState, next: GameState, me?: number): Sound[
   const mine = (line: string): boolean => myName !== null && line.replace(/^\[R\d+\] /, '').startsWith(`${myName} `)
   for (const line of next.log.slice(-added)) {
     if (line.includes('선전포고')) out.add('war')
-    else if (mine(line) && / 문화 \+\d+$/.test(line)) out.add('borders') // 문화로 새 타일: 얻은 본인에게만
+    else if (mine(line) && / 문화 \+\d+( \(\d+→\d+\))?$/.test(line)) out.add('borders') // 문화로 새 타일: 얻은 본인에게만
     else if (mine(line) && line.includes(' 정책: ')) out.add('policy') // 정책: 고른 본인에게만
     else if (mine(line) && line.includes(' 승급 (금')) out.add('promote') // 금 승급: 승급한 본인에게만
   }
