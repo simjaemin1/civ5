@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { AI_TUNE, aiStep, createGame, cardById, cardStats, MILITARY_CARDS, civById, CIVS, happiness, rankTop, totalWorkers } from '..'
+import { MAX_HOLD, AI_TUNE, aiStep, createGame, cardById, cardStats, MILITARY_CARDS, civById, CIVS, happiness, rankTop, totalWorkers } from '..'
 import type { GameState } from '..'
 
 /** AI끼리 게임을 끝까지(또는 maxSteps까지) 돌린다. */
@@ -15,10 +15,11 @@ function simulate(seed: number, civs: string[], maxSteps = 1500): { state: GameS
 
 /** 게임 상태가 항상 만족해야 하는 불변식 */
 function checkInvariants(s: GameState): void {
-  // 한 종류의 군사 카드는 6장까지, 방향 카드에는 방향이 있고 그 외에는 없다
+  // 일반 카드는 한 종류 5장까지 (넘친 카드는 버릴 때까지 대기 중), 방향 카드에는 방향이 있고 그 외에는 없다
   for (const p of s.players) {
     for (const c of MILITARY_CARDS) {
-      expect(p.military.filter((m) => m.defId === c.id).length, `${p.civId} ${c.id} 보유`).toBeLessThanOrEqual(6)
+      const over = (p.pendingCardDiscard ?? []).filter((d) => d === c.id).length
+      expect(p.military.filter((m) => m.defId === c.id && !m.unique).length, `${p.civId} ${c.id} 보유`).toBeLessThanOrEqual(MAX_HOLD + over)
     }
     for (const m of p.military) {
       const st = cardStats(m)

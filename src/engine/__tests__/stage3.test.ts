@@ -386,6 +386,18 @@ describe('선전포고', () => {
     expect(declarationTargets(gap, gap.players[0]).some((t) => t.kind === 'city')).toBe(false)
   })
 
+  it('아직 3칸뿐인 도시는 3칸만 점령되어도 도시에 선전포고할 수 있다', () => {
+    const s = mod(round2(['korea', 'russia', 'china'], [hand4(), hand4(), hand4()]), (c) => {
+      const city = c.players[1].cities[0]
+      // 시작 손패 4장이면 도시 + 3칸 (4번째 칸은 아직 없다)
+      for (const t of city.tiles) if (t.role === 'side') t.occupiedBy = 2
+      c.players[0].generals = 1
+    })
+    const cityTile = s.players[1].cities[0].tiles.find((t) => t.role === 'city')!.card.id
+    expect(s.players[1].cities[0].tiles.filter((t) => t.role === 'side')).toHaveLength(3)
+    expect(declarationTargets(s, s.players[0]).some((t) => t.kind === 'city' && t.tileId === cityTile)).toBe(true)
+  })
+
   it('한 차례에 한 번만 선전포고할 수 있다', () => {
     let s = mod(round2(), (c) => (c.players[0].generals = 2))
     s = toDeclare(s)

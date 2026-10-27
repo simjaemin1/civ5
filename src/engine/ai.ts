@@ -203,11 +203,18 @@ function researchCandidates(s: GameState, p: Player): Action[] {
   return out
 }
 
-/** 전쟁광 문명(훈족·줄루·몽골): 전제정치로 장군을 모으고 군대를 많이 뽑아, 한 상대를 골라 좋은 타일을 선점령한 뒤 도시를 공격해 탈락시킨다 */
-const WARLORDS = new Set(['huns', 'zulu', 'mongolia'])
+/** 전쟁광 문명(훈족·줄루·그리스·몽골): 전제정치로 장군을 모으고 군대를 많이 뽑아, 한 상대를 골라 좋은 타일을 선점령한 뒤 도시를 공격해 탈락시킨다 */
+const WARLORDS = new Set(['huns', 'zulu', 'greece', 'mongolia'])
 const isWarlord = (p: Player): boolean => AI_TUNE.warlord && WARLORDS.has(p.civId)
 /** 산업시대(비용 6열 이상 기술)가 열리기 전: 이때까지 군대로 몰아붙인다 */
 const preIndustrial = (s: GameState): boolean => !s.players.some((o) => !o.eliminated && o.techs.some((id) => (TECHS.find((t) => t.id === id)?.column ?? 0) >= 6))
+/** 연합: 1등이 아닌 문명은 모두 1등을 견제한다 (1등 자신은 해당 없음) */
+function coalitionLeader(s: GameState, p: Player): Player | null {
+  const top = AI_TUNE.coalition ? rankTop(s) : null
+  return top && p.id !== top.leader.id ? top.leader : null
+}
+/** 상대의 공격 대상 도시 (두 번째 도시가 있으면 그쪽을 먼저 무너뜨려야 한다) */
+const sidesOccupied = (o: Player): number => conquestCity(o).tiles.filter((t) => t.role === 'side' && t.occupiedBy !== undefined).length
 /** 이 문명이 노리는 한 상대: 이미 점령한 타일이 많고(꾸준히), 군대가 약하고, 전통으로 일꾼을 줄여 약해진 상대 */
 function warlordVictim(s: GameState, p: Player): number | null {
   const occupied = occupiedTiles(s, p)
@@ -217,7 +224,7 @@ function warlordVictim(s: GameState, p: Player): number | null {
   // 지금 선전포고할 수 있는 타일이 있는 상대만
   if (rivals.some((o) => open.has(o.id))) rivals = rivals.filter((o) => open.has(o.id))
   const score = (o: Player) =>
-    occupied.filter((t) => t.defenderId === o.id).length * 4 + (o.policy === 'tradition' ? 3 : 0) - strengthOf(o) * 0.4 - standing(o) * 0.05
+    occupied.filter((t) => t.defenderId === o.id).length * 4 + (o.policy === 'tradition' ? 3 : 0) + (coalitionLeader(s, p)?.id === o.id ? 6 : 0) + sidesOccupied(o) * 2 - strengthOf(o) * 0.4 - standing(o) * 0.05
   return rivals.sort((x, y) => score(y) - score(x) || x.id - y.id)[0].id
 }
 /** 전투에 내는 상위 4장의 힘 (체력 + 공격력×2): 서로 4장씩이면 동점은 수비가 이기므로 앞서야 공격한다 */
@@ -490,9 +497,10 @@ function produceCandidates(s: GameState, p: Player): Action[] {
     // 군대가 3장 미만이거나 이웃의 군사에 비해 수비가 모자라면 군사 카드를 먼저, 그 뒤에는 불가사의에 망치를 모두 건다
     const needDefense = army < defenseTarget(s, p)
     const warRush = isWarlord(p) && preIndustrial(s)
-    const rush = warRush && (army < AI_TUNE.warlordArmy || (!hasSiege(p) && cardActions.some(isSiegeAction)))
     // 공성 카드가 없으면 그것부터 만든다 (도시를 치려면 공성 카드가 살아남아야 한다)
-    if (warRush && !hasSiege(p)) cardActions.sort((x, y) => Number(isSiegeAction(y)) - Number(isSiegeAction(x)))
+    const joinSiege = !isWarlord(p) && !hasSiege(p) && (() => { const l = coalitionLeader(s, p); return !!l && l.cities.length > 0 && sidesOccupied(l) >= 2 })()
+    const rush = (warRush && army < AI_TUNE.warlordArmy) || ((warRush || joinSiege) && !hasSiege(p) && cardActions.some(isSiegeAction))
+    if ((warRush || joinSiege) && !hasSiege(p)) cardActions.sort((x, y) => Number(isSiegeAction(y)) - Number(isSiegeAction(x)))
     out.push(...(army < 3 || needDefense || rush || aiStyle === 'hammer' ? [...cardActions, ...wonderActions] : [...wonderActions, ...cardActions]))
   }
   // 3) 금으로 승급 (가장 높은 단계부터 시도한다)
@@ -508,7 +516,7 @@ function produceCandidates(s: GameState, p: Player): Action[] {
     const cheap = occupiedTiles(s, p)
       .map((t) => ({ t, v: tileImportance(s, t.defenderId, t.cityId, t.tileId) }))
       .filter((x) => x.v < KEEP_OCCUPIED)
-      .filter((x) => !(isWarlord(p) && keepForConquest(s, p, x.t)))
+      .filter((x) => !keepForConquest(s, p, x.t))
       .sort((a, b) => a.v - b.v)
     for (const { t } of cheap) out.push({ type: 'recallGeneral', ...t })
   }
@@ -536,9 +544,10 @@ function tileImportance(s: GameState, ownerId: number, cityId: number, tileId: n
 /** 이만큼 중요한 상대 타일은 장군을 올려 둔 채 계속 점령한다 (상대의 성장을 누른다) */
 const KEEP_OCCUPIED = 4.5
 
-/** 전쟁광이 노리는 상대 도시의 4칸 점령은 도시 공격의 발판이라 풀지 않는다 */
+/** 전쟁광이 노리는 상대(또는 연합이 견제하는 1등)의 도시 4칸 점령은 도시 공격의 발판이라 풀지 않는다 */
 function keepForConquest(s: GameState, p: Player, t: { defenderId: number; cityId: number; tileId: number }): boolean {
-  if (t.defenderId !== warlordVictim(s, p)) return false
+  const victim = isWarlord(p) ? warlordVictim(s, p) : (coalitionLeader(s, p)?.id ?? null)
+  if (t.defenderId !== victim) return false
   const o = s.players[t.defenderId]
   const found = findTile(o, t.cityId, t.tileId)
   return !!found && found.tile.role === 'side' && found.city.id === conquestCity(o).id
@@ -559,6 +568,16 @@ function declareCandidates(s: GameState, p: Player): Action[] {
     const top = AI_TUNE.coalition ? rankTop(s) : null
     let aim = top ? (p.id === top.leader.id ? top.runnerUp.id : top.leader.id) : null
     let rate = value
+    if (!isWarlord(p) && top && aim === top.leader.id) {
+      // 1등을 견제하는 연합: 도시 옆 4칸을 함께 점령해 두면 (누구의 장군이든) 공성 카드를 가진 누구나 도시를 파괴할 수 있다
+      rate = (t) => {
+        if (t.kind === 'retake') return 1000
+        if (t.kind === 'city') return hasSiege(p) ? 500 : -1
+        const o = s.players[t.defenderId]
+        const side = t.cityId === conquestCity(o).id && findTile(o, t.cityId, t.tileId)?.tile.role === 'side'
+        return tileImportance(s, t.defenderId, t.cityId, t.tileId) + (side ? 8 : 0)
+      }
+    }
     if (isWarlord(p)) {
       // 한 상대에 집중한다: 도시를 칠 수 있으면 도시(탈락), 아니면 그 도시의 4칸 → 좋은 타일 순으로 선점령
       aim = warlordVictim(s, p)

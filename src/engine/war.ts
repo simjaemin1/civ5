@@ -1,5 +1,5 @@
 import type { BattleHit, BattleState, CardInst, City, Declaration, GameState, Player, PlacedTile } from './types'
-import { RuleError, SIDES } from './types'
+import { RuleError } from './types'
 import { cardById, civById } from './data'
 import { gainCulture, say } from './core'
 import { freeWorkers } from './scouting'
@@ -24,11 +24,13 @@ export function findTile(p: Player, cityId: number, tileId: number): { city: Cit
   return city && tile ? { city, tile } : null
 }
 
-/** 도시 타일은 위·아래·왼쪽·오른쪽 4칸이 모두 (어느 문명이든) 장군에게 점령당해 있으면 누구나 공격할 수 있다. */
+/**
+ * 도시 타일은 위·아래·왼쪽·오른쪽 칸이 모두 (어느 문명이든) 장군에게 점령당해 있으면 누구나 공격할 수 있다.
+ * 아직 3칸뿐인 도시라면 3칸만 점령되어도 된다.
+ */
 function cityAttackable(defender: Player, city: City): boolean {
-  if (city.openSides.length > 0) return false
   const sides = city.tiles.filter((t) => t.role === 'side')
-  if (sides.length !== SIDES.length || !sides.every((t) => t.occupiedBy !== undefined)) return false
+  if (sides.length === 0 || !sides.every((t) => t.occupiedBy !== undefined)) return false
   // 두 번째 도시가 있으면 첫 도시의 도시 타일은 공격할 수 없다
   if (city.id === 0 && defender.cities.length > 1) return false
   return true
