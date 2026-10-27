@@ -79,7 +79,9 @@ describe('효과음', () => {
 
   it('금으로 승급하면 승급 소리', () => {
     const s = base()
-    expect(soundsFor(s, next(s, ['[R4] 한국 장검사 → 머스킷병 승급 (금 6)']))).toEqual(['promote'])
+    const up = next(s, ['[R4] 한국 장검사 → 머스킷병 승급 (금 6)'])
+    expect(soundsFor(s, up, 0)).toEqual(['promote'])
+    expect(soundsFor(s, up, 1)).toEqual([]) // 승급한 본인에게만 들린다
   })
 
   it('시대 구분: 고대 1~3열, 중세 4~5열, 산업 6~8열, 현대 9~10열', () => {
