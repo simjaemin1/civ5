@@ -3,9 +3,10 @@ import { RES_NAME, RES_URL } from './resUrls'
 import type { ResName } from './resUrls'
 import cityUrl from '../assets/icons/city.png'
 import workerUrl from '../assets/icons/worker.png'
+import happyUrl from '../assets/icons/happy.png'
 
 
-const URLS = { general: generalUrl, worker: workerUrl, city: cityUrl }
+const URLS = { general: generalUrl, worker: workerUrl, city: cityUrl, happy: happyUrl }
 
 /** 일꾼·장군 같은 말 대신 쓰는 동그란 그림 아이콘 */
 export function Icon({ name, size = 18, title }: { name: keyof typeof URLS; size?: number; title?: string }) {

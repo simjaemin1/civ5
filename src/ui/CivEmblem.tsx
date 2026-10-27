@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Player } from '../engine'
-import { TECHS, cardStats, civById, culture, happiness, totalWorkers, tourism, wonderCardById } from '../engine'
+import { cardStats, civById, culture, happiness, totalWorkers, tourism, wonderCardById } from '../engine'
 import { CivCard } from './cards/CivCard'
 import { civEmblem } from './civEmblems'
 import { TechTree } from './InfoTabs'
@@ -53,7 +53,6 @@ export function CivEmblem({ player }: { player: Player }) {
 
 /** 내 문명의 지금 상태 */
 function MyCiv({ p }: { p: Player }) {
-  const techs = TECHS.filter((t) => p.techs.includes(t.id)).map((t) => t.name)
   return (
     <section className="side-sec my-civ">
       <h4>지금 상태</h4>
@@ -62,7 +61,7 @@ function MyCiv({ p }: { p: Player }) {
           {ICON.culture} 문화 {culture(p)} · 관광 {tourism(p)}
         </li>
         <li>
-          <Icon name="worker" size={16} /> 일꾼 {totalWorkers(p)} / 행복 {p.cities.length ? happiness(p) : '-'} · 도시 {p.cities.length}
+          <Icon name="worker" size={16} /> 일꾼 {totalWorkers(p)} / <Icon name="happy" size={16} title="행복" /> {p.cities.length ? happiness(p) : '-'} · 도시 {p.cities.length}
         </li>
         <li>
           <Icon name="general" size={16} /> 위대한 장군 {p.generals}
@@ -73,7 +72,7 @@ function MyCiv({ p }: { p: Player }) {
           ⚔ 군사 카드 {p.military.length}장{p.military.length > 0 && <small className="muted"> — {p.military.map((c) => cardStats(c).name).join(', ')}</small>}
         </li>
         <li>
-          🔬 기술 {techs.length}개{techs.length > 0 && <small className="muted"> — {techs.join(', ')}</small>}
+          🔬 기술 {p.techs.length}개
         </li>
       </ul>
     </section>
