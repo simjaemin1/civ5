@@ -466,3 +466,7 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
 .civ-emblem img { width: 44px; height: 44px; object-fit: contain; filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5)); }
 .civ-emblem:hover img, .civ-emblem:focus-visible img { transform: scale(1.08); }
 .civ-emblem span { font-weight: 800; font-size: 1.2rem; color: #fff; }
+
+/* 전투 장면: 재생 중 체력이 0이 된 카드 (파괴는 재생이 끝난 뒤 한꺼번에) */
+.unit.doomed { border-color: var(--err); box-shadow: 0 0 0 2px var(--err-line) inset; }
+.unit.doomed .state { color: var(--err); font-size: 0.78rem; }
