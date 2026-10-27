@@ -26,9 +26,13 @@ describe('효과음', () => {
   it('기술: 새 시대에 처음 도달하면 새 시대 소리, 같은 시대면 기술 소리', () => {
     const s = next(base(), [], (c) => c.players[0].techs.push('agriculture'))
     // 고대 → 고대
-    expect(soundsFor(s, next(s, ['한국 기술 연구: 궁술'], (c) => c.players[0].techs.push('archery')))).toEqual(['tech'])
+    const archery = next(s, ['한국 기술 연구: 궁술'], (c) => c.players[0].techs.push('archery'))
+    expect(soundsFor(s, archery, 0)).toEqual(['tech'])
+    expect(soundsFor(s, archery, 1)).toEqual([]) // 연구한 본인에게만 들린다
     // 고대 → 중세 (화약은 4열)
-    expect(soundsFor(s, next(s, ['한국 기술 연구: 화약'], (c) => c.players[0].techs.push('gunpowder')))).toEqual(['era'])
+    const gun = next(s, ['한국 기술 연구: 화약'], (c) => c.players[0].techs.push('gunpowder'))
+    expect(soundsFor(s, gun, 0)).toEqual(['era'])
+    expect(soundsFor(s, gun, 1)).toEqual([])
   })
 
   it('되돌리기·불러오기(로그가 줄거나 그대로)이면 소리를 내지 않는다', () => {

@@ -65,8 +65,9 @@ export function soundsFor(prev: GameState, next: GameState, me?: number): Sound[
     else if (line.includes(' 정책: ')) out.add('policy')
     else if (line.includes(' 승급 (금')) out.add('promote')
   }
-  // 새 기술: 그 문명이 처음 도달한 시대의 기술이면 새 시대 소리, 아니면 기술 소리
+  // 새 기술(본인에게만 들린다): 내가 처음 도달한 시대의 기술이면 새 시대 소리, 아니면 기술 소리
   next.players.forEach((p, i) => {
+    if (i !== me) return
     const before = prev.players[i]?.techs ?? []
     if (p.techs.length <= before.length) return
     const era = Math.max(-1, ...before.map(eraOfTech))
