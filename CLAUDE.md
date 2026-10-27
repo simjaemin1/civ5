@@ -4,7 +4,7 @@
 
 ## 사용자와 일하는 방식
 - 사용자는 한국어를 쓴다. 답변도 한국어로 한다.
-- **작업이 끝날 때마다 실행 명령을 함께 준다** (사용자의 상시 요청). `npm test`는 넣지 않는다. 저장소의 `civ5.bat`(→ `scripts/run.ps1`)가 최신 코드 받기 → 패키지가 바뀐 때만 `npm install` → 실행을 한 번에 한다:
+- **작업이 끝날 때마다 실행 명령을 함께 준다** (사용자의 상시 요청). `npm test`는 넣지 않는다. 저장소의 `civ5.bat`(윈도우, → `scripts/run.ps1`)와 `civ5.sh`(맥·리눅스, Finder 더블클릭은 `civ5.command`)가 최신 코드 받기 → 패키지가 바뀐 때만 `npm install` → 실행을 한 번에 한다. 맥이면 `./civ5.sh …`로 안내한다:
   ```powershell
   cd ~/civ5
   .\civ5.bat                 # 핫시트 (http://localhost:5173, 브라우저가 열림)
