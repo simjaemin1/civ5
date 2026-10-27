@@ -605,6 +605,9 @@ function declareCandidates(s: GameState, p: Player): Action[] {
       .filter((t) => aim === null || t.kind === 'retake' || t.defenderId === aim || (isWarlord(p) && t.kind === 'city'))
       .filter((t) => rate(t) >= 0)
       .sort((a, b) => rate(b) - rate(a))
+    // 같은 타일에 이미 다른 문명이 선전포고했다면 앞 문명이 이길 때 전투 없이 끝나므로 뒤로 미룬다
+    const taken = (t: (typeof targets)[number]) => t.kind !== 'retake' && s.declarations.some((d) => d.defenderId === t.defenderId && d.cityId === t.cityId && d.tileId === t.tileId)
+    targets.sort((a, b) => Number(taken(a)) - Number(taken(b)))
     for (const t of targets) out.push({ type: 'declareWar', defenderId: t.defenderId, cityId: t.cityId, tileId: t.tileId })
   } else {
     for (const t of declarationTargets(s, p)) {

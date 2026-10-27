@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { apply, cardById, culture, ctxOf, RuleError, MILITARY_CARDS, declarationTargets, freeWorkers, tileYield, isCoastalCity, happiness } from '..'
+import { actorOf, apply, cardById, culture, ctxOf, RuleError, MILITARY_CARDS, declarationTargets, freeWorkers, tileYield, isCoastalCity, happiness } from '..'
 import type { GameState, TileCard } from '..'
 import { found, me, play, startGame, tile } from './helpers'
 
@@ -908,6 +908,39 @@ describe('정찰과 나침반', () => {
     expect(s.deck.some((c) => c.id === 888)).toBe(true)
   })
 
+  it('정찰한 타일을 돌려넣을 때는 반드시 섞고, 곧바로 다시 정찰해도 같은 타일이 나오지 않는다', () => {
+    let sameOnTop = 0
+    for (let seed = 1; seed <= 400; seed++) {
+      let s = mod(start(), (c) => {
+        c.rng = seed
+        c.deck.unshift({ id: 888, terrains: ['설원'] })
+      })
+      s = apply(s, { type: 'scout' })
+      const order = s.deck.map((c) => c.id)
+      s = play(s, { type: 'placeWorkers', placements: [] }, { type: 'skipResearch' }, { type: 'endProduction' })
+      expect(s.deck).toHaveLength(order.length + 1)
+      expect(s.deck.some((c) => c.id === 888)).toBe(true)
+      expect(s.deck.map((c) => c.id).sort()).toEqual([...order, 888].sort()) // 카드는 그대로 다 있다
+      expect(s.deck.map((c) => c.id).filter((id) => id !== 888)).not.toEqual(order) // 섞였다 (덱 순서가 그대로가 아니다)
+      if (s.deck[0].id === 888) sameOnTop++
+    }
+    expect(sameOnTop).toBe(0)
+  })
+
+  it('나침반으로 맡아둔 타일을 돌려보낼 때도 섞이고 맨 위에 오지 않는다', () => {
+    for (let seed = 1; seed <= 200; seed++) {
+      let s = mod(start(), (c) => {
+        c.rng = seed
+        c.players[0].techs.push('compass')
+        c.deck.unshift({ id: 999, terrains: ['오아시스'] })
+      })
+      s = apply(apply(s, { type: 'scout' }), { type: 'holdScouted' })
+      s = apply(s, { type: 'releaseHeld' })
+      expect(s.deck.some((c) => c.id === 999)).toBe(true)
+      expect(s.deck[0].id).not.toBe(999)
+    }
+  })
+
   it('엘도라도를 처음 발견한 사람은 문화 1 (한 번만)', () => {
     let s = mod(start(), (c) => c.deck.unshift(eldorado()))
     const before = culture(me(s))
@@ -1091,18 +1124,68 @@ describe('군사 카드 데이터', () => {
   })
 })
 
-describe('같은 타일에는 선전포고 불가', () => {
-  it('이미 누군가 선전포고한 타일은 다른 문명의 목표에서 빠진다', () => {
-    let s = mod(round2(['korea', 'russia', 'china'], [hand4(), hand4(), hand4()]), (c) => {
+describe('같은 타일에 중복 선전포고', () => {
+  const three = () =>
+    mod(round2(['korea', 'russia', 'china'], [hand4(), hand4(), hand4()]), (c) => {
       c.players[0].generals = 1
       c.players[2].generals = 1
     })
-    const target = tileId(s, 1, 1)
-    expect(declarationTargets(s, s.players[2]).some((t) => t.defenderId === 1 && t.tileId === target)).toBe(true)
+  /** pid의 차례까지 넘기고 러시아(1)의 타일에 선전포고한다 */
+  const declareAs = (s: GameState, pid: number, tid: number) => {
+    while (actorOf(s) !== pid) s = passTurn(s)
     s = toDeclare(s)
-    s = apply(s, { type: 'declareWar', defenderId: 1, cityId: 0, tileId: target })
-    expect(declarationTargets(s, s.players[2]).some((t) => t.defenderId === 1 && t.tileId === target)).toBe(false)
-    expect(declarationTargets(s, s.players[2]).some((t) => t.defenderId === 1 && t.tileId === tileId(s, 1, 2))).toBe(true)
+    return apply(s, { type: 'declareWar', defenderId: 1, cityId: 0, tileId: tid })
+  }
+  const toSettle = (s: GameState) => {
+    while (s.phase !== 'battle') s = passTurn(s)
+    return s
+  }
+
+  it('이미 누군가 선전포고한 타일에도 다른 문명이 선전포고할 수 있다', () => {
+    let s = three()
+    const target = tileId(s, 1, 1)
+    s = declareAs(s, 0, target)
+    expect(declarationTargets(s, s.players[2]).some((t) => t.defenderId === 1 && t.tileId === target)).toBe(true)
+    s = declareAs(s, 2, target)
+    expect(s.declarations.filter((d) => d.tileId === target).map((d) => d.attackerId)).toEqual([0, 2])
+  })
+
+  it('앞 문명이 타일을 차지하면 뒤 문명은 전투 없이 끝나고 장군을 돌려받는다', () => {
+    let s = three()
+    const target = tileId(s, 1, 1)
+    let a = 0
+    s = mod(s, (c) => (a = give(c, 0, 'warrior', 'L')))
+    s = declareAs(s, 0, target)
+    s = declareAs(s, 2, target)
+    expect(s.players[2].generals).toBe(0)
+    s = toSettle(s)
+    expect(s.battle!.decl.attackerId).toBe(0) // 우선도가 높은 쪽부터
+    s = arrange(s, 0, [a, null, null, null]) // 상대에게 카드가 없어 바로 점령
+    expect(s.players[1].cities[0].tiles.find((t) => t.card.id === target)!.occupiedBy).toBe(0)
+    expect(s.battle).toBeNull() // 두 번째 선전포고는 전투가 열리지 않는다
+    expect(s.battleReports).toHaveLength(1)
+    expect(s.players[2].generals).toBe(1)
+    expect(s.players[2].busyWorkers).toBe(0)
+    expect(s.log.some((l) => l.includes('전투 없이 끝남'))).toBe(true)
+    expect(s.round).toBe(3)
+  })
+
+  it('앞 문명이 지면 타일의 주인이 그대로라서 뒤 문명의 전투가 이어진다', () => {
+    let s = three()
+    const target = tileId(s, 1, 1)
+    let a = 0
+    let d = 0
+    s = mod(s, (c) => {
+      a = give(c, 0, 'warrior', 'L')
+      d = give(c, 1, 'pikeman', 'L')
+    })
+    s = declareAs(s, 0, target)
+    s = declareAs(s, 2, target)
+    s = toSettle(s)
+    s = arrange(s, 0, [a, null, null, null])
+    s = arrange(s, 1, [null, null, null, d]) // 동점이면 수비 승 → 타일은 그대로
+    expect(s.players[1].cities[0].tiles.find((t) => t.card.id === target)!.occupiedBy).toBeUndefined()
+    expect(s.battle?.decl.attackerId).toBe(2) // 두 번째 선전포고가 이어진다
   })
 
   it('만리장성은 자신의 차례 어느 단계에서든 쓸 수 있다', () => {

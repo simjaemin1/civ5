@@ -5,7 +5,7 @@ import type { TechDef } from './data'
 import { shuffle } from './rng'
 import { canHammerScience, computeYields, happiness, totalWorkers } from './yields'
 import { makeTileDeck } from './tileDeck'
-import { currentPlayer, defaultTileCity, drawTiles, flushPendingTiles, gainCulture, onTileGained, placeGainedTile, say } from './core'
+import { currentPlayer, defaultTileCity, drawTiles, returnToDeck, flushPendingTiles, gainCulture, onTileGained, placeGainedTile, say } from './core'
 import { answerPolicyOffer, choosePolicy } from './policies'
 import { invest, settleWonders } from './wonders'
 import {
@@ -353,8 +353,7 @@ function wasteland(s: GameState, p: Player, discardTileId: number): GameState {
   const i = p.hand.findIndex((c) => c.id === discardTileId)
   if (i < 0) throw new RuleError('손에 없는 타일입니다')
   const [discarded] = p.hand.splice(i, 1)
-  s.deck.push(discarded)
-  shuffle(s, s.deck)
+  returnToDeck(s, discarded)
   p.hand.push(...drawTiles(s, 1))
   discoverInStartHand(s, p) // 새로 뽑은 타일이 엘도라도여도 처음 발견이면 문화 +1
   p.wastelandPending = true
