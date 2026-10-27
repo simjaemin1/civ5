@@ -77,7 +77,7 @@ export function autoSkipAction(game: GameState, p: Player): { action: Action; re
     if (p.cities.some((c) => !t.produced.includes(c.id) && cityCanProduce(game, p, c.id))) return null
     if (!t.upgraded && p.military.some((c) => upgradeTargets(p, c).some((u) => cardCost(p, u) <= t.yields.gold))) return null
     if (occupiedTiles(game, p).length > 0) return null // 점령 중인 장군은 원하는 만큼 불러들일 수 있다
-    const bombTargets = game.players.some((o) => o.cities.some((c) => c.tiles.some((t) => t.occupiedBy === p.id && t.role === 'extra')))
+    const bombTargets = game.players.some((o) => o.id !== p.id && o.cities.some((c) => c.tiles.some((t) => t.occupiedBy === p.id)))
     if (p.military.some((c) => c.defId === 'atomic_bomb') && bombTargets) return null
     const enemyGenerals = p.cities.some((c) => c.tiles.some((t) => t.occupiedBy !== undefined && t.occupiedBy !== p.id))
     if (p.wonders.includes('great_wall') && !p.greatWallUsed && enemyGenerals) return null

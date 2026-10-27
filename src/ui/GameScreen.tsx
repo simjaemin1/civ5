@@ -3,6 +3,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Action, GameState } from '../engine'
 import { RuleError, actorOf, aiStep, apply, civById, culture, happiness, totalWorkers, tourism } from '../engine'
 import { Board } from './Board'
+import { CivEmblem } from './CivEmblem'
+import { TechTreeButton } from './TechTreeButton'
 import { CivInspector } from './CivInspector'
 import { InfoTabs } from './InfoTabs'
 import { SidePanel } from './SidePanel'
@@ -19,6 +21,7 @@ import { ChoicesPanel } from './panels/ChoicesPanel'
 import { CardDiscardPanel } from './panels/CardDiscardPanel'
 import { DiscardPanel } from './panels/DiscardPanel'
 import { ConfirmButton } from './ConfirmButton'
+import { AtomicBombPanel } from './panels/AtomicBombPanel'
 import { PlacePanel } from './panels/PlacePanel'
 import { ProducePanel } from './panels/ProducePanel'
 import { ResearchPanel } from './panels/ResearchPanel'
@@ -307,6 +310,8 @@ export function GameScreen({ initial, seats, onExit }: Props) {
             </div>
           </details>
           <button onClick={onExit}>나가기</button>
+          <TechTreeButton player={player} />
+          <CivEmblem civId={player.civId} />
         </div>
       </header>
       {error && <div className="error banner-error">⚠ {error}</div>}
@@ -338,6 +343,7 @@ export function GameScreen({ initial, seats, onExit }: Props) {
               </ConfirmButton>
             </div>
           )}
+          {!over && !curtain && !actorSeat.ai && game.phase !== 'setup' && game.phase !== 'battle' && <AtomicBombPanel game={game} player={player} dispatch={dispatch} />}
           {key && !over && <TurnSteps game={game} phases={turnHistory.map((h) => h.phase)} locked={lockedInTurn} onJump={jumpInTurn} onUndo={undoInTurn} />}
           {main}
           {showBoard && <Board game={game} player={player} />}
