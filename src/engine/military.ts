@@ -63,7 +63,7 @@ export function isObsolete(p: Player, def: MilitaryCardDef): boolean {
   return MILITARY_CARDS.some((c) => c.line === def.line && c.tier! > def.tier! && p.techs.includes(c.tech))
 }
 
-/** 이 문명이 지금 만들 수 있는 카드 (기술 보유, 한 종류 6장 보유 한도). */
+/** 이 문명이 지금 만들 수 있는 카드 (기술 보유. 한 종류 5장 보유 한도는 넘겨도 만들 수 있고, 넘친 만큼 골라 버린다). */
 export function producible(s: GameState, p: Player, defId: string, unique?: string, city?: City): { def: MilitaryCardDef; uq?: UniqueUnitDef } | null {
   const uq = unique ? uniqueOf(p, unique) : undefined
   if (unique && !uq) return null

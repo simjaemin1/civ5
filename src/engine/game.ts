@@ -613,7 +613,11 @@ function foodSettlement(s: GameState, p: Player): void {
       }
     }
   }
-  say(s, `${civById(p.civId).name} 일꾼 ${totalWorkers(p)} / 행복 ${cap}`)
+  // 인구·행복은 바뀐 경우에만 기록한다 (처음 차례는 기준만 잡는다)
+  const now = { workers: totalWorkers(p), happy: cap }
+  if (p.logged && p.logged.workers !== now.workers) say(s, `${civById(p.civId).name} 인구 ${p.logged.workers}→${now.workers}`)
+  if (p.logged && p.logged.happy !== now.happy) say(s, `${civById(p.civId).name} 행복 ${p.logged.happy}→${now.happy}`)
+  p.logged = now
   // 어떤 이유로든 일꾼이 행복을 넘으면 넘친 만큼 버려야 한다: 도시를 눌러 한 명씩 직접 고른다 (discardWorker)
   const over = totalWorkers(p) - cap
   if (over > 0) {

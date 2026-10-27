@@ -104,6 +104,8 @@ export interface Player {
   pendingDiscard?: number
   /** 보유 한도(한 종류 4장)를 넘어 골라 버려야 하는 군사 카드의 종류 (한 장마다 한 항목) */
   pendingCardDiscard?: string[]
+  /** 마지막으로 기록에 남긴 인구(일꾼 수)·행복: 차례 끝에 바뀐 경우에만 "인구 3→4"처럼 기록한다 */
+  logged?: { workers: number; happy: number }
   /** 정책을 바꿀 기회로 얻은 선택권이면 고를 수 있는 정책 (이 정책이나 지금 정책) */
   /** 과학이론: 정책을 이 정책으로 바꿀지 말지 정할 기회 (고르면 바뀌고, 안 고르면 그대로). 정하기 전에는 생산·투자·승급을 못 한다 */
   policyOffer?: PolicyId
