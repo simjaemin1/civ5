@@ -515,6 +515,13 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
 .build-row .cross { grid-template-columns: repeat(3, min(118px, calc((100vw - 96px) / 3))); }
 .build-row button.tile.empty.build-cell { aspect-ratio: 255 / 364; min-height: 0; height: auto; }
 .build-row .c-n, .build-row .c-w, .build-row .c-e, .build-row .c-s, .build-row .c-c { min-width: 0; }
-.wasteland-cell { width: min(118px, calc((100vw - 96px) / 3)); }
+/* 불모지 탈출 칸: 십자 오른쪽 위 (위·가운데 줄 높이, 사용자가 정한 자리) */
+.build-row .cross.with-waste {
+  --cw: min(118px, calc((100vw - 134px) / 4));
+  grid-template-columns: repeat(3, var(--cw)) calc(var(--cw) + 14px);
+  grid-template-areas: '. n . z' 'w c e z' '. s . .';
+  column-gap: 6px;
+}
+.cross .wasteland-cell { grid-area: z; align-self: start; width: auto; margin-left: 14px; }
 /* 오른쪽 칸 맨 위: 내 문명 카드 */
 .side-civ .civ-card { width: 100% !important; max-width: 100%; }
