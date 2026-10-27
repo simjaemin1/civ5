@@ -87,9 +87,8 @@ function discoverInStartHand(s: GameState, p: Player): void {
     const w = p.hand[i].wonder ? WONDERS[p.hand[i].wonder!] : undefined
     if (!w?.cultureOnDiscover || s.eldoradoFound) continue
     s.eldoradoFound = true
-    // 도시는 도시 타일 1장 + 사방 4장까지만 세울 수 있으므로, 손이 이미 5장이면 도시를 세운 뒤 영토로 붙인다
-    if (p.hand.length < 5) p.hand.push(...drawTiles(s, 1))
-    else p.startExtras = [...(p.startExtras ?? []), ...drawTiles(s, 1)]
+    // 도시는 도시 타일 1장 + 사방 4장까지만 십자에 놓이므로, 손이 5장을 넘으면 남는 타일은 추가 타일(영토)로 붙는다
+    p.hand.push(...drawTiles(s, 1))
     say(s, `${civById(p.civId).name} 엘도라도 발견 (문화 +1)`)
   }
 }
@@ -374,13 +373,14 @@ function foundCity(
   const others = hand.filter((c) => c.id !== a.cityTileId)
   const entries = Object.entries(a.sideTiles) as [Side, number][]
   const ids = entries.map(([, tid]) => tid)
+  // 사방(최대 4칸)을 먼저 채우고, 남는 타일은 추가 타일(영토)로 붙는다
   if (
-    entries.length !== others.length ||
+    entries.length !== Math.min(SIDES.length, others.length) ||
     new Set(ids).size !== ids.length ||
-    !others.every((c) => ids.includes(c.id)) ||
+    !ids.every((tid) => others.some((c) => c.id === tid)) ||
     !entries.every(([side]) => SIDES.includes(side))
   ) {
-    throw new RuleError('도시 외의 타일을 서로 다른 면에 하나씩 붙여야 합니다')
+    throw new RuleError('도시 외의 타일을 서로 다른 면에 하나씩 붙이세요 (5장을 넘는 타일은 추가 타일이 됩니다)')
   }
   const city: City = {
     id,
@@ -392,6 +392,7 @@ function foundCity(
   for (const [side, tid] of entries) {
     city.tiles.push({ card: others.find((c) => c.id === tid)!, role: 'side', side })
   }
+  for (const card of others.filter((c) => !ids.includes(c.id))) city.tiles.push({ card, role: 'extra', slot: freeExtraSlot(city) })
   return city
 }
 
@@ -404,8 +405,6 @@ function buildCity(
   const city = foundCity(p.hand, a, 0, 1)
   p.cities.push(city)
   p.hand = []
-  for (const card of p.startExtras ?? []) city.tiles.push({ card, role: 'extra', slot: freeExtraSlot(city) })
-  p.startExtras = undefined
   for (const t of city.tiles) if (t.card.wonder) onTileGained(s, p, t.card) // 시작 타일에 자연경관이 있어도 문화 효과를 받는다 (킬리만자로 등)
   if (p.civId === 'china') p.generals += 1 // 중국: 위대한 장군 1개로 시작
   say(s, `${civById(p.civId).name} 도시 건설 (타일 ${city.tiles.length}장)`)

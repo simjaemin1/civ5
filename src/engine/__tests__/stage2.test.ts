@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { aiCandidates, aiDebug, apply, createGame, culture, happiness, tourism, computeYields, totalWorkers, RuleError, WONDER_CARDS, TECHS } from '..'
+import { aiCandidates, aiDebug, aiStep, apply, createGame, culture, happiness, tourism, computeYields, totalWorkers, RuleError, WONDER_CARDS, TECHS } from '..'
 import type { GameState, TileCard } from '..'
 import { found, me, play, startGame, tile } from './helpers'
 
@@ -583,17 +583,28 @@ describe('시작 타일 엘도라도', () => {
     }
     expect(hit).toBeGreaterThan(0)
   })
-  it('시작 손이 이미 5장인 문명(시작 문화 1)은 발견 타일을 도시를 세운 뒤 영토로 받는다', () => {
+  it('시작 손이 이미 5장인 문명(시작 문화 1)은 발견하면 손이 6장, 십자에 놓지 않은 1장은 추가 타일, 도시를 세우면 영토 효과로 7장', () => {
     let hit = 0
     for (let seed = 1; seed <= 600 && hit < 2; seed++) {
       let s = createGame({ seed, civIds: ['persia', 'greece'] })
       const p = s.players[s.order[0]]
       if (p.civId !== 'persia' || !eldoradoIn(p.hand)) continue
       hit++
-      expect(p.hand).toHaveLength(5)
-      expect(p.startExtras).toHaveLength(1)
+      expect(p.hand).toHaveLength(6) // 선택 화면에서 +1
       s = found(s)
       expect(culture(me(s))).toBe(7)
+    }
+    expect(hit).toBeGreaterThan(0)
+  })
+  it('AI도 6장 시작 손(시작 문화 1 + 엘도라도)으로 도시를 세운다', () => {
+    let hit = 0
+    for (let seed = 1; seed <= 600 && hit < 2; seed++) {
+      let s = createGame({ seed, civIds: ['persia', 'greece'] })
+      const p = s.players[s.order[0]]
+      if (p.civId !== 'persia' || !eldoradoIn(p.hand)) continue
+      hit++
+      s = aiStep(s).state
+      expect(culture(s.players[p.id])).toBe(7)
     }
     expect(hit).toBeGreaterThan(0)
   })

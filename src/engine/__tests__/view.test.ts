@@ -39,7 +39,6 @@ function checkNoLeak(s: GameState, viewer: number): void {
     p.pendingCity?.forEach((t) => hidden.add(t.id))
     if (p.scouted) hidden.add(p.scouted.id)
     if (p.held) hidden.add(p.held.id)
-    p.startExtras?.forEach((t) => hidden.add(t.id))
   }
   for (const id of hidden) expect(shown.has(id), `타일 ${id} 유출`).toBe(false)
   expect(json.deck).toEqual([])

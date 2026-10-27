@@ -42,7 +42,6 @@ function viewPlayer(s: GameState, p: Player, viewer: number): Player {
     scouted: null,
     held: null,
     choices: undefined, // 맡아둔 타일을 쓸지 같은 선택은 본인만
-    startExtras: undefined, // 시작 손에서 발견한 엘도라도 타일: 도시를 세울 때까지 본인만
     military: p.military.map((c) => (shown.has(c.uid) ? c : stripDirs(c))),
   }
 }

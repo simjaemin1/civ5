@@ -54,8 +54,11 @@ function tileScore(p: Player, card: TileCard): number {
 function foundAction(p: Player, hand: TileCard[]): Action {
   const best = hand.reduce((a, b) => (tileScore(p, b) > tileScore(p, a) ? b : a))
   const sideTiles: Partial<Record<Side, number>> = {}
+  // 십자 사방(4칸)에는 좋은 타일부터, 5장을 넘어 남는 타일은 추가 타일(영토)이 된다
   hand
     .filter((c) => c.id !== best.id)
+    .sort((a, b) => tileScore(p, b) - tileScore(p, a))
+    .slice(0, SIDES.length)
     .forEach((c, i) => {
       sideTiles[SIDES[i]] = c.id
     })

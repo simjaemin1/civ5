@@ -131,8 +131,6 @@ export interface Player {
   held: TileCard | null
   eliminated: boolean
   greatWallUsed: boolean
-  /** 시작 손이 이미 5장이라 손에 더 못 받는 엘도라도 발견 타일: 도시를 세울 때 영토로 붙는다 */
-  startExtras?: TileCard[]
   /** 선택 사항: 문화로 얻는 타일을 맡아둔 타일로 받을지(기본), 붙일 도시, 일꾼을 버릴 도시 */
   choices?: PlayerChoices
   /** 독일: 장군을 얻어서 생기는 무료 군사 카드 선택권 */

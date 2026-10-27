@@ -33,7 +33,7 @@ export function found(s: GameState, cityIdx = 0): GameState {
   const [city, ...others] = p.hand
   const sides = ['N', 'E', 'S', 'W'] as const
   const sideTiles: Partial<Record<(typeof sides)[number], number>> = {}
-  others.forEach((c, i) => (sideTiles[sides[i]] = c.id))
+  others.slice(0, 4).forEach((c, i) => (sideTiles[sides[i]] = c.id)) // 5장을 넘는 타일은 추가 타일이 된다
   void cityIdx
   return apply(s, { type: 'buildCity', cityTileId: city.id, sideTiles })
 }
