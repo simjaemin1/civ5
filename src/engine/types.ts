@@ -127,6 +127,8 @@ export interface Player {
   scouting: boolean
   /** 정찰로 본 타일 (이번 차례) */
   scouted: TileCard | null
+  /** 마지막으로 정찰한 라운드: 한 차례에 1장만 볼 수 있다 (맡아둔 타일을 돌려보내도 다시 정찰할 수 없다) */
+  scoutedRound?: number
   /** 나침반으로 맡아둔 타일 (일꾼 1개가 그 위에 있음) */
   held: TileCard | null
   eliminated: boolean

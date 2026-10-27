@@ -1014,6 +1014,18 @@ describe('정찰과 나침반', () => {
     expect(s.deck.some((c) => c.id === 999)).toBe(true)
     expect(freeWorkers(me(s))).toBe(1)
   })
+
+  it('한 차례에 1장만 본다: 맡아둔 타일을 돌려보내도 그 차례에는 다시 정찰할 수 없고, 다음 차례에는 할 수 있다', () => {
+    let s = mod(start(), (c) => {
+      c.players[0].techs.push('compass')
+      c.players[0].cities[0].workers = 2
+    })
+    s = apply(apply(apply(s, { type: 'scout' }), { type: 'holdScouted' }), { type: 'releaseHeld' })
+    expect(() => apply(s, { type: 'scout' })).toThrow(/한 차례에 1장/)
+    s = play(s, { type: 'placeWorkers', placements: [] }, { type: 'skipResearch' }, { type: 'endProduction' })
+    while (me(s).id !== actorOf(s) || s.phase !== 'place') s = s.phase === 'declare' ? apply(s, { type: 'endTurn' }) : play(s, { type: 'placeWorkers', placements: [] }, { type: 'skipResearch' }, { type: 'endProduction' })
+    expect(apply(s, { type: 'scout' }).players[0].scouted).not.toBeNull()
+  })
 })
 
 describe('문명 능력 (전쟁·군사 관련)', () => {
