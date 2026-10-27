@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { searchWords } from '../searchWords'
 import { ALL_ENTRIES, entryOf } from '../encyclopedia'
+import { RULE_WORDS } from '../ruleWords'
 
 const text = (kind: Parameters<typeof entryOf>[0], id: string) =>
   entryOf(kind, id)
@@ -30,5 +31,12 @@ describe('검색·도감', () => {
     expect(text('luxury', 'furs')).toContain('행복 +1을 얻으려면: 수렵')
     expect(text('card', 'longswordsman')).toContain('필요 기술: 철제기술')
     expect(text('strategic', 'iron')).toContain('필요로 하는 카드: 장검사')
+  })
+
+  it('규칙 낱말: 금·행복 등을 찾고, 관련 항목 이름이 모두 도감에 있다', () => {
+    expect(searchWords('금')[0]).toMatchObject({ kind: 'rule', id: 'gold' })
+    expect(text('rule', 'gold')).toContain('중간의 등급을 무시하고 즉시 승급할 수 있습니다')
+    expect(text('rule', 'gold')).toContain('한 차례에 한 장만 승급할 수 있습니다')
+    for (const r of RULE_WORDS) for (const [, , see] of r.rows) for (const name of see ?? []) expect(ALL_ENTRIES.some((e) => e.label === name), `${r.title} → ${name}`).toBe(true)
   })
 })

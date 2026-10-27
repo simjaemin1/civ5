@@ -1,13 +1,14 @@
 import { MILITARY_CARDS, POLICIES, RESOURCES, TECHS, WONDER_CARDS, cardById } from '../engine'
 import type { PolicyId, TechDef } from '../engine'
 import { conditionText, techOwnEffects, wonderEffectText } from './format'
+import { RULE_WORDS } from './ruleWords'
 
 /**
  * 도감: 검색창에서 찾을 수 있는 항목과 그 설명. 처음 하는 사람이 "무엇을 하려면 무엇이 필요한지" 찾아보게 한다.
  * 항목: 과학기술, 군사 카드, 정책, 사치자원, 전략자원, 불가사의. 설명의 다른 항목 이름은 눌러서 그 항목으로 넘어간다.
  */
-export type EntryKind = 'tech' | 'card' | 'policy' | 'luxury' | 'strategic' | 'wonder'
-export const KIND_LABEL: Record<EntryKind, string> = { tech: '과학기술', card: '군사 카드', policy: '정책', luxury: '사치자원', strategic: '전략자원', wonder: '불가사의' }
+export type EntryKind = 'rule' | 'tech' | 'card' | 'policy' | 'luxury' | 'strategic' | 'wonder'
+export const KIND_LABEL: Record<EntryKind, string> = { rule: '규칙', tech: '과학기술', card: '군사 카드', policy: '정책', luxury: '사치자원', strategic: '전략자원', wonder: '불가사의' }
 
 export interface Ref {
   kind: EntryKind
@@ -147,8 +148,21 @@ function wonderEntry(id: string): Entry {
   }
 }
 
+/** 규칙 항목: 줄마다 문장을 • 로 나누고, 관련 항목은 이름으로 찾아 누를 수 있게 한다 */
+function ruleEntry(id: string): Entry {
+  const r = RULE_WORDS.find((x) => x.id === id)!
+  const rows: Row[] = r.rows.map(([label, lines, see]) => {
+    const items: Item[] = lines.flatMap((l, i) => (i ? ['\n', `• ${l}`] : [`• ${l}`]))
+    const refs = (see ?? []).map((name) => ALL_ENTRIES.find((e) => e.label === name)).filter((e): e is Ref => !!e)
+    if (refs.length) items.push('\n', '관련: ', ...refs.flatMap((e, i) => (i ? [', ', e] : [e])))
+    return { label, items }
+  })
+  return { kind: 'rule', id, title: r.title, rows }
+}
+
 export function entryOf(kind: EntryKind, id: string): Entry {
   switch (kind) {
+    case 'rule': return ruleEntry(id)
     case 'tech': return techEntry(techById(id))
     case 'card': return cardEntry(id)
     case 'policy': return policyEntry(id as PolicyId)
@@ -160,6 +174,7 @@ export function entryOf(kind: EntryKind, id: string): Entry {
 
 /** 검색할 수 있는 모든 항목 (이름) */
 export const ALL_ENTRIES: Ref[] = [
+  ...RULE_WORDS.map((r) => ({ kind: 'rule' as const, id: r.id, label: r.title })),
   ...TECHS.map((t) => techRef(t.id)),
   ...MILITARY_CARDS.filter((c) => !c.uniqueOnly).map((c) => cardRef(c.id)),
   ...(Object.keys(POLICIES) as PolicyId[]).map(policyRef),
