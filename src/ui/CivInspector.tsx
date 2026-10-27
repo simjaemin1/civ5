@@ -29,7 +29,7 @@ export function CivDetail({ game, id, actor }: { game: GameState; id: number; ac
       <p className="summary">
         <span>{ICON.culture} 문화 <b>{culture(p)}</b></span>
         <span>관광 <b>{tourism(p)}</b></span>
-        <span><Icon name="worker" size={16} /> 일꾼/<Icon name="happy" size={16} title="행복" /> <b>{totalWorkers(p)}/{p.cities.length ? happiness(p) : '-'}</b></span>
+        <span title="일꾼 / 행복"><Icon name="worker" size={16} /> <b>{totalWorkers(p)}/{p.cities.length ? happiness(p) : '-'}</b></span>
         <span>기술 <b>{p.techs.length}</b></span>
         <span>정책 <b>{policyName(p.policy)}</b></span>
         <span><Icon name="general" size={16} /> 장군 <b>{p.generals}</b></span>
