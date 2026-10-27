@@ -129,6 +129,7 @@ export function ResearchPanel({ game, player, dispatch }: PanelProps) {
               key={t.id}
               tech={t}
               width={150}
+              glow
               state={pool >= t.cost ? 'available' : 'idle'}
               disabled={!reach}
               note={
