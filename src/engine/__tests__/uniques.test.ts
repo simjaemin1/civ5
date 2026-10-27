@@ -81,7 +81,7 @@ describe('고유 유닛 데이터', () => {
     expect(u.def).toMatchObject({ base: 'tank', cost: 8, hp: 5, def: 3, choose: 6 })
     expect(u.def.text).toContain('전투력 6')
     expect(cardStats({ uid: 0, defId: 'tank', unique: '팬저' })).toMatchObject({ hp: 5, def: 3, choose: 6, baseId: 'tank' })
-    expect(cardById('atomic_bomb').cost).toBe(15) // 원자폭탄 카드 그림의 비용
+    expect(cardById('atomic_bomb').cost).toBe(11) // 원자폭탄 카드 그림의 비용 (사용자 확인: 11)
     expect(cardStats({ uid: 0, defId: 'tank' })).toMatchObject({ hp: 5, def: 3, choose: 5 }) // 일반 탱크 카드: 전투력 5
   })
 
