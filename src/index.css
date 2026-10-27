@@ -494,3 +494,7 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
 .civ-float-top > .side-sec { flex: 1 1 220px; min-width: 0; }
 .civ-float h4 { margin: 4px 0 6px; }
 .civ-emblem.on { box-shadow: 0 0 0 3px #fffaf0, 0 0 0 5px #12303a; }
+/* 맨 위 줄의 정보 탭: 누르면 내용이 겹쳐 뜬다 */
+.top-tabs { margin: 0; flex-wrap: wrap; }
+.top .top-tabs button.active { background: var(--active-bg); border-color: var(--accent); font-weight: 700; }
+.tree-float.info-float { left: 12px; width: auto; }

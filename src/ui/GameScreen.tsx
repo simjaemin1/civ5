@@ -278,6 +278,7 @@ export function GameScreen({ initial, seats, onExit }: Props) {
               {yields.gold}
             </span>
           )}
+          <InfoTabs game={game} viewer={player.id} />
           <details className="settings">
             <summary>⚙ 설정</summary>
             <div className="settings-menu">
@@ -339,7 +340,6 @@ export function GameScreen({ initial, seats, onExit }: Props) {
         <SidePanel game={game} seats={seats} actor={actor} viewer={viewer} />
       </div>
       <CivInspector game={game} seats={seats} actor={actor} />
-      <InfoTabs game={game} viewer={player.id} />
     </div>
   )
 }

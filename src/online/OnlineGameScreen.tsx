@@ -196,6 +196,7 @@ export function OnlineGameScreen({ online, onExit }: Props) {
               {yields.gold}
             </span>
           )}
+          <InfoTabs game={game} viewer={me.id} />
           <details className="settings">
             <summary>⚙ 설정</summary>
             <div className="settings-menu">
@@ -263,7 +264,6 @@ export function OnlineGameScreen({ online, onExit }: Props) {
         <SidePanel game={game} seats={seats} actor={actor} viewer={me.id} />
       </div>
       <CivInspector game={game} seats={seats} actor={actor} />
-      <InfoTabs game={game} viewer={me.id} />
     </div>
   )
 }
