@@ -7,7 +7,7 @@ import { apply, researchableTechs } from './game'
 import { canHammerScience, computeYields, ctxOf, culture, happiness, rationalismScience, tileYield, totalWorkers, tourism } from './yields'
 import { conditionMet, investableWonders, minHammers } from './wonders'
 import { MAX_HOLD, cardCost, heldCount, producible, uniqueOf, upgradeTargets } from './military'
-import { declarationTargets, findTile, occupiedTiles, targetSlot, usableInBattle } from './war'
+import { arrangeBattle, chooseTargets, declarationTargets, findTile, occupiedTiles, startNextBattle, targetSlot, usableInBattle } from './war'
 import { currentPlayer, defaultTileCity } from './core'
 import { turnKey } from './undo'
 
@@ -171,6 +171,9 @@ function hammerUse(s: GameState, p: Player): Map<number, number[]> {
   return out
 }
 
+/** 차례 계획기가 배치를 엔진으로 시험하는 중인가 */
+let planning = false
+
 /** 일꾼 하나가 늘거나 줄 때의 가치: 일꾼은 앞으로 여러 차례 타일 하나만큼 산출한다 (차례 수 어림) */
 const PLAN_WORKER_TURNS = 3
 
@@ -242,18 +245,23 @@ function playedValue(s0: GameState, pid: number, placement: Placed[]): number {
   const gold0 = s.players[pid].turn!.yields.gold
   const key = turnKey(s0)
   let v = 0
-  for (let i = 0; i < 60; i++) {
-    if (s.phase === 'over' || s.phase === 'battle' || turnKey(s) !== key || actorOf(s) !== pid) break
-    const { state, action } = aiStep(s)
-    const p = s.players[pid]
-    if (action.type === 'produce') v += cardCost(p, cardById(action.defId), action.unique ? uniqueOf(p, action.unique) : undefined) * W.hammer
-    else if (action.type === 'invest') v += action.hammers * W.hammer
-    else if (action.type === 'research') {
-      const cost = TECHS.find((t) => t.id === action.techId)?.cost ?? 0
-      const conv = Math.min(cost, action.foodToScience ?? 0)
-      v += (cost - conv) * W.science + conv * W.food + W.science
+  planning = true
+  try {
+    for (let i = 0; i < 60; i++) {
+      if (s.phase === 'over' || s.phase === 'battle' || turnKey(s) !== key || actorOf(s) !== pid) break
+      const { state, action } = aiStep(s)
+      const p = s.players[pid]
+      if (action.type === 'produce') v += cardCost(p, cardById(action.defId), action.unique ? uniqueOf(p, action.unique) : undefined) * W.hammer
+      else if (action.type === 'invest') v += action.hammers * W.hammer
+      else if (action.type === 'research') {
+        const cost = TECHS.find((t) => t.id === action.techId)?.cost ?? 0
+        const conv = Math.min(cost, action.foodToScience ?? 0)
+        v += (cost - conv) * W.science + conv * W.food + W.science
+      }
+      s = state
     }
-    s = state
+  } finally {
+    planning = false
   }
   const p1 = s.players[pid]
   v += (totalWorkers(p1) - totalWorkers(p0)) * wv
@@ -499,6 +507,9 @@ const conquestCity = (o: Player) => (o.cities.length > 1 ? o.cities[o.cities.len
 const armyOf = (p: Player): number => p.military.filter((c) => cardStats(c).hp !== undefined).length
 
 /** 이웃이 군사를 가졌으면 그만큼(최대 4장, 최소 2장) 수비 군사를 갖춰야 한다 */
+/** 이번 라운드에 나를 노린 선전포고가 있다 */
+const underAttack = (s: GameState, p: Player): boolean => s.declarations.some((d) => d.defenderId === p.id)
+
 function defenseTarget(s: GameState, p: Player): number {
   const enemy = Math.max(0, ...s.players.filter((o) => o.id !== p.id && !o.eliminated).map(armyOf))
   return enemy > 0 ? Math.min(4, Math.max(2, enemy)) : 0
@@ -746,18 +757,17 @@ const isSiegeAction = (a: Action): boolean => a.type === 'produce' && (cardById(
  * 일꾼을 망치가 많은 타일부터 올렸다고 본다.
  */
 function hammerCeiling(o: Player): Map<number, number> {
-  const q = structuredClone(o)
-  const ctx = ctxOf(q)
-  for (const c of q.cities) {
-    c.placed = c.tiles
-      .filter((t) => t.role !== 'city' && (t.occupiedBy === undefined || t.occupiedBy === o.id))
-      .sort((a, b) => tileYield(b.card, ctx).hammer - tileYield(a.card, ctx).hammer)
-      .slice(0, c.workers)
-      .map((t) => t.card.id)
-    c.enemyPlaced = []
-    c.generalPlaced = []
-  }
-  return new Map(computeYields(q).cities.map((y) => [y.cityId, y.hammer]))
+  const ctx = ctxOf(o)
+  const out = new Map<number, number>()
+  o.cities.forEach((c, i) => {
+    let hammer = i === 0 ? (ctx.civ.bonus.hammer ?? 0) : 0
+    const tiles = c.tiles.filter((t) => t.role !== 'city' && (t.occupiedBy === undefined || t.occupiedBy === o.id)).map((t) => tileYield(t.card, ctx).hammer)
+    hammer += c.tiles.filter((t) => t.role === 'city').reduce((n, t) => n + tileYield(t.card, ctx).hammer, 0)
+    hammer += tiles.sort((x, y) => y - x).slice(0, c.workers).reduce((n, h) => n + h, 0)
+    if (ctx.techs.has('robotics')) hammer = Math.max(hammer, 10) // computeYields와 같다
+    out.set(c.id, hammer)
+  })
+  return out
 }
 
 /**
@@ -822,7 +832,8 @@ function produceCandidates(s: GameState, p: Player): Action[] {
       cardActions.push({ type: 'produce', cityId: city.id, defId: o.def.id, unique: o.unique })
     }
     // 군대가 3장 미만이거나 이웃의 군사에 비해 수비가 모자라면 군사 카드를 먼저, 그 뒤에는 불가사의에 망치를 모두 건다
-    const needDefense = army < defenseTarget(s, p)
+    // 이번 라운드에 나를 노린 선전포고가 있으면(앞사람의 선전포고는 공개됨) 수비 카드를 먼저 만든다
+    const needDefense = army < defenseTarget(s, p) || underAttack(s, p)
     const warRush = isWarlord(p) && warFoundation(p) && preIndustrial(s)
     // 공성 카드가 없으면 그것부터 만든다 (도시를 치려면 공성 카드가 살아남아야 한다)
     const joinSiege = !isWarlord(p) && !hasSiege(p) && (() => { const l = coalitionLeader(s, p); return !!l && l.cities.length > 0 && sidesOccupied(l) >= 2 })()
@@ -836,11 +847,17 @@ function produceCandidates(s: GameState, p: Player): Action[] {
     out.push(...riskyActions)
   }
   // 3) 금으로 승급 (가장 높은 단계부터 시도한다)
+  // 금이 모자라거나 승급할 수 없는 후보는 미리 거른다 (후보마다 엔진이 상태를 통째로 복사해 시도하므로 카드가 많으면 느려진다)
   if (!turn.upgraded && turn.yields.gold > 0) {
+    const gold = turn.yields.gold
     for (const c of p.military) {
-      for (const u of civById(p.civId).uniques) out.push({ type: 'upgrade', uid: c.uid, unique: u.name })
+      const ups = upgradeTargets(p, c)
+      for (const u of civById(p.civId).uniques) {
+        const uq = uniqueOf(p, u.name)
+        if (uq && ups.some((x) => x.id === uq.base) && cardCost(p, cardById(uq.base), uq) <= gold) out.push({ type: 'upgrade', uid: c.uid, unique: u.name })
+      }
     }
-    for (const c of p.military) for (const t of upgradeTargets(p, c).filter((x) => heldCount(p, x.id) < MAX_HOLD)) out.push({ type: 'upgrade', uid: c.uid, toDefId: t.id })
+    for (const c of p.military) for (const t of upgradeTargets(p, c).filter((x) => heldCount(p, x.id) < MAX_HOLD && cardCost(p, x) <= gold)) out.push({ type: 'upgrade', uid: c.uid, toDefId: t.id })
   }
   // 4) 장군이 없고(돌아오는 중인 것도 없고) 군대가 있으면 점령 중인 장군 1개를 불러들여 다시 전쟁에 쓴다.
   //    다만 상대에게 중요한 타일(좋은 산출·자원·자연경관)을 점령 중이면 그대로 들고 있는다. 상대의 성장을 누르는 편이 낫다.
@@ -859,10 +876,28 @@ function produceCandidates(s: GameState, p: Player): Action[] {
 export function standing(p: Player): number {
   return culture(p) + 2 * p.techs.length + 3 * p.wonders.length + totalWorkers(p) + 0.5 * armyOf(p)
 }
-/** 1등(가장 앞선 문명)과 2등. 탈락한 문명은 뺀다. */
+/**
+ * 실질 위협도: 앞선 정도(standing)에 승리까지 거리를 더하고, 이미 받고 있는 견제를 뺀다. 결정할 때마다 다시 계산한다.
+ * - 아폴로까지 남은 기술이 적을수록, 관광이 상대 문화(가장 큰 상대)에 가까울수록 위협이 크다.
+ * - 점령당한 타일은 문화(타일 수)에는 남지만 산출을 잃으므로 그만큼 뺀다.
+ * - 이번 라운드에 이미 걸린 선전포고(공개됨)도 뺀다: 견제는 이미 진행 중이다.
+ */
+export function threat(s: GameState, o: Player): number {
+  let v = standing(o)
+  v += Math.max(0, 10 - apolloMissing(o).size) * 3
+  const rivals = s.players.filter((q) => q.id !== o.id && !q.eliminated && q.cities.length > 0)
+  const t = tourism(o)
+  if (t > 0 && rivals.length) v += 25 * Math.min(1.2, t / Math.max(1, ...rivals.map((q) => culture(q))))
+  const ctx = ctxOf(o)
+  for (const c of o.cities) for (const tl of c.tiles) if (tl.occupiedBy !== undefined && tl.occupiedBy !== o.id) v -= 0.6 * weight(tileYield(tl.card, ctx))
+  v -= 3 * s.declarations.filter((d) => d.defenderId === o.id && d.kind !== 'retake').length
+  return v
+}
+/** 1등(실질 위협도가 가장 큰 문명)과 2등. 탈락한 문명은 뺀다. */
 export function rankTop(s: GameState): { leader: Player; runnerUp: Player } | null {
-  const alive = s.players.filter((q) => !q.eliminated).sort((a, b) => standing(b) - standing(a) || a.id - b.id)
-  return alive.length >= 3 ? { leader: alive[0], runnerUp: alive[1] } : null
+  const alive = s.players.filter((q) => !q.eliminated).map((q) => ({ q, v: threat(s, q) }))
+  alive.sort((a, b) => b.v - a.v || a.q.id - b.q.id)
+  return alive.length >= 3 ? { leader: alive[0].q, runnerUp: alive[1].q } : null
 }
 
 /** 상대(또는 내) 타일이 그 주인에게 얼마나 중요한지: 산출·자원·행복·자연경관 */
@@ -885,7 +920,72 @@ function keepForConquest(s: GameState, p: Player, t: { defenderId: number; cityI
   return !!found && found.tile.role === 'side' && found.city.id === conquestCity(o).id
 }
 
+/** 1등에게 이번 라운드에 이미 걸린 선전포고의 공격 측 힘 합이 1등 수비를 충분히(1.2배) 넘는다 */
+function piledOn(s: GameState, leader: Player): boolean {
+  const decls = s.declarations.filter((d) => d.defenderId === leader.id && d.kind !== 'retake')
+  return decls.length > 0 && decls.reduce((n, d) => n + strengthOf(s.players[d.attackerId]), 0) >= 1.2 * strengthOf(leader)
+}
+
+/** 선전포고에 필요한 승률 (탈환은 장군이 들지 않아 조금 낮게) */
+const ODDS_NEEDED: Record<'normal' | 'retake' | 'city', number> = { normal: 0.45, retake: 0.35, city: 0.45 }
+/** 상대 카드 방향 표본 수 */
+const ODDS_SAMPLES = 4
+
+const coastalTarget = (s: GameState, t: ReturnType<typeof declarationTargets>[number]): boolean => {
+  const owner = t.kind === 'retake' ? s.players.find((o) => o.cities.some((c) => c.id === t.cityId && c.tiles.some((x) => x.card.id === t.tileId && x.occupiedBy !== undefined))) : s.players[t.defenderId]
+  return !!owner && !!findTile(owner, t.cityId, t.tileId)?.tile.card.terrains.includes('해안')
+}
+
+/**
+ * 이 목표에 선전포고하면 이길 확률: 상태 복사본에서 엔진 전투를 그대로 돌린다 (양쪽 배치·대상 선택은 AI).
+ * 상대 카드의 방향은 비공개이므로 왼쪽·가운데·오른쪽을 고르게 뽑은 표본으로 센다. 도시 공격은 공성 카드가 살아남아야 성공이다.
+ * 난수는 상태의 난수를 바꾸지 않는 따로 된 수열이다 (같은 상태면 같은 판단).
+ */
+function battleOdds(s: GameState, p: Player, t: ReturnType<typeof declarationTargets>[number]): number {
+  const enemyId = t.defenderId
+  const enemy = s.players[enemyId]
+  const hidden = enemy.military.some((c) => c.dirs?.length)
+  const samples = hidden ? ODDS_SAMPLES : 1
+  let r = (s.rng ^ (p.id * 2654435761) ^ (t.tileId * 40503)) >>> 0
+  const rand = () => {
+    r = (Math.imul(r, 1664525) + 1013904223) >>> 0
+    return r / 2 ** 32
+  }
+  const DIRS = ['L', 'C', 'R'] as const
+  let wins = 0
+  for (let k = 0; k < samples; k++) {
+    // 일반·탈환 전투는 두 문명만 바뀐다. 도시 공격은 도시가 무너지면 다른 문명의 장군도 돌아오므로 모두 복사한다
+    const players = t.kind === 'city' ? structuredClone(s.players) : s.players.map((o) => (o.id === p.id || o.id === enemyId ? structuredClone(o) : o))
+    const q: GameState = { ...s, players, deck: [...s.deck], log: [], battleReports: [], declarations: [], battle: null, uniqueSupply: structuredClone(s.uniqueSupply), winner: null }
+    if (hidden) for (const c of q.players[enemyId].military) if (c.dirs) c.dirs = c.dirs.map(() => DIRS[Math.floor(rand() * 3)])
+    q.declarations = [{ attackerId: p.id, defenderId: enemyId, cityId: t.cityId, tileId: t.tileId, kind: t.kind }]
+    q.players[p.id].busyWorkers += 1
+    if (!startNextBattle(q)) return 0
+    for (let i = 0; i < 20 && q.battle; i++) {
+      let done = false
+      for (const a of battleCandidates(q)) {
+        try {
+          if (a.type === 'arrangeBattle') arrangeBattle(q, a.playerId, a.slots)
+          else if (a.type === 'chooseTargets') chooseTargets(q, a.playerId, a.picks)
+          done = true
+          break
+        } catch (e) {
+          if (!(e instanceof RuleError)) throw e
+        }
+      }
+      if (!done) break
+    }
+    const rep = q.battleReports[q.battleReports.length - 1]
+    if (!rep || rep.winner !== 'attacker') continue
+    if (t.kind === 'city' && !rep.units.some((u) => u.owner === p.id && !u.destroyed && cardStats(u.inst).siege)) continue
+    wins++
+  }
+  return wins / samples
+}
+
 function declareCandidates(s: GameState, p: Player): Action[] {
+  // 차례 계획기가 배치를 시험하는 중에는 선전포고를 건너뛴다 (배치하지 않은 일꾼을 쓰므로 배치의 가치와 상관없고, 승률 추정이 비싸다)
+  if (planning) return [{ type: 'endTurn' }]
   const out: Action[] = []
   const army = p.military.filter((c) => cardStats(c).hp !== undefined).length
   if (army >= 2) {
@@ -899,6 +999,9 @@ function declareCandidates(s: GameState, p: Player): Action[] {
     // 1등은 2등을 견제한다. 탈환은 언제든 할 수 있다.
     const top = AI_TUNE.coalition ? rankTop(s) : null
     let aim = top ? (p.id === top.leader.id ? top.runnerUp.id : top.leader.id) : null
+    // 쏠림 방지: 1등에게 이미 걸린 공격이 1등 수비를 충분히 넘으면 2등(다음 위협)을 노리고, 내가 2등이면 군대를 키운다.
+    // 다만 1등 도시의 사면 점령이 3칸 이상이면 도시 공격 직전이므로 집중을 유지한다.
+    if (top && aim === top.leader.id && !isWarlord(p) && piledOn(s, top.leader) && sidesOccupied(top.leader) < 3) aim = top.runnerUp.id !== p.id ? top.runnerUp.id : -1
     let rate = value
     if (!isWarlord(p) && top && aim === top.leader.id) {
       // 1등을 견제하는 연합: 도시 옆 4칸을 함께 점령해 두면 (누구의 장군이든) 공성 카드를 가진 누구나 도시를 파괴할 수 있다
@@ -930,7 +1033,17 @@ function declareCandidates(s: GameState, p: Player): Action[] {
     // 같은 타일에 이미 다른 문명이 선전포고했다면 앞 문명이 이길 때 전투 없이 끝나므로 뒤로 미룬다
     const taken = (t: (typeof targets)[number]) => t.kind !== 'retake' && s.declarations.some((d) => d.defenderId === t.defenderId && d.cityId === t.cityId && d.tileId === t.tileId)
     targets.sort((a, b) => Number(taken(a)) - Number(taken(b)))
-    for (const t of targets) out.push({ type: 'declareWar', defenderId: t.defenderId, cityId: t.cityId, tileId: t.tileId })
+    // 이길 가망이 있는 목표만 (엔진 전투를 상태 복사본으로 돌려 본다). 앞에서부터 둘을 찾으면 그만 센다
+    const odds = new Map<string, number>()
+    let found = 0
+    for (const t of targets) {
+      if (found >= 2) break
+      const key = `${t.defenderId}:${t.kind}:${coastalTarget(s, t)}`
+      if (!odds.has(key)) odds.set(key, battleOdds(s, p, t))
+      if (odds.get(key)! < ODDS_NEEDED[t.kind]) continue
+      out.push({ type: 'declareWar', defenderId: t.defenderId, cityId: t.cityId, tileId: t.tileId })
+      found++
+    }
   } else {
     for (const t of declarationTargets(s, p)) {
       if (t.kind === 'retake') out.push({ type: 'declareWar', defenderId: t.defenderId, cityId: t.cityId, tileId: t.tileId })
@@ -1052,7 +1165,7 @@ export function aiCandidates(s: GameState): Action[] {
       return [foundAction(p, p.hand)]
     case 'place': {
       const baseScience = civById(p.civId).bonus.science ?? 0
-      defending = armyOf(p) < defenseTarget(s, p)
+      defending = armyOf(p) < defenseTarget(s, p) || underAttack(s, p)
       starving = baseScience < Math.min(...researchableTechs(s).map((t) => t.cost), 99)
       const reserve = p.generals > 0 && p.military.length >= 2 ? 1 : 0
       const planned = plannedPlacements(s, p, reserve)
