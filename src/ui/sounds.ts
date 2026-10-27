@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { GameState } from '../engine'
-import { TECHS } from '../engine'
+import { TECHS, civById } from '../engine'
 import warUrl from '../assets/sounds/declare_war.mp3'
 import bordersUrl from '../assets/sounds/borders_expand.mp3'
 import eraUrl from '../assets/sounds/new_era.mp3'
@@ -59,10 +59,13 @@ export function soundsFor(prev: GameState, next: GameState, me?: number): Sound[
   if (next.logSeq <= prev.logSeq) return []
   const out = new Set<Sound>()
   const added = Math.min(next.logSeq - prev.logSeq, next.log.length)
+  // 로그 줄이 내 문명의 일인지 (로그는 "[R3] 한국 정책: 미학"처럼 문명 이름으로 시작한다)
+  const myName = me !== undefined && next.players[me] ? civById(next.players[me].civId).name : null
+  const mine = (line: string): boolean => myName !== null && line.replace(/^\[R\d+\] /, '').startsWith(`${myName} `)
   for (const line of next.log.slice(-added)) {
     if (line.includes('선전포고')) out.add('war')
-    else if (/ 문화 \+\d+$/.test(line)) out.add('borders')
-    else if (line.includes(' 정책: ')) out.add('policy')
+    else if (mine(line) && / 문화 \+\d+$/.test(line)) out.add('borders') // 문화로 새 타일: 얻은 본인에게만
+    else if (mine(line) && line.includes(' 정책: ')) out.add('policy') // 정책: 고른 본인에게만
     else if (line.includes(' 승급 (금')) out.add('promote')
   }
   // 새 기술(본인에게만 들린다): 내가 처음 도달한 시대의 기술이면 새 시대 소리, 아니면 기술 소리

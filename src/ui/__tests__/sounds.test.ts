@@ -19,8 +19,13 @@ describe('효과음', () => {
     const s = base()
     expect(soundsFor(s, next(s, ['[R3] 한국 → 이집트 선전포고']))).toEqual(['war'])
     expect(soundsFor(s, next(s, ['[R3] 한국 → 이집트 탈환 선전포고']))).toEqual(['war'])
-    expect(soundsFor(s, next(s, ['한국 문화 +2']))).toEqual(['borders'])
-    expect(soundsFor(s, next(s, ['한국 정책: 미학']))).toEqual(['policy'])
+    const culture = next(s, ['[R3] 한국 문화 +2'])
+    const policy = next(s, ['[R3] 한국 정책: 미학'])
+    expect(soundsFor(s, culture, 0)).toEqual(['borders'])
+    expect(soundsFor(s, policy, 0)).toEqual(['policy'])
+    // 본인에게만 들린다
+    expect(soundsFor(s, culture, 1)).toEqual([])
+    expect(soundsFor(s, policy, 1)).toEqual([])
   })
 
   it('기술: 새 시대에 처음 도달하면 새 시대 소리, 같은 시대면 기술 소리', () => {
