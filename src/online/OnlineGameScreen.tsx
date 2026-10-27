@@ -175,7 +175,7 @@ export function OnlineGameScreen({ online, onExit }: Props) {
 
   return (
     <div className="game">
-      {pendingReport && <BattleReportModal key={pendingReport.seq} game={game} report={pendingReport} viewerId={pendingReport.attackerId === game.viewer || pendingReport.defenderId === game.viewer ? game.viewer : pendingReport.attackerId} onClose={() => setSeenBattle(pendingReport.seq)} />}
+      {pendingReport && <BattleReportModal key={pendingReport.seq} game={game} report={pendingReport} viewerId={game.viewer} onClose={() => setSeenBattle(pendingReport.seq)} />}
       <header className="top">
         <div>
           <b>라운드 {game.round}</b> · {PHASE[game.phase]} · <span className="who">{civById(actorPlayer.civId).name}</span>

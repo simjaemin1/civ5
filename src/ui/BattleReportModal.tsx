@@ -85,8 +85,9 @@ export function BattleReportModal({ game, report, viewerId, onClose }: { game: G
   const def = game.players[report.defenderId]
   const unitAt = (pid: number, slot: number) => report.units.find((u) => u.owner === pid && u.slot === slot) ?? null
   const cols = [1, 2, 3, 4]
-  // 보는 사람(나)이 아래쪽, 상대가 위쪽 (상대 카드는 마주 보도록 뒤집힌다)
-  const viewer = viewerId === report.attackerId || viewerId === report.defenderId ? viewerId : report.attackerId
+  // 내 전투면 내가 아래쪽, 상대가 위쪽 (상대 카드는 마주 보도록 뒤집힌다).
+  // 남의 전투를 관전하면 공격자가 위, 수비자가 아래 (사용자 결정)
+  const viewer = viewerId === report.attackerId || viewerId === report.defenderId ? viewerId : report.defenderId
   const bottomId = viewer
   const topId = bottomId === report.attackerId ? report.defenderId : report.attackerId
   const roleOf = (pid: number) => (pid === report.attackerId ? '공격' : '수비')
@@ -138,7 +139,7 @@ export function BattleReportModal({ game, report, viewerId, onClose }: { game: G
         </p>
           <div className="scene">
             <div className="side-label">
-              {civById(game.players[topId].civId).name} ({roleOf(topId)}) {topId !== viewer && '— 상대'}
+              {civById(game.players[topId].civId).name} ({roleOf(topId)})
             </div>
             <div className="scene-row">
               {cols.map((c) => (
@@ -168,7 +169,7 @@ export function BattleReportModal({ game, report, viewerId, onClose }: { game: G
               ))}
             </div>
             <div className="side-label">
-              {civById(game.players[bottomId].civId).name} ({roleOf(bottomId)}) — 나
+              {civById(game.players[bottomId].civId).name} ({roleOf(bottomId)})
             </div>
           </div>
         <div className="row anim-bar">
