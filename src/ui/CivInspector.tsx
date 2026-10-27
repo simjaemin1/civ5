@@ -4,8 +4,6 @@ import type { GameState } from '../engine'
 import { TURN_PHASES, WONDER_CARDS, civById, culture, happiness, totalWorkers, tourism } from '../engine'
 import { Board } from './Board'
 import { TechTree } from './InfoTabs'
-import { CivCard } from './cards/CivCard'
-import { PolicyCard } from './cards/PolicyCard'
 import { ICON, policyName } from './format'
 
 /** 한 문명의 공개 정보: 요약, 직전 차례 산출, 문명 카드·정책, 점령, 영토·기술 */
@@ -49,11 +47,6 @@ export function CivDetail({ game, id, actor }: { game: GameState; id: number; ac
           <span className="muted">아직 없음</span>
         )}
       </p>
-      <div className="row">
-        <CivCard civId={p.civId} width={260} />
-        {p.policy && <PolicyCard policy={p.policy} width={110} active />}
-        {p.policy && <small className="muted">시행 중인 정책</small>}
-      </div>
       {(held.length > 0 || occupying.length > 0) && (
         <p className="muted">
           {held.map(({ t, by }) => `${t.card.terrains.join('·')} 타일이 ${civById(by.civId).name}에게 점령당함`).join(' · ')}

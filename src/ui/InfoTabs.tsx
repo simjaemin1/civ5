@@ -167,7 +167,14 @@ function TabContent({ game, viewer, tab }: { game: GameState; viewer: number; ta
                       <>🏛 {josa(civById(game.players[owner].civId).name, '이', '가')} 완성</>
                     ) : (
                       <>
-                        필요 진척도 {w.progressNeeded} · {game.players.map((p) => `${civById(p.civId).name} ${prog[p.id] ?? 0}`).join(' / ')}
+                        필요 진척도 {w.progressNeeded} ·{' '}
+                        {game.players.map((p, i) => (
+                          <span key={p.id}>
+                            {i > 0 && ' / '}
+                            {/* 진척도가 올라간 문명은 굵게 */}
+                            {(prog[p.id] ?? 0) > 0 ? <b className="prog-on">{`${civById(p.civId).name} ${prog[p.id]}`}</b> : `${civById(p.civId).name} 0`}
+                          </span>
+                        ))}
                         <br />
                         기술: {TECHS.find((t) => t.id === w.tech)?.name}
                       </>

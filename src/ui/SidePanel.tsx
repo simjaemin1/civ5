@@ -139,7 +139,8 @@ export function SidePanel({ game, seats, actor, viewer, onView, viewing }: { gam
   return (
     <aside className="side">
       <div className="side-civ">
-        <CivCard civId={game.players[viewer].civId} width={376} />
+        {/* 다른 문명 시점을 보는 중이면 그 문명의 카드 */}
+        <CivCard civId={game.players[viewing ?? viewer].civId} width={376} />
       </div>
       <TurnOrder game={game} seats={seats} actor={actor} onView={onView} viewing={viewing} />
       <Threats game={game} viewer={viewer} />

@@ -539,3 +539,4 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
 .held-note { min-height: 1.5em; margin: 4px 0; }
 /* 기록의 라운드 표시: 라운드가 바뀌는 줄에만 [R4], 이어지면 - (글 시작을 맞춘다) */
 .log-r { display: inline-block; min-width: 2.6em; color: var(--muted); }
+.prog-on { color: var(--ink); font-weight: 800; }
