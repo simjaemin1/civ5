@@ -22,6 +22,17 @@ const ROOT_ROW: Record<string, number> = {
 }
 const APOLLO_ROW = 3
 const TECH_GAP = 6
+/** 기술 카드 높이 / 폭 (카드 그림 309×444), 카드 줄 수, 맨 위 과학 비용 줄 높이 (화면에 맞출 때 쓴다) */
+const CARD_RATIO = 444 / 309
+const TREE_ROWS = 7
+const HEAD_H = 24
+
+/** 넓이·높이 안에 10열 × 7줄이 다 들어가는 카드 폭 */
+function fitCardW(fit: { width: number; height: number }): number {
+  const byW = (fit.width - 9 * TECH_GAP - 8) / 10
+  const byH = (fit.height - HEAD_H - TREE_ROWS * TECH_GAP - 8) / TREE_ROWS / CARD_RATIO
+  return Math.max(30, Math.min(150, Math.floor(Math.min(byW, byH))))
+}
 
 function rowOf(id: string): number {
   const t = TECHS.find((x) => x.id === id)!
@@ -34,11 +45,15 @@ function rowOf(id: string): number {
  * 기술 트리: 가로는 열(과학 비용), 세로는 도표의 줄. 선행 기술은 왼쪽, 후행 기술은 오른쪽에 놓이고 화살표로 이어진다.
  * 보유·연구 가능·잠김은 테두리로 보여 주고, 카드를 누르면 크게 본다.
  */
-export function TechTree({ player }: { player: Player }) {
-  // 열 10개가 가로 스크롤 없이 한눈에 들어오도록 카드 폭을 화면 폭에 맞춘다
+export function TechTree({ player, fit }: { player: Player; fit?: { width: number; height: number } }) {
+  // 열 10개가 가로 스크롤 없이 한눈에 들어오도록 카드 폭을 화면 폭에 맞춘다.
+  // fit을 주면 그 넓이·높이 안에 표 전체(10열 × 7줄)가 스크롤 없이 들어가도록 카드 크기를 정한다.
   const wrap = useRef<HTMLDivElement>(null)
-  const [cardW, setCardW] = useState(110)
+  const [measuredW, setCardW] = useState(110)
+  const cardW = fit ? fitCardW(fit) : measuredW
+  const fitted = !!fit
   useLayoutEffect(() => {
+    if (fitted) return
     const el = wrap.current
     if (!el) return
     const measure = () => setCardW(Math.max(56, Math.min(150, Math.floor((el.clientWidth - 9 * TECH_GAP - 8) / 10))))
@@ -46,7 +61,7 @@ export function TechTree({ player }: { player: Player }) {
     const ro = new ResizeObserver(measure)
     ro.observe(el)
     return () => ro.disconnect()
-  }, [])
+  }, [fitted])
   const cols = Array.from({ length: 10 }, (_, i) => i + 1)
   const arrows: Arrow[] = TECHS.flatMap((t) =>
     (t.prereqs ?? []).map((pre) => ({
@@ -77,9 +92,9 @@ export function TechTree({ player }: { player: Player }) {
           })}
         </div>
       </ArrowLayer>
-      <p className="muted">
+      {!fit && <p className="muted">
         왼쪽이 선행 기술, 오른쪽이 후행 기술입니다 (화살표 초록 = 이미 얻은 선행 기술). 테두리: 초록 = 보유, 주황 = 지금 연구할 수 있음, 흐림 = 선행 기술이 모자람. 카드를 누르면 크게 보입니다.
-      </p>
+      </p>}
     </div>
   )
 }
