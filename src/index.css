@@ -521,7 +521,7 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
 .cross .wasteland-area { grid-area: z; align-self: start; justify-self: center; }
 .wasteland-area .wasteland-cell { width: min(118px, calc((100vw - 96px) / 4)); }
 /* 오른쪽 칸 맨 위: 내 문명 카드 */
-.side-civ .civ-card { width: 100% !important; max-width: 100%; }
+.side-civ > .civ-card { width: 100% !important; max-width: 100%; }
 /* 고유 유닛 탭: 문명 기호를 눌러 고른다 */
 .emblem-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 6px; margin-bottom: 10px; }
 .emblem-pick { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 2px; background: none; border: 2px solid transparent; border-radius: 10px; cursor: pointer; color: var(--ink); }
@@ -534,3 +534,5 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
 .waste-note { align-self: center; width: max-content; text-align: center; font-size: 0.78rem; }
 .waste-note span { display: block; white-space: nowrap; }
 @media (max-width: 600px) { .waste-note { width: auto; } .waste-note span { white-space: normal; } }
+/* 도시 판의 빈 면도 타일 카드와 같은 크기 (타일 그림 비율 255:364) */
+.city-grid .tile.empty { aspect-ratio: 255 / 364; min-height: 0; height: auto; align-self: start; text-align: center; }
