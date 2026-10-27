@@ -5,11 +5,27 @@ import { UnitCard } from './cards/UnitCard'
 import { playSound } from './sounds'
 import { usePrefs } from './prefsStore'
 
+/** 맨 위 제목의 공격 측 이름: 일반 선전포고는 침략, 탈환 선전포고는 탈환, 도시 공격은 공격 */
+const ATTACK_TITLE = { normal: '침략', retake: '탈환', city: '공격' } as const
+
 type Live = { dmg: number; attacking: boolean; hit: number }
 
 /** 한 카드: 그림(또는 카드 얼굴), 남은 체력 막대, 지금 진행 중인 공격 표시 */
 function Unit({ u, live, dir, final }: { u: BattleUnitReport | null; live: Live; dir: 'up' | 'down'; final: boolean }) {
-  if (!u) return <div className="unit empty">빈칸</div>
+  // 빈칸도 군사 카드와 같은 크기의 칸으로 그린다 (카드가 있는 칸과 높이가 같도록 아래 줄도 비워 둔다)
+  if (!u)
+    return (
+      <div className="unit empty">
+        <div className="cardwrap">
+          <div className="empty-card" style={{ width: 150 }}>
+            빈칸
+          </div>
+        </div>
+        <div className="hpbar" aria-hidden="true" />
+        <span className="dmg">{'\u00a0'}</span>
+        <span className="state">{'\u00a0'}</span>
+      </div>
+    )
   const left = Math.max(0, u.hp - live.dmg)
   // 모든 카드는 동시에 공격하므로 파괴는 재생이 끝난 뒤에 한꺼번에 보여 준다 (그 전에는 치명상 표시만).
   // 끝난 뒤의 파괴 여부는 엔진 판정(destroyed)을 따른다: 예니체리처럼 체력 0이어도 살아남는 효과가 있다.
@@ -144,7 +160,7 @@ export function BattleReportModal({ game, report, viewerId, onClose, lossSound =
     <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="전투 결과">
       <div className="modal">
         <h2>
-          ⚔ 전투 결과 — {civById(att.civId).name}(공격) vs {civById(def.civId).name}(수비)
+          ⚔ 전투 결과 — {civById(att.civId).name}({ATTACK_TITLE[report.kind]}) vs {civById(def.civId).name}(수비)
         </h2>
         <p className="muted">
           {kind} · 목표 타일: {report.terrains.length ? report.terrains.join('·') : '?'}
