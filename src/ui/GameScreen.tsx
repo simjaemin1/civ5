@@ -7,6 +7,7 @@ import { CivInspector } from './CivInspector'
 import { InfoTabs } from './InfoTabs'
 import { SidePanel } from './SidePanel'
 import { usePrefs } from './prefsStore'
+import { useGameSounds } from './sounds'
 import { autoSkipAction } from './autoSkip'
 import type { Seat } from './SetupScreen'
 import { ICON } from './format'
@@ -55,6 +56,7 @@ export function GameScreen({ initial, seats, onExit }: Props) {
   const [revealed, setRevealed] = useState('')
   const [autoNote, setAutoNote] = useState('')
   const { prefs, set: setPrefs } = usePrefs()
+  useGameSounds(game)
   const speed = prefs.aiSpeed
   const [saveFailed, setSaveFailed] = useState(false)
   // 전투 결과 장면: 아직 확인하지 않은 가장 최근 전투가 있으면 띄운다 (되돌리기·불러오기로 줄어들면 다시 띄우지 않는다)
@@ -282,6 +284,9 @@ export function GameScreen({ initial, seats, onExit }: Props) {
             <div className="settings-menu">
             <label title="패널의 안내문을 보이거나 숨깁니다">
               <input type="checkbox" checked={prefs.help} onChange={(e) => setPrefs({ help: e.target.checked })} /> 안내문
+            </label>
+            <label title="선전포고·문화로 새 타일·새 시대·새 정책·새 기술 효과음">
+              <input type="checkbox" checked={prefs.sound} onChange={(e) => setPrefs({ sound: e.target.checked })} /> 효과음
             </label>
             <label title="연구·생산에서 고를 것이 전혀 없으면 자동으로 넘깁니다">
               <input type="checkbox" checked={prefs.autoSkip} onChange={(e) => setPrefs({ autoSkip: e.target.checked })} /> 할 일 없으면 넘기기

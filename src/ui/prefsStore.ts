@@ -6,8 +6,10 @@ export interface Prefs {
   autoSkip: boolean
   /** AI 한 행동 사이 간격 (ms) */
   aiSpeed: number
+  /** 효과음 (선전포고·새 타일·새 시대·새 정책·새 기술) */
+  sound: boolean
 }
-export const DEFAULT_PREFS: Prefs = { help: true, autoSkip: false, aiSpeed: 300 }
+export const DEFAULT_PREFS: Prefs = { help: true, autoSkip: false, aiSpeed: 300, sound: true }
 
 export const PrefsCtx = createContext<{ prefs: Prefs; set: (p: Partial<Prefs>) => void }>({ prefs: DEFAULT_PREFS, set: () => {} })
 

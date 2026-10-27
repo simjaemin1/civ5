@@ -12,6 +12,7 @@ import { ICON } from '../ui/format'
 import { useEnterHotkey, useTurnTitle } from '../ui/hooks'
 import { CityTag, Icon } from '../ui/icons'
 import { usePrefs } from '../ui/prefsStore'
+import { useGameSounds } from '../ui/sounds'
 import { BattlePanel } from '../ui/panels/BattlePanel'
 import { ChoicesPanel } from '../ui/panels/ChoicesPanel'
 import { DeclarePanel } from '../ui/panels/DeclarePanel'
@@ -61,6 +62,7 @@ export function OnlineGameScreen({ online, onExit }: Props) {
   const [seenBattle, setSeenBattle] = useState<number | null>(null)
   const [autoNote, setAutoNote] = useState('')
   const { prefs, set: setPrefs } = usePrefs()
+  useGameSounds(game)
   // 되돌린 직후에는 자동 넘기기를 멈춘다 (되돌리자마자 다시 넘어가지 않게). 같은 상태에 두 번 보내지 않게 보낸 seq를 기억한다
   const autoPaused = useRef(false)
   const autoSentSeq = useRef(-1)
@@ -217,7 +219,10 @@ export function OnlineGameScreen({ online, onExit }: Props) {
               <label title="패널의 안내문을 보이거나 숨깁니다">
                 <input type="checkbox" checked={prefs.help} onChange={(e) => setPrefs({ help: e.target.checked })} /> 안내문
               </label>
-              <label title="연구·생산에서 고를 것이 전혀 없으면 자동으로 넘깁니다">
+              <label title="선전포고·문화로 새 타일·새 시대·새 정책·새 기술 효과음">
+              <input type="checkbox" checked={prefs.sound} onChange={(e) => setPrefs({ sound: e.target.checked })} /> 효과음
+            </label>
+            <label title="연구·생산에서 고를 것이 전혀 없으면 자동으로 넘깁니다">
                 <input type="checkbox" checked={prefs.autoSkip} onChange={(e) => setPrefs({ autoSkip: e.target.checked })} /> 할 일 없으면 넘기기
               </label>
               {you.host && (
