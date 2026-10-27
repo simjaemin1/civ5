@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { CityTag } from './icons'
+import { cityGrid } from './cityLayout'
 import type { City, GameState, Player, Side } from '../engine'
 import { civById } from '../engine'
 import { TileView } from './TileView'
 import type { TileBadge } from './TileView'
-import { SIDE_LABEL } from './format'
 
 interface Props {
   game: GameState
@@ -67,7 +67,7 @@ function CityBoard({ game, player, city, placed, generalPlaced, onTileClick, isD
   const onTiles = placed ? city.tiles.filter((t) => placed.has(t.card.id)).length : city.placed.length + (city.enemyPlaced?.length ?? 0)
   const unplaced = Math.max(0, city.workers - onTiles)
   const side = (s: Side) => city.tiles.find((t) => t.role === 'side' && t.side === s)
-  const extras = city.tiles.filter((t) => t.role === 'extra')
+  const grid = cityGrid(city, side)
   return (
     <section
       className={`city${onCityDrop ? ' drop-zone' : ''}${over ? ' over' : ''}`}
@@ -95,14 +95,13 @@ function CityBoard({ game, player, city, placed, generalPlaced, onTileClick, isD
         <small className={unplaced > 0 ? 'unplaced' : ''}> (미배치 {unplaced})</small>
         {cityNote && <small className="city-note"> {cityNote(city)}</small>}
       </h3>
-      <div className="cross">
-        <div className="c-n">{render(side('N'), SIDE_LABEL.N)}</div>
-        <div className="c-w">{render(side('W'), SIDE_LABEL.W)}</div>
-        <div className="c-c">{render(city.tiles.find((t) => t.role === 'city'))}</div>
-        <div className="c-e">{render(side('E'), SIDE_LABEL.E)}</div>
-        <div className="c-s">{render(side('S'), SIDE_LABEL.S)}</div>
+      <div className="city-grid" style={{ gridTemplateColumns: `repeat(${grid.cols}, minmax(84px, 118px))` }}>
+        {grid.cells.map((c) => (
+          <div key={c.key} style={{ gridColumn: c.col, gridRow: c.row }}>
+            {c.tile ? render(c.tile) : render(undefined, c.label)}
+          </div>
+        ))}
       </div>
-      {extras.length > 0 && <div className="extras">{extras.map((t) => <div key={t.card.id}>{render(t)}</div>)}</div>}
     </section>
   )
 }

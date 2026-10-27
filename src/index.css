@@ -93,6 +93,7 @@ summary { cursor: pointer; font-weight: 600; }
   grid-template-areas: '. n .' 'w c e' '. s .';
 }
 .c-n { grid-area: n; } .c-w { grid-area: w; } .c-c { grid-area: c; } .c-e { grid-area: e; } .c-s { grid-area: s; }
+.city-grid { display: grid; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
 .extras { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .extras > div { width: 118px; max-width: 100%; }
 .tile {
