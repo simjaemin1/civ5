@@ -7,7 +7,7 @@ import { CivEmblem } from './CivEmblem'
 import { TechTreeButton } from './TechTreeButton'
 import { CivInspector } from './CivInspector'
 import { InfoTabs } from './InfoTabs'
-import { InfoDock } from './InfoDock'
+import { SidePanel } from './SidePanel'
 import { usePrefs } from './prefsStore'
 import { useGameSounds } from './sounds'
 import { autoSkipAction } from './autoSkip'
@@ -306,7 +306,7 @@ export function GameScreen({ initial, seats, onExit }: Props) {
           </details>
           <button onClick={onExit}>나가기</button>
           <TechTreeButton player={player} />
-          <CivEmblem civId={player.civId} />
+          <CivEmblem game={game} player={player} seats={seats} actor={actor} />
         </div>
       </header>
       {error && <div className="error banner-error">⚠ {error}</div>}
@@ -336,7 +336,7 @@ export function GameScreen({ initial, seats, onExit }: Props) {
           {showBoard && <Board game={game} player={player} />}
           {actorSeat.ai && !over && <Board game={game} player={player} />}
         </div>
-        <InfoDock game={game} seats={seats} actor={actor} viewer={viewer} player={player} />
+        <SidePanel game={game} seats={seats} actor={actor} viewer={viewer} />
       </div>
       <CivInspector game={game} seats={seats} actor={actor} />
       <InfoTabs game={game} viewer={player.id} />

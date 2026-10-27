@@ -1,4 +1,4 @@
-import { useEffect, useSyncExternalStore } from 'react'
+import { useEffect } from 'react'
 
 /** 탭 제목으로 차례를 알린다 (다른 창을 보고 있어도 보이게). 핫시트와 온라인이 함께 쓴다 */
 export function useTurnTitle(title: string): void {
@@ -27,15 +27,4 @@ export function useEnterHotkey(): void {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [])
-}
-
-/** 오른쪽 정보 칸에 문명 카드·기술표를 펼쳐 둘 만큼 넓은 화면인지 */
-export const WIDE_QUERY = '(min-width: 1200px)'
-const subscribeWide = (cb: () => void) => {
-  const m = window.matchMedia?.(WIDE_QUERY)
-  m?.addEventListener('change', cb)
-  return () => m?.removeEventListener('change', cb)
-}
-export function useWide(): boolean {
-  return useSyncExternalStore(subscribeWide, () => !!window.matchMedia?.(WIDE_QUERY).matches, () => false)
 }

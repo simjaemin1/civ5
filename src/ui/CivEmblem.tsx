@@ -1,22 +1,20 @@
 import { useEffect, useState } from 'react'
+import type { GameState, Player } from '../engine'
 import { civById } from '../engine'
 import { CivCard } from './cards/CivCard'
 import { civEmblem } from './civEmblems'
-import { useWide } from './hooks'
-import { usePrefs } from './prefsStore'
+import { TechTree } from './InfoTabs'
+import { TurnOrder } from './SidePanel'
 
 /**
- * 화면 오른쪽 위의 문명 기호. 누르면 문명 카드(능력·시작 값·고유 유닛)가 크게 뜬다.
+ * 화면 오른쪽 위의 문명 기호. 누르면 "내 문명 자세히" 창이 맨 위에서 화면 위에 겹쳐 뜬다 (아래 내용이 밀리지 않는다).
+ * 창에는 문명 카드, 차례 순서, 기술표가 있다. 다시 누르거나 닫기, Esc로 닫는다.
  * 기호 그림이 없는 문명은 이름 첫 글자로 대신한다.
- * 넓은 화면에서는 오른쪽 정보 칸에 문명 카드가 늘 펼쳐져 있고, 이 버튼은 그 카드를 켜고 끈다.
  */
-export function CivEmblem({ civId }: { civId: string }) {
-  const wide = useWide()
-  const { prefs, set } = usePrefs()
-  const [modal, setOpen] = useState(false)
-  const open = modal && !wide
-  const civ = civById(civId)
-  const img = civEmblem(civId)
+export function CivEmblem({ game, player, seats, actor }: { game: GameState; player: Player; seats: { ai: boolean }[]; actor: number }) {
+  const [open, setOpen] = useState(false)
+  const civ = civById(player.civId)
+  const img = civEmblem(player.civId)
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
@@ -26,22 +24,26 @@ export function CivEmblem({ civId }: { civId: string }) {
   return (
     <>
       <button
-        className={`civ-emblem${wide && prefs.dockCiv ? ' on' : ''}`}
-        onClick={() => (wide ? set({ dockCiv: !prefs.dockCiv }) : setOpen(true))}
-        title={wide ? `${civ.name} — 문명 카드 ${prefs.dockCiv ? '접기' : '펼치기'} (오른쪽 정보 칸)` : `${civ.name} — 눌러서 문명 정보 보기`}
+        className={`civ-emblem${open ? ' on' : ''}`}
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        title={`${civ.name} — 눌러서 내 문명 자세히 보기`}
         aria-label={`${civ.name} 문명 정보`}
-        aria-expanded={wide ? prefs.dockCiv : undefined}
       >
         {img ? <img src={img} alt="" draggable={false} /> : <span>{civ.name.slice(0, 1)}</span>}
       </button>
       {open && (
-        <div className="modal-backdrop" onClick={() => setOpen(false)} role="dialog" aria-modal="true" aria-label={`${civ.name} 문명 정보`}>
-          <div className="zoom" onClick={(e) => e.stopPropagation()}>
-            <CivCard civId={civId} width={Math.min(720, window.innerWidth - 48)} zoomable={false} />
-            <button className="primary" autoFocus onClick={() => setOpen(false)}>
-              닫기
-            </button>
+        <div className="civ-float" role="dialog" aria-label={`${civ.name} 자세히`}>
+          <div className="tree-overlay-head">
+            <b>{civ.name} 자세히</b>
+            <button onClick={() => setOpen(false)}>닫기 ✕</button>
           </div>
+          <div className="civ-float-top">
+            <CivCard civId={player.civId} width={Math.min(320, window.innerWidth - 48)} />
+            <TurnOrder game={game} seats={seats} actor={actor} />
+          </div>
+          <h4>기술표 (선행 → 후행)</h4>
+          <TechTree player={player} />
         </div>
       )}
     </>

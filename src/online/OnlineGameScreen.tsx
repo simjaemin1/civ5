@@ -7,7 +7,7 @@ import { CivEmblem } from '../ui/CivEmblem'
 import { TechTreeButton } from '../ui/TechTreeButton'
 import { CivInspector } from '../ui/CivInspector'
 import { InfoTabs } from '../ui/InfoTabs'
-import { InfoDock } from '../ui/InfoDock'
+import { SidePanel } from '../ui/SidePanel'
 import { TurnSteps } from '../ui/TurnSteps'
 import { autoSkipAction } from '../ui/autoSkip'
 import { ICON } from '../ui/format'
@@ -226,7 +226,7 @@ export function OnlineGameScreen({ online, onExit }: Props) {
           </details>
           <button onClick={onExit}>나가기</button>
           <TechTreeButton player={me} />
-          <CivEmblem civId={me.civId} />
+          <CivEmblem game={game} player={me} seats={seats} actor={actor} />
         </div>
       </header>
       {error && (
@@ -260,7 +260,7 @@ export function OnlineGameScreen({ online, onExit }: Props) {
           {showBoard && <Board game={game} player={me} />}
           {!mine && !over && me.cities.length > 0 && <Board game={game} player={me} />}
         </div>
-        <InfoDock game={game} seats={seats} actor={actor} viewer={me.id} player={me} />
+        <SidePanel game={game} seats={seats} actor={actor} viewer={me.id} />
       </div>
       <CivInspector game={game} seats={seats} actor={actor} />
       <InfoTabs game={game} viewer={me.id} />
