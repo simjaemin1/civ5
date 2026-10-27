@@ -37,6 +37,37 @@ describe('효과음', () => {
     expect(soundsFor(s, s)).toEqual([])
   })
 
+  it('불가사의: 지은 사람은 완성 소리, 나머지는 다른 문명 소리', () => {
+    const s = base()
+    const built = next(s, ['한국 제우스상 완성'], (c) => (c.wonderOwners.statue_of_zeus = 0))
+    expect(soundsFor(s, built, 0)).toEqual(['wonderMine'])
+    expect(soundsFor(s, built, 1)).toEqual(['wonderOther'])
+    // 이미 있던 불가사의는 다시 소리를 내지 않는다
+    expect(soundsFor(built, next(built, ['x']), 1)).toEqual([])
+  })
+
+  it('내 차례가 시작될 때 내 타일 위에 상대 장군이 있으면 경고 소리', () => {
+    let s = base()
+    s = next(s, [], (c) => {
+      c.phase = 'place'
+      c.turnIdx = 0
+      c.players[c.order[0]].cities = [{ id: 0, tiles: [{ card: { id: 1, terrains: ['평지'] }, role: 'city' }, { card: { id: 2, terrains: ['숲'] }, role: 'side', side: 'N', occupiedBy: c.order[1] }], workers: 1, placed: [], openSides: [] } as never]
+    })
+    const me = s.order[0]
+    const moved = next(s, ['x'], (c) => { c.turnIdx = 1 })
+    const back = next(moved, ['y'], (c) => { c.turnIdx = 0; c.round = 2 })
+    expect(soundsFor(moved, back, me)).toEqual(['enemyBorder'])
+    expect(soundsFor(moved, back, s.order[1])).toEqual([])
+  })
+
+  it('전쟁에서 내 군사 카드가 파괴되면 소리', () => {
+    const s = base()
+    const report = (owner: number, destroyed: boolean) => ({ seq: 1, units: [{ owner, destroyed }] }) as never
+    const lost = next(s, ['전투 결과'], (c) => { c.battleReports = [report(0, true)] })
+    expect(soundsFor(s, lost, 0)).toEqual(['killed'])
+    expect(soundsFor(s, lost, 1)).toEqual([])
+  })
+
   it('시대 구분: 고대 1~3열, 중세 4~5열, 산업 6~8열, 현대 9~10열', () => {
     expect([1, 3, 4, 5, 6, 8, 9, 10].map(eraOfColumn)).toEqual([0, 0, 1, 1, 2, 2, 3, 3])
   })

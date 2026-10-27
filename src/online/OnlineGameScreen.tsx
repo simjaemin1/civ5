@@ -62,7 +62,7 @@ export function OnlineGameScreen({ online, onExit }: Props) {
   const [seenBattle, setSeenBattle] = useState<number | null>(null)
   const [autoNote, setAutoNote] = useState('')
   const { prefs, set: setPrefs } = usePrefs()
-  useGameSounds(game)
+  useGameSounds(game, game?.viewer)
   // 되돌린 직후에는 자동 넘기기를 멈춘다 (되돌리자마자 다시 넘어가지 않게). 같은 상태에 두 번 보내지 않게 보낸 seq를 기억한다
   const autoPaused = useRef(false)
   const autoSentSeq = useRef(-1)

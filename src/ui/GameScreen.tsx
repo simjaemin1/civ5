@@ -56,7 +56,6 @@ export function GameScreen({ initial, seats, onExit }: Props) {
   const [revealed, setRevealed] = useState('')
   const [autoNote, setAutoNote] = useState('')
   const { prefs, set: setPrefs } = usePrefs()
-  useGameSounds(game)
   const speed = prefs.aiSpeed
   const [saveFailed, setSaveFailed] = useState(false)
   // 전투 결과 장면: 아직 확인하지 않은 가장 최근 전투가 있으면 띄운다 (되돌리기·불러오기로 줄어들면 다시 띄우지 않는다)
@@ -74,6 +73,7 @@ export function GameScreen({ initial, seats, onExit }: Props) {
   const [lastHuman, setLastHuman] = useState(() => seats.findIndex((x) => !x.ai))
   if (!actorSeat.ai && lastHuman !== actor) setLastHuman(actor)
   const viewer = !actorSeat.ai || lastHuman < 0 ? actor : lastHuman
+  useGameSounds(game, viewer)
 
   // 비공개 정보(손에 든 타일, 군사 카드)가 있으므로 사람 자리가 바뀌면 가림막을 보여 준다
   const curtainKey = `${actor}:${game.round}:${game.battle ? `${game.battle.decl.attackerId}-${game.battle.decl.defenderId}-${game.battle.step}` : game.phase === 'battle' ? 'b' : 't'}`
