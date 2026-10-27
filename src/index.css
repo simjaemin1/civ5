@@ -540,3 +540,7 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
 /* 기록의 라운드 표시: 라운드가 바뀌는 줄에만 [R4], 이어지면 - (글 시작을 맞춘다) */
 .log-r { display: inline-block; min-width: 2.6em; color: var(--muted); }
 .prog-on { color: var(--ink); font-weight: 800; }
+.peek-tabs { margin: 0; }
+/* 시점 문명을 바꾸면 내용이 살짝 나타난다 */
+.peek-body { animation: peek-in 0.22s ease-out; }
+@keyframes peek-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }

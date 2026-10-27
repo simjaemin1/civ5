@@ -243,7 +243,7 @@ export function OnlineGameScreen({ online, onExit }: Props) {
       <div className="game-body">
         <div className="main">
           {peekId !== null ? (
-            <CivPeek game={game} id={peekId} actor={actor} onBack={() => setPeek(null)} />
+            <CivPeek game={game} id={peekId} actor={actor} />
           ) : (
             <>
           <div className="stats">
