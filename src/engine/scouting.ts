@@ -1,8 +1,7 @@
 import type { GameState, Player } from './types'
 import { RuleError } from './types'
 import { WONDERS, civById } from './data'
-import { gainCulture, say } from './core'
-import { shuffle } from './rng'
+import { gainCulture, returnToDeck, say } from './core'
 import { totalWorkers } from './yields'
 
 /** 선전포고·정찰 등에 쓸 수 있는, 타일에 올리지 않은 일꾼 수 */
@@ -38,8 +37,7 @@ export function holdScouted(s: GameState, p: Player): void {
 
 export function releaseHeld(s: GameState, p: Player): void {
   if (!p.held) throw new RuleError('맡아둔 타일이 없습니다')
-  s.deck.push(p.held)
-  shuffle(s, s.deck)
+  returnToDeck(s, p.held)
   p.held = null
   p.scouting = false // 일꾼이 돌아온다
 }
@@ -47,8 +45,7 @@ export function releaseHeld(s: GameState, p: Player): void {
 /** 차례가 끝날 때 본 카드를 덱에 돌려넣고 섞는다 */
 export function endScouting(s: GameState, p: Player): void {
   if (p.scouted) {
-    s.deck.push(p.scouted)
-    shuffle(s, s.deck)
+    returnToDeck(s, p.scouted)
     p.scouted = null
   }
   p.scouting = false

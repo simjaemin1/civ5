@@ -1,8 +1,6 @@
 import { useState } from 'react'
-import { cardStats, civById, targetSlot, usableInBattle } from '../../engine'
+import { cardStats, civById, usableInBattle } from '../../engine'
 import type { CardInst, GameState, Player } from '../../engine'
-import { ArrowLayer } from '../ArrowLayer'
-import type { Arrow } from '../ArrowLayer'
 import { UnitCard } from '../cards/UnitCard'
 import { cardText } from '../format'
 import type { PanelProps } from './types'
@@ -186,7 +184,7 @@ function Arrange({ game, me, enemy, dispatch }: { game: GameState; me: Player; e
 }
 
 /** 4칸 배치. mirror: 상대 쪽 줄 — 마주 보도록 칸 순서를 거꾸로 놓고 카드도 180도 뒤집어 보여 준다. */
-function Board4({ game, pid, mirror }: { game: GameState; pid: number; mirror?: boolean }) {
+export function Board4({ game, pid, mirror }: { game: GameState; pid: number; mirror?: boolean }) {
   const b = game.battle!
   const p = game.players[pid]
   const slots = b.slots[pid] ?? []
@@ -214,30 +212,16 @@ function Choose({ game, me, enemy, dispatch }: { game: GameState; me: Player; en
   const head = b.chooseQueue[0]
   const [picks, setPicks] = useState<Record<number, number | null>>({})
   const enemyBoard = (b.slots[enemy.id] ?? []).map((u, i) => ({ u, i })).filter((x): x is { u: number; i: number } => x.u !== null)
-  const MINE = '#1a7f37'
-  const THEIRS = '#c62828'
   /** 칸에 놓인 카드의 번호(1~4), 없으면 0 */
   const slotOf = (pid: number, uid: number) => (b.slots[pid] ?? []).indexOf(uid) + 1
-  const arrows: Arrow[] = []
   const enemyPickNotes: string[] = []
   for (const pl of [me, enemy]) {
-    const opp = pl.id === me.id ? enemy : me
     ;(b.slots[pl.id] ?? []).forEach((uid, idx) => {
       if (uid === null) return
       const inst = pl.military.find((m) => m.uid === uid)
       if (!inst) return
       const st = cardStats(inst)
-      const color = pl.id === me.id ? MINE : THEIRS
-      for (const m of st.marks) {
-        const j = targetSlot(m.dir, idx + 1)
-        if (j >= 1 && j <= 4) arrows.push({ from: `${pl.id}:${idx + 1}`, to: `${opp.id}:${j}`, color, label: String(m.power) })
-      }
       if (st.choose !== undefined) {
-        const target = pl.id === me.id ? picks[uid] : b.picks[uid]
-        if (typeof target === 'number') {
-          const j = slotOf(opp.id, target)
-          if (j) arrows.push({ from: `${pl.id}:${idx + 1}`, to: `${opp.id}:${j}`, color, label: String(st.choose), dashed: pl.id === me.id, bold: pl.id !== me.id })
-        }
         if (pl.id !== me.id) {
           const t = b.picks[uid]
           const tj = typeof t === 'number' ? slotOf(me.id, t) : 0
@@ -253,13 +237,11 @@ function Choose({ game, me, enemy, dispatch }: { game: GameState; me: Player; en
     <>
       <p>카드가 공개되었습니다. 대상을 고르는 카드는 우선도가 높은 쪽부터 대상을 고릅니다 (코사크는 모두 고른 뒤에).</p>
       <p className="muted">
-        위쪽이 상대 카드(마주 보도록 뒤집어 놓음), 아래쪽이 내 카드입니다. 화살표는 공격 방향입니다: <b style={{ color: MINE }}>초록 = 내 공격</b>, <b style={{ color: THEIRS }}>빨강 = 상대 공격</b> (점선 = 아직 확정 전, 숫자 = 전투력).
+        위쪽이 상대 카드(마주 보도록 뒤집어 놓음), 아래쪽이 내 카드입니다. 공격 방향과 전투력은 카드에 그려진 마크를 보세요.
       </p>
-      <ArrowLayer arrows={arrows}>
-        <Board4 game={game} pid={enemy.id} mirror />
-        <div style={{ height: 36 }} />
-        <Board4 game={game} pid={me.id} />
-      </ArrowLayer>
+      <Board4 game={game} pid={enemy.id} mirror />
+      <div style={{ height: 36 }} />
+      <Board4 game={game} pid={me.id} />
       {enemyPickNotes.map((t) => (
         <p key={t} className="enemy-pick">
           👁 {t}

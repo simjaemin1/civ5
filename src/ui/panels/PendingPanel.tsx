@@ -25,22 +25,27 @@ export function PendingPanel({ game, player, dispatch }: PanelProps) {
   const workers = totalWorkers(player)
   const cap = player.cities.length ? happiness(player) : 0
   // 전통: 일꾼이 3개 이상이면 자동으로 "일꾼 3개 버리고 문화 2"로 처리한다. 버릴 도시는 도시를 눌러 한 명씩 고른다.
-  const [trad, setTrad] = useState<Record<number, number> | null>(null)
-  const taken = trad ? Object.values(trad).reduce((n, v) => n + v, 0) : 0
-  const choose = (id: PolicyId, discard?: { cityId: number; count: number }[]) => {
+  // 체제: 행복 한도 안에서 일꾼을 최대 3개 얻는다. 일꾼 1개마다 붙일 도시를 눌러 고른다 (도시가 하나면 바로 처리).
+  const [alloc, setAlloc] = useState<{ policy: 'tradition' | 'regime'; need: number; counts: Record<number, number> } | null>(null)
+  const taken = alloc ? Object.values(alloc.counts).reduce((n, v) => n + v, 0) : 0
+  const choose = (id: PolicyId, extra?: { discard?: { cityId: number; count: number }[]; addWorkers?: { cityId: number; count: number }[] }) => {
     const [cityId, tileId] = dismiss ? dismiss.split(':').map(Number) : []
-    dispatch({ type: 'choosePolicy', policy: id, discard, dismiss: id === 'diplomacy' && dismiss ? { cityId, tileId } : undefined })
+    dispatch({ type: 'choosePolicy', policy: id, ...extra, dismiss: id === 'diplomacy' && dismiss ? { cityId, tileId } : undefined })
   }
+  const regimeGain = Math.min(3, Math.max(0, cap - workers))
   const pick = (id: PolicyId) => {
-    if (id === 'tradition' && workers >= 3) setTrad({})
+    if (id === 'tradition' && workers >= 3) setAlloc({ policy: 'tradition', need: 3, counts: {} })
+    else if (id === 'regime' && regimeGain > 0 && player.cities.length > 1) setAlloc({ policy: 'regime', need: regimeGain, counts: {} })
     else choose(id)
   }
-  const discardOne = (cityId: number) => {
-    const next = { ...(trad ?? {}), [cityId]: ((trad ?? {})[cityId] ?? 0) + 1 }
-    setTrad(next)
-    if (Object.values(next).reduce((n, v) => n + v, 0) === 3) {
-      setTrad(null)
-      choose('tradition', Object.entries(next).map(([id, count]) => ({ cityId: Number(id), count })))
+  const allocOne = (cityId: number) => {
+    if (!alloc) return
+    const counts = { ...alloc.counts, [cityId]: (alloc.counts[cityId] ?? 0) + 1 }
+    setAlloc({ ...alloc, counts })
+    if (Object.values(counts).reduce((n, v) => n + v, 0) === alloc.need) {
+      setAlloc(null)
+      const list = Object.entries(counts).map(([id, count]) => ({ cityId: Number(id), count }))
+      choose(alloc.policy, alloc.policy === 'tradition' ? { discard: list } : { addWorkers: list })
     }
   }
   return (
@@ -53,6 +58,21 @@ export function PendingPanel({ game, player, dispatch }: PanelProps) {
           label="인쇄기술: 두 번째 도시 세우기 (문화 4)"
           onBuild={(cityTileId, sideTiles) => dispatch({ type: 'buildSecondCity', cityTileId, sideTiles })}
         />
+      )}
+      {player.policyOffer && (
+        <div className="panel">
+          <h3>과학이론: 정책을 {policyName(player.policyOffer)}(으)로 바꾸시겠습니까?</h3>
+          <p className="muted">
+            얻은 시점에 한 번만 정할 수 있습니다. 바꾸지 않으면 지금 정책({policyName(player.policy)})이 그대로 이어지고 아무 효과도 다시 발동하지 않습니다.
+          </p>
+          <div className="row">
+            <PolicyCard policy={player.policyOffer} width={150} onClick={() => dispatch({ type: 'policyOffer', accept: true })} />
+            <button className="primary" onClick={() => dispatch({ type: 'policyOffer', accept: true })}>
+              {policyName(player.policyOffer)}(으)로 바꾸기
+            </button>
+            <button onClick={() => dispatch({ type: 'policyOffer', accept: false })}>바꾸지 않기 (지금 정책 유지)</button>
+          </div>
+        </div>
       )}
       {player.pendingPolicies > 0 && (
         <div className="panel">
@@ -79,19 +99,31 @@ export function PendingPanel({ game, player, dispatch }: PanelProps) {
               <div key={id} className="policy-pick">
                 <PolicyCard policy={id} width={150} active={player.policy === id} onClick={() => pick(id)} />
                 {id === 'tradition' && <small className="muted">{workers >= 3 ? '고르면 일꾼 3개를 버리고 문화 2' : `일꾼 ${workers}개라 문화 2는 못 받음`}</small>}
+                {id === 'regime' && <small className="muted">{regimeGain > 0 ? `고르면 일꾼 ${regimeGain}개를 얻고, 붙일 도시를 1개씩 고릅니다` : '행복 한도가 차서 일꾼은 못 얻음'}</small>}
               </div>
             ))}
           </div>
-          {trad && (
+          {alloc && (
             <div className="panel">
-              <h4>전통: 일꾼 3개를 버리고 문화 2를 얻습니다 — 버릴 도시를 {3 - taken}번 더 누르세요</h4>
+              <h4>
+                {alloc.policy === 'tradition'
+                  ? `전통: 일꾼 3개를 버리고 문화 2를 얻습니다 — 버릴 도시를 ${alloc.need - taken}번 더 누르세요`
+                  : `체제: 일꾼 ${alloc.need}개를 얻습니다 — 일꾼을 붙일 도시를 ${alloc.need - taken}번 더 누르세요 (한 번에 1개)`}
+              </h4>
               <div className="row">
-                {player.cities.map((c) => (
-                  <button key={c.id} disabled={(trad[c.id] ?? 0) >= c.workers} onClick={() => discardOne(c.id)}>
-                    <CityTag id={c.id} /> 일꾼 {c.workers - (trad[c.id] ?? 0)}명 <small>(누르면 1명 버림)</small>
-                  </button>
-                ))}
-                <button onClick={() => setTrad(null)}>취소</button>
+                {player.cities.map((c) => {
+                  const n = alloc.counts[c.id] ?? 0
+                  return alloc.policy === 'tradition' ? (
+                    <button key={c.id} disabled={n >= c.workers} onClick={() => allocOne(c.id)}>
+                      <CityTag id={c.id} /> 일꾼 {c.workers - n}명 <small>(누르면 1명 버림)</small>
+                    </button>
+                  ) : (
+                    <button key={c.id} onClick={() => allocOne(c.id)}>
+                      <CityTag id={c.id} /> 일꾼 {c.workers + n}명 {n > 0 && <small>(+{n})</small>} <small>(누르면 1명 추가)</small>
+                    </button>
+                  )
+                })}
+                <button onClick={() => setAlloc(null)}>취소</button>
               </div>
             </div>
           )}

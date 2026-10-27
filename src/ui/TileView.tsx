@@ -45,7 +45,12 @@ export function TileView({ card, player, badge, selected, disabled, onClick, hin
     <div className="tile-badges">
       {badge?.worker && <Icon name="worker" size={24} title="일꾼" />}
       {badge?.general && <Icon name="general" size={24} title="위대한 장군(스웨덴)" />}
-      {badge?.occupiedBy && <span title="점령됨">🚩{badge.occupiedBy}</span>}
+      {badge?.occupiedBy && (
+        <span className="occupier" title={`${badge.occupiedBy}의 위대한 장군이 점령 중`}>
+          <Icon name="general" size={24} />
+          <small>{badge.occupiedBy}</small>
+        </span>
+      )}
     </div>
   )
   const target = badge?.target && (

@@ -26,6 +26,7 @@ import { ResearchPanel } from '../ui/panels/ResearchPanel'
 import { ScoutBox } from '../ui/panels/ScoutBox'
 import { SetupPanel } from '../ui/panels/SetupPanel'
 import { TilePlacer } from '../ui/panels/TilePlacer'
+import { BattleWatch, TurnWatch } from './TurnWatch'
 import type { OnlineRoom } from './useOnlineRoom'
 
 const PHASE: Record<GameView['phase'], string> = {
@@ -59,7 +60,8 @@ export function OnlineGameScreen({ online, onExit }: Props) {
   const { view: game, room, you, send, error, undo, seq } = online
   const prev = useRef<GameView | null>(null)
   const [notice, setNotice] = useState<string[]>([])
-  const [seenBattle, setSeenBattle] = useState<number | null>(null)
+  // 접속한 시점까지의 전투는 이미 본 것으로 치고, 그 뒤에 끝난 전투부터 장면을 보여 준다 (렌더 때마다 새로 계산하면 영영 안 뜬다)
+  const [seenBattle, setSeenBattle] = useState<number>(() => online.view?.battleReports?.at(-1)?.seq ?? 0)
   const [autoNote, setAutoNote] = useState('')
   const { prefs, set: setPrefs } = usePrefs()
   useGameSounds(game, game?.viewer)
@@ -111,8 +113,7 @@ export function OnlineGameScreen({ online, onExit }: Props) {
 
   // 전투 결과: 한 번에 여러 개 끝나도 오래된 것부터 하나씩. 접속한 시점까지의 전투는 이미 본 것으로 친다
   const reports = game.battleReports ?? []
-  const seen = seenBattle ?? (reports.length ? reports[reports.length - 1].seq : 0)
-  const pendingReport = reports.find((r) => r.seq > seen) ?? null
+  const pendingReport = reports.find((r) => r.seq > seenBattle) ?? null
 
   const actor = actorOf(game)
   const actorPlayer = game.players[actor]
@@ -129,26 +130,16 @@ export function OnlineGameScreen({ online, onExit }: Props) {
   } else if (!mine) {
     const b = game.battle
     main = (
-      <div className="panel waiting" data-testid="waiting">
-        <h3>
-          ⏳ {civById(actorPlayer.civId).name}({seats[actor]?.name}){seats[actor]?.ai ? ' 🤖' : ''} — {PHASE[game.phase]} 기다리는 중…
-        </h3>
-        {seats[actor] && !seats[actor].ai && !seats[actor].connected && <p className="error">접속이 끊겨 있습니다. 돌아올 때까지 기다립니다.</p>}
-        {game.phase === 'battle' && b && (
-          <p className="muted">
-            {civById(game.players[b.decl.attackerId].civId).name} vs {civById(game.players[b.decl.defenderId].civId).name}{' '}
-            {b.step === 'arrange'
-              ? [b.decl.attackerId, b.decl.defenderId].map((id) => `${civById(game.players[id].civId).name} ${b.slots[id] ? '배치 완료' : '배치 중'}`).join(' · ')
-              : '— 대상 선택 중'}
-          </p>
-        )}
-        <div className="log small">
-          {game.log.slice(-6).reverse().map((l, i) => (
-            <div key={i}>{l.replace(/^\[R\d+\] /, '')}</div>
-          ))}
+      <>
+        <div className="panel waiting" data-testid="waiting">
+          <h3>
+            ⏳ {civById(actorPlayer.civId).name}({seats[actor]?.name}){seats[actor]?.ai ? ' 🤖' : ''} — {PHASE[game.phase]} 기다리는 중…
+          </h3>
+          {seats[actor] && !seats[actor].ai && !seats[actor].connected && <p className="error">접속이 끊겨 있습니다. 돌아올 때까지 기다립니다.</p>}
+          <small className="muted">내 차례가 오면 탭 제목에 ▶ 표시가 붙습니다. 아래에서 상대가 하는 일을 볼 수 있습니다.</small>
         </div>
-        <small className="muted">내 차례가 오면 탭 제목에 ▶ 표시가 붙습니다.</small>
-      </div>
+        {game.phase === 'battle' && b ? <BattleWatch game={game} viewer={me.id} /> : <TurnWatch game={game} actor={actor} name={seats[actor]?.name ?? ''} />}
+      </>
     )
   } else if (me.pendingTiles?.length && ['place', 'research', 'produce', 'declare'].includes(game.phase)) {
     main = <TilePlacer game={game} player={me} dispatch={dispatch} />
@@ -264,7 +255,7 @@ export function OnlineGameScreen({ online, onExit }: Props) {
           <div className="stats">
             {me.cities.length > 0 && (
               <span>
-                나: {civById(me.civId).name} · 문화 {culture(me)} · 관광 {tourism(me)} · <Icon name="worker" size={16} /> {totalWorkers(me)}/{happiness(me)} ·{' '}
+                나: {civById(me.civId).name} · {ICON.culture} 문화 {culture(me)} · 관광 {tourism(me)} · <Icon name="worker" size={16} /> {totalWorkers(me)}/{happiness(me)} ·{' '}
                 <Icon name="general" size={16} /> {me.generals}
                 {inTurn && <span className="muted"> · Enter: 이 단계 확정</span>}
               </span>

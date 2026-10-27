@@ -84,6 +84,30 @@ describe('정책', () => {
     expect(me(t).cities[0].workers).toBe(3) // 행복 3이 한도
   })
 
+  it('체제: 도시가 둘이면 일꾼 1개씩 어느 도시에 붙일지 고른다', () => {
+    const two = () =>
+      mod(toProduce(solo()), (c) => {
+        const p = c.players[0]
+        p.pendingPolicies = 1
+        p.cities.push({ ...structuredClone(p.cities[0]), id: 1, workers: 1, placed: [] })
+      })
+    const s0 = two()
+    const gain = Math.min(3, happiness(me(s0)) - totalWorkers(me(s0)))
+    expect(gain).toBeGreaterThanOrEqual(2)
+    const before = me(s0).cities.map((c) => c.workers)
+    // 도시1에 1개, 나머지는 도시2에
+    let s = apply(s0, { type: 'choosePolicy', policy: 'regime', addWorkers: [{ cityId: 0, count: 1 }, { cityId: 1, count: gain - 1 }] })
+    expect(me(s).cities.map((c) => c.workers)).toEqual([before[0] + 1, before[1] + gain - 1])
+    // 모두 도시2에
+    s = apply(s0, { type: 'choosePolicy', policy: 'regime', addWorkers: [{ cityId: 1, count: gain }] })
+    expect(me(s).cities.map((c) => c.workers)).toEqual([before[0], before[1] + gain])
+    // 개수가 안 맞거나 없는 도시면 거절
+    expect(() => apply(s0, { type: 'choosePolicy', policy: 'regime', addWorkers: [{ cityId: 1, count: gain + 1 }] })).toThrow(RuleError)
+    expect(() => apply(s0, { type: 'choosePolicy', policy: 'regime', addWorkers: [{ cityId: 9, count: gain }] })).toThrow(RuleError)
+    // 고르지 않으면 첫 도시 (AI 기본)
+    expect(me(apply(s0, { type: 'choosePolicy', policy: 'regime' })).cities.map((c) => c.workers)).toEqual([before[0] + gain, before[1]])
+  })
+
   it('자유: 식량이 모자라도 일꾼을 잃지 않는다', () => {
     let s = mod(toProduce(solo()), (c) => {
       c.players[0].policy = 'liberty'
@@ -381,15 +405,36 @@ describe('화학·과학이론·기술 선행', () => {
     expect(computeYields(me(s)).science).toBe(before + 2)
   })
 
-  it('과학이론: 정책 1개를 합리주의로 바꾸거나 지금 정책을 다시 고르는 것만 가능', () => {
-    let s = mod(solo('korea'), (c) => { c.players[0].policy = 'tradition'; c.players[0].pendingPolicies = 0 })
-    s = toResearch(s)
-    s = mod(s, (c) => (c.players[0].techs.push('acoustics'), (c.players[0].turn!.yields.science = 99)))
-    s = apply(s, { type: 'research', techId: 'scientific_theory' })
-    expect(me(s).pendingPolicies).toBe(1)
-    expect(() => apply(s, { type: 'choosePolicy', policy: 'liberty' })).toThrow(RuleError)
-    s = apply(s, { type: 'choosePolicy', policy: 'rationalism' })
-    expect(me(s).policy).toBe('rationalism')
+  it('과학이론: 정책을 고르는 게 아니라 합리주의로 바꿀지 말지 정할 기회만 준다', () => {
+    const start = () => {
+      let s = mod(solo('korea'), (c) => { c.players[0].policy = 'tradition'; c.players[0].pendingPolicies = 0 })
+      s = toResearch(s)
+      s = mod(s, (c) => (c.players[0].techs.push('acoustics'), (c.players[0].turn!.yields.science = 99)))
+      return apply(s, { type: 'research', techId: 'scientific_theory' })
+    }
+    // 정책 선택권(pendingPolicies)이 생기지 않고, 합리주의로 바꿀 기회만 생긴다
+    let s = start()
+    expect(me(s).pendingPolicies).toBe(0)
+    expect(me(s).policyOffer).toBe('rationalism')
+    expect(() => apply(s, { type: 'choosePolicy', policy: 'rationalism' })).toThrow(RuleError)
+    // 정하기 전에는 생산을 끝낼 수 없다
+    s = mod(s, (c) => (c.phase = 'produce'))
+    expect(() => apply(s, { type: 'endProduction' })).toThrow(RuleError)
+    // 바꾸기
+    const yes = apply(s, { type: 'policyOffer', accept: true })
+    expect(me(yes).policy).toBe('rationalism')
+    expect(me(yes).policyOffer).toBeUndefined()
+    // 바꾸지 않기: 정책도 그대로, 전통의 효과가 다시 발동하지도 않는다
+    const no = apply(s, { type: 'policyOffer', accept: false })
+    expect(me(no).policy).toBe('tradition')
+    expect(me(no).policyOffer).toBeUndefined()
+    expect(me(no).turn!.skipFoodSettle).toBe(me(s).turn!.skipFoodSettle)
+    expect(() => apply(no, { type: 'policyOffer', accept: true })).toThrow(RuleError)
+    // 이미 합리주의면 바꿀 것이 없다
+    let r = mod(solo('korea'), (c) => { c.players[0].policy = 'rationalism'; c.players[0].pendingPolicies = 0 })
+    r = toResearch(r)
+    r = mod(r, (c) => (c.players[0].techs.push('acoustics'), (c.players[0].turn!.yields.science = 99)))
+    expect(me(apply(r, { type: 'research', techId: 'scientific_theory' })).policyOffer).toBeUndefined()
   })
 
   it('강선 → 다이너마이트 → 교체형부품 → 로봇공학, 탄도학 → 로켓공학', () => {

@@ -15,9 +15,9 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
   const turn = player.turn!
   const civ = civById(player.civId)
   // 정책을 고를 차례가 남아 있으면 정책부터 (정책 조건이 붙은 불가사의가 틀어지지 않게)
-  const mustPolicy = player.pendingPolicies > 0
+  const mustPolicy = player.pendingPolicies > 0 || !!player.policyOffer
   // 카드 묶기(만들 수 있음/없음)는 정책 조건을 빼고 본다: 정책을 고르기 전에는 버튼만 잠근다
-  const policyDone = mustPolicy ? { ...player, pendingPolicies: 0 } : player
+  const policyDone = mustPolicy ? { ...player, pendingPolicies: 0, policyOffer: undefined } : player
   const [amounts, setAmounts] = useState<Record<string, number>>({})
 
   const upgrades = player.military
@@ -31,9 +31,9 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
   /** 이 금액으로 투자하면 이번 라운드에 몇 위인지 (앞사람 투자액은 공개) */
   const rankOf = (wonderId: string, amt: number): { text: string; cls: string } => {
     const { top } = bidsOf(wonderId)
-    if (amt > top) return { text: later ? `🔨${amt}이면 지금 단독 1위 (뒤에 ${later}명이 더 낼 수 있음)` : `🔨${amt}이면 단독 1위 확정 (뒤에 투자할 사람이 없음)`, cls: 'ok' }
-    if (amt === top) return { text: `🔨${amt}이면 공동 1위 → 아무도 진척도를 못 얻음. 🔨${top + 1} 이상 필요`, cls: 'error' }
-    return { text: `🔨${amt}이면 1위가 아님. 🔨${top + 1} 이상 필요`, cls: 'error' }
+    if (amt > top) return { text: later ? `망치 ${amt}이면 지금 단독 1위 (뒤에 ${later}명이 더 낼 수 있음)` : `망치 ${amt}이면 단독 1위 확정 (뒤에 투자할 사람이 없음)`, cls: 'ok' }
+    if (amt === top) return { text: `망치 ${amt}이면 공동 1위 → 아무도 진척도를 못 얻음. 망치 ${top + 1} 이상 필요`, cls: 'error' }
+    return { text: `망치 ${amt}이면 1위가 아님. 망치 ${top + 1} 이상 필요`, cls: 'error' }
   }
   const leftovers = player.cities
     .filter((c) => !turn.produced.includes(c.id) && cityCanProduce(game, player, c.id))
@@ -53,7 +53,7 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
   return (
     <div className="panel">
       <h3>생산 (도시마다 1개: 군사 카드 또는 불가사의 투자)</h3>
-      {mustPolicy && <p className="enemy-pick">정책을 먼저 고르세요. 정책을 고른 뒤에 생산·투자·승급할 수 있습니다.</p>}
+      {mustPolicy && <p className="enemy-pick">정책을 먼저 정하세요. 정책을 정한 뒤에 생산·투자·승급할 수 있습니다.</p>}
       {threats.length > 0 && (
         <div className="threat-banner">
           <b>⚔ 이번 라운드에 선전포고를 받았습니다</b> — 정산 때 전투합니다. 지금 군사 카드를 만들어 대비할 수 있습니다.
@@ -102,7 +102,7 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
                             <small>
                               이번 라운드 투자:{' '}
                               {bidsOf(w.id).bids.length
-                                ? bidsOf(w.id).bids.map((b) => `${civById(game.players[b.playerId].civId).name} 🔨${b.hammers}`).join(' · ')
+                                ? bidsOf(w.id).bids.map((b) => `${civById(game.players[b.playerId].civId).name} 망치 ${b.hammers}`).join(' · ')
                                 : '아직 없음'}
                             </small>
                             <small className={rankOf(w.id, amt).cls}>{rankOf(w.id, amt).text}</small>
@@ -250,14 +250,14 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
 
       {occupiedTiles(game, player).length > 0 && (
         <details>
-          <summary>점령 중인 장군 불러들이기 (차례에 1개{turn.recalled ? ' — 이번 차례 사용함' : ''})</summary>
+          <summary>점령 중인 장군 불러들이기 (원하는 만큼)</summary>
           <div className="list">
             {occupiedTiles(game, player).map((o) => (
               <div key={`${o.defenderId}:${o.cityId}:${o.tileId}`} className="row">
                 <span>
                   {civById(game.players[o.defenderId].civId).name} 도시 {o.cityId + 1} 타일 #{o.tileId}
                 </span>
-                <button disabled={turn.recalled} onClick={() => dispatch({ type: 'recallGeneral', ...o })}>
+                <button onClick={() => dispatch({ type: 'recallGeneral', ...o })}>
                   불러들이기 (점령 해제, 장군은 다음 차례에 돌아옴)
                 </button>
               </div>

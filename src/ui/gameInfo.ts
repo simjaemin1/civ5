@@ -26,7 +26,7 @@ export function roundBids(game: GameState, wonderId: string) {
 export function produceBlock(game: GameState, p: Player, def: MilitaryCardDef, unique: string | undefined, city: City, hammers: number): string | null {
   const uq = unique ? uniqueOf(p, unique) : undefined
   const tech = uq?.tech ?? def.tech
-  if (p.pendingPolicies > 0) return '정책을 먼저 고르세요'
+  if (p.pendingPolicies > 0 || p.policyOffer) return '정책을 먼저 정하세요'
   if (!p.techs.includes(tech)) return `기술 필요: ${TECHS.find((x) => x.id === tech)?.name ?? tech}`
   if (isObsolete(p, def)) return '상위 카드를 만들 수 있게 되어 더는 생산불가'
   if (def.requires && !city.tiles.some((t) => t.card.resource === def.requires)) return `이 도시에 ${RESOURCES[def.requires]?.name ?? def.requires} 타일이 없음`

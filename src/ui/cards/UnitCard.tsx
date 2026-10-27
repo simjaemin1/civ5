@@ -3,7 +3,7 @@ import type { Dir } from '../../engine'
 import { MILITARY_CARDS, UNIQUES, cardById, cardStats } from '../../engine'
 import { unitImage } from './unitImage'
 import type { UnitCardData } from './unitImage'
-import { DIR_LABEL } from '../format'
+import { DIR_LABEL, ICON } from '../format'
 import { DIR_ARROW } from '../battleView'
 
 interface Props {
@@ -74,7 +74,7 @@ export function UnitCard({ card, width = 150, selected, dim, onClick, zoomable =
               </span>
             )}
           </div>
-          <div className="face-cost">🔨 {cost}</div>
+          <div className="face-cost">{ICON.hammer} {cost}</div>
           <div className="face-art">{st.name.slice(0, 1)}</div>
           <div className="face-title">
             {st.name}

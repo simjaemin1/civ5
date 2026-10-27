@@ -77,7 +77,7 @@ export function DeclarePanel({ game, player, dispatch }: PanelProps) {
               setSel(null)
             }}
           >
-            {g === 'retake' ? `🚩 내 타일 탈환 (${retakes.length})` : `${civById(game.players[g].civId).name} (${targets.filter((t) => t.kind !== 'retake' && t.defenderId === g).length})`}
+            {g === 'retake' ? `내 타일 탈환 (${retakes.length})` : `${civById(game.players[g].civId).name} (${targets.filter((t) => t.kind !== 'retake' && t.defenderId === g).length})`}
           </button>
         ))}
       </div>
@@ -177,6 +177,13 @@ function TargetCard({ game, me, t, onCancel, onDeclare }: { game: GameState; me:
       ) : (
         <span className="warn">공성 카드가 없어 이겨도 도시를 파괴할 수 없습니다.</span>
       ),
+    )
+  const sameTile = game.declarations.filter((d) => d.defenderId === t.defenderId && d.cityId === t.cityId && d.tileId === t.tileId)
+  if (sameTile.length)
+    lines.push(
+      <span key="dup" className="warn">
+        이 타일에는 이미 {sameTile.map((d) => civById(game.players[d.attackerId].civId).name).join('·')}의 선전포고가 걸려 있습니다. 중복으로 걸 수 있지만, 정산 때 앞선 문명이 이 타일을 차지하면 이 선전포고는 전투 없이 끝납니다 (일꾼 행동만 쓴 셈이고 장군은 돌아옵니다).
+      </span>,
     )
   if (others.length) lines.push(<>이번 라운드에 {defName}에게 걸린 다른 선전포고 {others.length}개 (전투는 선전포고 순서대로 하고, 대미지는 전투마다 사라집니다).</>)
   return (

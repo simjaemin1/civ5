@@ -2,7 +2,7 @@ import type { GameState } from '../engine'
 import { WONDER_CARDS, civById, culture, happiness, totalWorkers, tourism } from '../engine'
 import { declTileName, roundBids } from './gameInfo'
 import { Icon } from './icons'
-import { policyName } from './format'
+import { ICON, policyName } from './format'
 
 const civName = (game: GameState, pid: number) => civById(game.players[pid].civId).name
 const KIND = { normal: '선전포고', retake: '탈환', city: '도시 공격' } as const
@@ -25,7 +25,7 @@ export function TurnOrder({ game, seats, actor }: { game: GameState; seats: { ai
                 {civName(game, id)} {seats[id]?.ai ? '🤖' : '👤'}
               </span>
               <span className="muted nums">
-                문화 {culture(p)} · 관광 {tourism(p)} · <Icon name="worker" size={14} />
+                {ICON.culture} 문화 {culture(p)} · 관광 {tourism(p)} · <Icon name="worker" size={14} />
                 {totalWorkers(p)}/{p.cities.length ? happiness(p) : '-'} · <Icon name="general" size={14} />
                 {p.generals} · 군사 {p.military.length} · 기술 {p.techs.length} · {policyName(p.policy)}
               </span>
@@ -92,7 +92,7 @@ export function WonderRace({ game, viewer }: { game: GameState; viewer: number }
                     <span key={i} className={b.hammers === top && !tied ? 'lead' : ''}>
                       {i > 0 ? ' · ' : ''}
                       {civName(game, b.playerId)}
-                      {b.playerId === viewer ? '(나)' : ''} 🔨{b.hammers}
+                      {b.playerId === viewer ? '(나)' : ''} {ICON.hammer}{b.hammers}
                     </span>
                   ))}
                   {tied && <span className="muted"> (공동 1위 → 아무도 못 얻음)</span>}

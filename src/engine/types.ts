@@ -32,6 +32,8 @@ export interface PlacedTile {
   side?: Side
   /** 도시를 세운 뒤에 붙은 타일 (첫 5타일에 속하지 않는다: 해안 도시 판정 등) */
   late?: boolean
+  /** 추가 타일(extra)이 놓인 자리 번호 (0부터). 원자폭탄으로 타일이 사라져도 번호는 그대로 남아 그 자리는 비고, 새 타일이 먼저 메운다 */
+  slot?: number
 }
 
 export interface City {
@@ -78,7 +80,6 @@ export interface TurnData {
   /** 전통·체제를 고른 차례에는 식량 정산을 하지 않는다 */
   skipFoodSettle: boolean
   /** 이번 차례에 장군을 점령지에서 불러들였는가 (차례당 1개) */
-  recalled: boolean
 }
 
 export interface PlayerChoices {
@@ -104,7 +105,8 @@ export interface Player {
   /** 보유 한도(한 종류 4장)를 넘어 골라 버려야 하는 군사 카드의 종류 (한 장마다 한 항목) */
   pendingCardDiscard?: string[]
   /** 정책을 바꿀 기회로 얻은 선택권이면 고를 수 있는 정책 (이 정책이나 지금 정책) */
-  policyOnly?: PolicyId[]
+  /** 과학이론: 정책을 이 정책으로 바꿀지 말지 정할 기회 (고르면 바뀌고, 안 고르면 그대로). 정하기 전에는 생산·투자·승급을 못 한다 */
+  policyOffer?: PolicyId
   /** 지금까지 정책을 고른 횟수 (불가사의·기술로 바뀐 것은 세지 않는다) */
   policyPicks?: number
   /** 아직 고르지 않은 정책 선택 횟수 */
@@ -250,7 +252,8 @@ export type Action =
   | { type: 'discardCard'; uid: number }
   | { type: 'skipResearch' }
   | { type: 'endProduction' }
-  | { type: 'choosePolicy'; policy: PolicyId; discard?: { cityId: number; count: number }[]; dismiss?: { cityId: number; tileId: number } }
+  | { type: 'choosePolicy'; policy: PolicyId; discard?: { cityId: number; count: number }[]; dismiss?: { cityId: number; tileId: number }; addWorkers?: { cityId: number; count: number }[] }
+  | { type: 'policyOffer'; accept: boolean }
   | { type: 'buildSecondCity'; cityTileId: number; sideTiles: Partial<Record<Side, number>> }
   | { type: 'invest'; cityId: number; wonderId: string; hammers: number }
   | { type: 'produce'; cityId: number; defId: string; unique?: string }

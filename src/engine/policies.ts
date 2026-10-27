@@ -12,12 +12,9 @@ export function choosePolicy(
   policy: PolicyId,
   discard: { cityId: number; count: number }[] = [],
   dismiss?: { cityId: number; tileId: number },
+  addWorkers?: { cityId: number; count: number }[],
 ): void {
   if (p.pendingPolicies <= 0) throw new RuleError('고를 수 있는 정책 선택권이 없습니다')
-  if (p.policyOnly?.length) {
-    if (policy !== p.policy && !p.policyOnly.includes(policy)) throw new RuleError('이번 선택권은 정해진 정책으로 바꾸거나 지금 정책을 다시 고르는 것만 가능합니다')
-    p.policyOnly = undefined
-  }
   p.pendingPolicies--
   p.policyPicks = (p.policyPicks ?? 0) + 1
   p.policy = policy // 새 정책을 고르면 기존 정책은 끝난다 (같은 정책을 다시 골라도 효과가 다시 발동)
@@ -47,9 +44,18 @@ export function choosePolicy(
       break
     case 'regime': {
       turn.skipFoodSettle = true
-      // 임시: 얻은 일꾼은 첫 도시에 붙이고, 행복을 넘는 만큼 버린다
-      const room = Math.max(0, happiness(p) - totalWorkers(p))
-      p.cities[0].workers += Math.min(3, room)
+      // 일꾼 3개를 얻되 행복 한도를 넘는 만큼은 못 얻는다. 일꾼 1개마다 어느 도시에 붙일지 고른다 (고르지 않으면 첫 도시)
+      const gain = Math.min(3, Math.max(0, happiness(p) - totalWorkers(p)))
+      if (addWorkers?.length) {
+        const total = addWorkers.reduce((n, a) => n + a.count, 0)
+        if (total !== gain || addWorkers.some((a) => !Number.isInteger(a.count) || a.count < 0 || !p.cities.some((c) => c.id === a.cityId))) {
+          throw new RuleError(`일꾼 ${gain}개를 내 도시에 나누어 붙여야 합니다`)
+        }
+        for (const a of addWorkers) p.cities.find((c) => c.id === a.cityId)!.workers += a.count
+      } else {
+        p.cities[0].workers += gain
+      }
+      if (gain > 0) say(s, `${name} 체제: 일꾼 ${gain}개 추가`)
       break
     }
     case 'diplomacy': {
@@ -70,4 +76,19 @@ export function choosePolicy(
     case 'equality':
       break
   }
+}
+
+/** 과학이론: 정책을 합리주의로 바꿀지 말지. 바꾸지 않으면 아무 일도 없다 (지금 정책을 다시 고르는 효과 재발동도 없다) */
+export function answerPolicyOffer(s: GameState, p: Player, accept: boolean): void {
+  const offer = p.policyOffer
+  if (!offer) throw new RuleError('정책을 바꿀 기회가 없습니다')
+  p.policyOffer = undefined
+  const name = civById(p.civId).name
+  if (!accept) {
+    say(s, `${name} 정책 유지: ${p.policy ? POLICIES[p.policy].name : '없음'}`)
+    return
+  }
+  p.policy = offer
+  p.policyPicks = (p.policyPicks ?? 0) + 1
+  say(s, `${name} 정책: ${POLICIES[offer].name} (과학이론)`)
 }

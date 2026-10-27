@@ -12,7 +12,7 @@ import {
 import { canHammerScience } from '../engine'
 import { produceBlock } from './gameInfo'
 
-const hasPending = (p: Player) => p.pendingPolicies > 0 || !!p.pendingCity || p.pendingFreeCards > 0 || !!p.pendingTiles?.length
+const hasPending = (p: Player) => p.pendingPolicies > 0 || !!p.policyOffer || !!p.pendingCity || p.pendingFreeCards > 0 || !!p.pendingTiles?.length
 
 /** 쓸 수 있는 과학의 최댓값: 과학 + (문자) 식량 전부 + (과학이론) 망치 2 */
 export function maxSciencePool(p: Player): number {
@@ -76,7 +76,7 @@ export function autoSkipAction(game: GameState, p: Player): { action: Action; re
     const t = p.turn
     if (p.cities.some((c) => !t.produced.includes(c.id) && cityCanProduce(game, p, c.id))) return null
     if (!t.upgraded && p.military.some((c) => upgradeTargets(p, c).some((u) => cardCost(p, u) <= t.yields.gold))) return null
-    if (!t.recalled && occupiedTiles(game, p).length > 0) return null
+    if (occupiedTiles(game, p).length > 0) return null // 점령 중인 장군은 원하는 만큼 불러들일 수 있다
     const bombTargets = game.players.some((o) => o.cities.some((c) => c.tiles.some((t) => t.occupiedBy === p.id && t.role === 'extra')))
     if (p.military.some((c) => c.defId === 'atomic_bomb') && bombTargets) return null
     const enemyGenerals = p.cities.some((c) => c.tiles.some((t) => t.occupiedBy !== undefined && t.occupiedBy !== p.id))

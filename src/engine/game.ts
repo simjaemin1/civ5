@@ -5,8 +5,8 @@ import type { TechDef } from './data'
 import { shuffle } from './rng'
 import { canHammerScience, computeYields, happiness, totalWorkers } from './yields'
 import { makeTileDeck } from './tileDeck'
-import { currentPlayer, defaultTileCity, drawTiles, flushPendingTiles, gainCulture, onTileGained, placeGainedTile, say } from './core'
-import { choosePolicy } from './policies'
+import { currentPlayer, defaultTileCity, extraHoles, extraSlotOf, freeExtraSlot, drawTiles, returnToDeck, flushPendingTiles, gainCulture, onTileGained, placeGainedTile, say } from './core'
+import { answerPolicyOffer, choosePolicy } from './policies'
 import { invest, settleWonders } from './wonders'
 import {
   anyProducible, claimFreeCard, discardCard, gainGeneral, grantCard, initUniqueSupply, produceCard, sacrificeCard, upgradeCard,
@@ -17,7 +17,7 @@ import {
   startNextBattle, detonateAtomicBomb, activateGreatWall,
 } from './war'
 
-export { currentPlayer, defaultTileCity, gainCulture }
+export { currentPlayer, defaultTileCity, extraHoles, extraSlotOf, freeExtraSlot, gainCulture }
 
 export interface CreateOptions {
   seed: number
@@ -128,7 +128,7 @@ function skipEliminated(s: GameState): void {
 
 /** 정책을 고를 차례가 남아 있으면 생산·투자·승급 전에 정책부터 고르게 한다 (정책 조건이 붙은 불가사의가 틀어지지 않도록) */
 function mustChoosePolicyFirst(p: Player): void {
-  if (p.pendingPolicies > 0) throw new RuleError('정책을 먼저 고르세요 (정책 조건이 있는 불가사의 때문에 생산·투자 전에 정책을 정해야 합니다)')
+  if (p.pendingPolicies > 0 || p.policyOffer) throw new RuleError('정책을 먼저 정하세요 (정책 조건이 있는 불가사의 때문에 생산·투자 전에 정책을 정해야 합니다)')
 }
 
 /** 식량 정산 뒤 차례를 끝낸다. 행복 상한을 넘은 일꾼이 있으면 다 버린 뒤(discardWorker)에 차례가 끝난다. */
@@ -240,7 +240,11 @@ export function apply(prev: GameState, action: Action): GameState {
       return s
     case 'choosePolicy':
       expectPhase(s, 'research', 'produce')
-      choosePolicy(s, p, action.policy, action.discard, action.dismiss)
+      choosePolicy(s, p, action.policy, action.discard, action.dismiss, action.addWorkers)
+      return s
+    case 'policyOffer':
+      expectPhase(s, 'research', 'produce')
+      answerPolicyOffer(s, p, !!action.accept)
       return s
     case 'buildSecondCity': return buildSecondCity(s, p, action)
     case 'invest':
@@ -280,7 +284,7 @@ export function apply(prev: GameState, action: Action): GameState {
       return s
     case 'endProduction':
       expectPhase(s, 'produce')
-      if (p.pendingPolicies > 0) throw new RuleError('정책을 먼저 골라야 합니다')
+      if (p.pendingPolicies > 0 || p.policyOffer) throw new RuleError('정책을 먼저 정해야 합니다')
       if (p.pendingCity) throw new RuleError('두 번째 도시를 먼저 세워야 합니다')
       if (p.pendingFreeCards > 0) {
         if (anyProducible(s, p)) throw new RuleError('무료 군사 카드를 먼저 골라야 합니다')
@@ -349,8 +353,7 @@ function wasteland(s: GameState, p: Player, discardTileId: number): GameState {
   const i = p.hand.findIndex((c) => c.id === discardTileId)
   if (i < 0) throw new RuleError('손에 없는 타일입니다')
   const [discarded] = p.hand.splice(i, 1)
-  s.deck.push(discarded)
-  shuffle(s, s.deck)
+  returnToDeck(s, discarded)
   p.hand.push(...drawTiles(s, 1))
   discoverInStartHand(s, p) // 새로 뽑은 타일이 엘도라도여도 처음 발견이면 문화 +1
   p.wastelandPending = true
@@ -401,7 +404,7 @@ function buildCity(
   const city = foundCity(p.hand, a, 0, 1)
   p.cities.push(city)
   p.hand = []
-  for (const card of p.startExtras ?? []) city.tiles.push({ card, role: 'extra' })
+  for (const card of p.startExtras ?? []) city.tiles.push({ card, role: 'extra', slot: freeExtraSlot(city) })
   p.startExtras = undefined
   for (const t of city.tiles) if (t.card.wonder) onTileGained(s, p, t.card) // 시작 타일에 자연경관이 있어도 문화 효과를 받는다 (킬리만자로 등)
   if (p.civId === 'china') p.generals += 1 // 중국: 위대한 장군 1개로 시작
@@ -487,7 +490,6 @@ function placeWorkers(s: GameState, p: Player, placements: Placement[]): GameSta
     upgraded: false,
     extraFood: 0,
     skipFoodSettle: false,
-    recalled: false,
   }
   s.phase = 'research'
   return s
@@ -561,8 +563,7 @@ function research(
     else if (e.kind === 'general') gainGeneral(p, e.amount)
     else if (e.kind === 'policy') p.pendingPolicies++
     else if (e.kind === 'policyChance') {
-      p.pendingPolicies++
-      p.policyOnly = [e.policy]
+      if (p.policy !== e.policy) p.policyOffer = e.policy // 이미 그 정책이면 바꿀 것이 없다
     }
     else if (e.kind === 'freeCard') grantCard(s, p, e.defId)
     else if (e.kind === 'setPolicy') p.policy = e.policy

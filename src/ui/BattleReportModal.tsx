@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { BattleReport, BattleUnitReport, GameState } from '../engine'
 import { civById } from '../engine'
-import { ArrowLayer } from './ArrowLayer'
-import type { Arrow } from './ArrowLayer'
 import { UnitCard } from './cards/UnitCard'
 
 type Live = { dmg: number; attacking: boolean; hit: number }
@@ -103,14 +101,6 @@ export function BattleReportModal({ game, report, viewerId, onClose }: { game: G
     const hit = now && now.to.pid === pid && now.to.slot === slot ? now.power : 0
     return { dmg, attacking, hit }
   }
-  const MINE = '#1a7f37'
-  const THEIRS = '#c62828'
-  const colorOf = (pid: number) => (pid === bottomId ? MINE : THEIRS)
-  const arrows: Arrow[] = done
-    ? steps.filter((st) => st.power > 0).map((st) => ({ from: `${st.from.pid}:${st.from.slot}`, to: `${st.to.pid}:${st.to.slot}`, color: colorOf(st.from.pid), label: String(st.power), dashed: true }))
-    : current
-      ? [{ from: `${current.from.pid}:${current.from.slot}`, to: `${current.to.pid}:${current.to.slot}`, color: colorOf(current.from.pid), label: `−${current.power}`, bold: true }]
-      : []
   const skip = () => {
     setRun(false)
     setStep(steps.length)
@@ -129,7 +119,6 @@ export function BattleReportModal({ game, report, viewerId, onClose }: { game: G
           {kind} · 목표 타일: {report.terrains.length ? report.terrains.join('·') : '?'}
           {report.coastal ? ' (해안 타일 전투)' : ''} · 라운드 {report.round}
         </p>
-        <ArrowLayer arrows={arrows}>
           <div className="scene">
             <div className="side-label">
               {civById(game.players[topId].civId).name} ({roleOf(topId)}) {topId !== viewer && '— 상대'}
@@ -165,7 +154,6 @@ export function BattleReportModal({ game, report, viewerId, onClose }: { game: G
               {civById(game.players[bottomId].civId).name} ({roleOf(bottomId)}) — 나
             </div>
           </div>
-        </ArrowLayer>
         <div className="row anim-bar">
           {!done && (
             <span className="muted">

@@ -188,7 +188,7 @@ export function InfoTabs({ game, viewer }: { game: GameState; viewer: number }) 
                     ))}
                   </div>
                   <small className="muted">
-                    🔨{u.cost}
+                    {ICON.hammer}{u.cost}
                     {u.variants ? '' : ' · 방향 없는 카드 (3장 모두 같음)'}
                   </small>
                 </div>

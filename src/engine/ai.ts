@@ -1,4 +1,4 @@
-import type { Action, GameState, Player, Side, TileCard } from './types'
+import type { Action, CardInst, GameState, Player, Side, TileCard } from './types'
 import { RuleError, SIDES } from './types'
 import { MILITARY_CARDS, RESOURCES, TECHS, WONDERS, cardById, civById, wonderCardById } from './data'
 import { cardStats } from './cardstats'
@@ -7,7 +7,7 @@ import { apply, researchableTechs } from './game'
 import { canHammerScience, ctxOf, culture, happiness, rationalismScience, tileYield, totalWorkers, tourism } from './yields'
 import { investableWonders, minHammers } from './wonders'
 import { MAX_HOLD, cardCost, heldCount, producible, uniqueOf, upgradeTargets } from './military'
-import { declarationTargets, findTile, occupiedTiles } from './war'
+import { declarationTargets, findTile, occupiedTiles, targetSlot } from './war'
 import { currentPlayer, defaultTileCity } from './core'
 
 /** 규칙 검증용 단순 휴리스틱 AI. 후보 행동을 순서대로 시도해 규칙을 어기지 않는 첫 행동을 쓴다. */
@@ -431,6 +431,13 @@ function pendingCandidates(s: GameState, p: Player): Action[] {
       out.push({ type: 'choosePolicy', policy })
     }
   }
+  if (p.policyOffer) {
+    // 과학이론: 지금 정책보다 합리주의를 더 좋게 보면 바꾼다
+    const order = policyOrder(s, p)
+    const now = p.policy ? order.indexOf(p.policy) : -1
+    const want = now < 0 || order.indexOf(p.policyOffer) < now
+    out.push({ type: 'policyOffer', accept: want }, { type: 'policyOffer', accept: !want })
+  }
   if (p.pendingFreeCards > 0) {
     for (const o of cardOptions(p)) {
       out.push({ type: 'claimFreeCard', defId: o.def.id, unique: o.unique })
@@ -477,6 +484,8 @@ function foundSecond(hand: TileCard[]): Action {
   return { type: 'buildSecondCity', cityTileId: city.id, sideTiles }
 }
 
+const isInfantryAction = (a: Action): boolean => a.type === 'produce' && !a.unique && cardById(a.defId).line === 'infantry'
+const facesImpi = (s: GameState, p: Player): boolean => s.players.some((o) => o.id !== p.id && !o.eliminated && o.civId === 'zulu')
 const isSiegeAction = (a: Action): boolean => a.type === 'produce' && (cardById(a.defId).line === 'siege' || a.unique === '공성추')
 
 function produceCandidates(s: GameState, p: Player): Action[] {
@@ -504,6 +513,8 @@ function produceCandidates(s: GameState, p: Player): Action[] {
     const joinSiege = !isWarlord(p) && !hasSiege(p) && (() => { const l = coalitionLeader(s, p); return !!l && l.cities.length > 0 && sidesOccupied(l) >= 2 })()
     const rush = (warRush && army < AI_TUNE.warlordArmy) || ((warRush || joinSiege) && !hasSiege(p) && cardActions.some(isSiegeAction))
     if ((warRush || joinSiege) && !hasSiege(p)) cardActions.sort((x, y) => Number(isSiegeAction(y)) - Number(isSiegeAction(x)))
+    // 줄루의 임피는 상대 카드의 효과 칸 공격과 효과(원거리의 반격 없음 등)를 없애므로, 줄루가 상대면 마크로만 싸우는 보병 계열을 먼저 만든다
+    if (facesImpi(s, p)) cardActions.sort((x, y) => Number(isInfantryAction(y)) - Number(isInfantryAction(x)))
     out.push(...(army < 3 || needDefense || rush || aiStyle === 'hammer' ? [...cardActions, ...wonderActions] : [...wonderActions, ...cardActions]))
   }
   // 3) 금으로 승급 (가장 높은 단계부터 시도한다)
@@ -513,9 +524,9 @@ function produceCandidates(s: GameState, p: Player): Action[] {
     }
     for (const c of p.military) for (const t of upgradeTargets(p, c).filter((x) => heldCount(p, x.id) < MAX_HOLD)) out.push({ type: 'upgrade', uid: c.uid, toDefId: t.id })
   }
-  // 4) 장군이 없고 군대가 있으면 점령 중인 장군 1개를 불러들여 다시 전쟁에 쓴다.
+  // 4) 장군이 없고(돌아오는 중인 것도 없고) 군대가 있으면 점령 중인 장군 1개를 불러들여 다시 전쟁에 쓴다.
   //    다만 상대에게 중요한 타일(좋은 산출·자원·자연경관)을 점령 중이면 그대로 들고 있는다. 상대의 성장을 누르는 편이 낫다.
-  if (p.generals < 1 && !turn.recalled && army >= 2) {
+  if (p.generals + p.returningGenerals < 1 && army >= 2) {
     const cheap = occupiedTiles(s, p)
       .map((t) => ({ t, v: tileImportance(s, t.defenderId, t.cityId, t.tileId) }))
       .filter((x) => x.v < KEEP_OCCUPIED)
@@ -598,6 +609,9 @@ function declareCandidates(s: GameState, p: Player): Action[] {
       .filter((t) => aim === null || t.kind === 'retake' || t.defenderId === aim || (isWarlord(p) && t.kind === 'city'))
       .filter((t) => rate(t) >= 0)
       .sort((a, b) => rate(b) - rate(a))
+    // 같은 타일에 이미 다른 문명이 선전포고했다면 앞 문명이 이길 때 전투 없이 끝나므로 뒤로 미룬다
+    const taken = (t: (typeof targets)[number]) => t.kind !== 'retake' && s.declarations.some((d) => d.defenderId === t.defenderId && d.cityId === t.cityId && d.tileId === t.tileId)
+    targets.sort((a, b) => Number(taken(a)) - Number(taken(b)))
     for (const t of targets) out.push({ type: 'declareWar', defenderId: t.defenderId, cityId: t.cityId, tileId: t.tileId })
   } else {
     for (const t of declarationTargets(s, p)) {
@@ -606,6 +620,62 @@ function declareCandidates(s: GameState, p: Player): Action[] {
   }
   out.push({ type: 'endTurn' })
   return out
+}
+
+/**
+ * 공격 마크가 상대 칸 안쪽(1~4번)을 향하면 값이 있고 벽(범위 밖)을 향하면 헛방이다.
+ * 원거리 계열은 반드시 안쪽을 향하게, 창병 계열은 벽을 향해도 괜찮지만 임피는 공격수라 안쪽을 향하게 둔다.
+ */
+function wallWeight(c: CardInst): number {
+  if (cardStats(c).effect === 'impi') return 3
+  const line = cardById(c.defId).line
+  if (line === 'ranged') return 3
+  if (line === 'anti_cavalry') return 0.3
+  return 2
+}
+
+/** 이 카드를 slot(1~4번)에 놓았을 때 안쪽을 향하는 공격의 가치 */
+function inwardValue(c: CardInst, slot: number): number {
+  const w = wallWeight(c)
+  return cardStats(c).marks.reduce((n, m) => {
+    const j = targetSlot(m.dir, slot)
+    return n + (j >= 1 && j <= 4 ? m.power * w : 0)
+  }, 0)
+}
+
+/** 낼 카드(최대 4장)를 4칸에 놓는 방법 중 안쪽을 향하는 공격이 가장 많은 것. 같으면 원래 순서를 지킨다 */
+export function bestSlots(p: Player, uids: number[]): (number | null)[] {
+  const base: (number | null)[] = [uids[0] ?? null, uids[1] ?? null, uids[2] ?? null, uids[3] ?? null]
+  const inst = (u: number) => p.military.find((c) => c.uid === u)!
+  const score = (slots: (number | null)[]): number => slots.reduce<number>((n, u, i) => n + (u === null ? 0 : inwardValue(inst(u), i + 1)), 0)
+  let best = base
+  let bestScore = score(base)
+  const used = new Set<number>()
+  const cur: (number | null)[] = []
+  const walk = (i: number) => {
+    if (i === 4) {
+      const sc = score(cur)
+      if (sc > bestScore) {
+        best = [...cur]
+        bestScore = sc
+      }
+      return
+    }
+    for (const u of uids) {
+      if (used.has(u)) continue
+      used.add(u)
+      cur[i] = u
+      walk(i + 1)
+      used.delete(u)
+    }
+    // 카드가 4장보다 적으면 빈칸도 둘 수 있다
+    if (cur.filter((x, k) => k < i && x !== null).length + (4 - i) > uids.length) {
+      cur[i] = null
+      walk(i + 1)
+    }
+  }
+  walk(0)
+  return best
 }
 
 function battleCandidates(s: GameState): Action[] {
@@ -620,7 +690,9 @@ function battleCandidates(s: GameState): Action[] {
     // 도시를 공격할 때는 공성 카드를 반드시 내보낸다 (살아남아 이겨야 도시가 파괴된다)
     const siegeFirst = (uid: number) => (b.decl.kind === 'city' && b.decl.attackerId === pid && cardStats(p.military.find((c) => c.uid === uid)!).siege ? 1000 : 0)
     const usable = p.military.map((c) => c.uid).sort((x, y) => power(y) + siegeFirst(y) - (power(x) + siegeFirst(x)))
+    const picked = usable.slice(0, 4)
     return [
+      { type: 'arrangeBattle', playerId: pid, slots: bestSlots(p, picked) },
       { type: 'arrangeBattle', playerId: pid, slots: [usable[0] ?? null, usable[1] ?? null, usable[2] ?? null, usable[3] ?? null] },
       { type: 'arrangeBattle', playerId: pid, slots: [null, null, null, null] },
     ]

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { extraHoles } from '../../engine'
 import { SIDE_LABEL } from '../format'
 import { Board } from '../Board'
 import { TileView } from '../TileView'
@@ -17,7 +18,7 @@ export function TilePlacer({ player, game, dispatch }: PanelProps) {
   const put = (cityId: number) => dispatch({ type: 'placeGainedTile', cityId })
   const where = (cityId: number) => {
     const c = player.cities.find((x) => x.id === cityId)!
-    return c.openSides.length ? `${SIDE_LABEL[c.openSides[0]]} 빈 면 (첫 5타일)` : '추가 타일'
+    return c.openSides.length ? `${SIDE_LABEL[c.openSides[0]]} 빈 면 (첫 5타일)` : extraHoles(c) > 0 ? '사라진 타일의 빈 자리부터 메움' : '추가 타일'
   }
   return (
     <div className="panel">

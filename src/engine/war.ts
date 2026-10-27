@@ -39,13 +39,11 @@ function cityAttackable(defender: Player, city: City): boolean {
 export function declarationTargets(s: GameState, p: Player): DeclTarget[] {
   const out: DeclTarget[] = []
   if (p.eliminated || s.declarations.some((d) => d.attackerId === p.id)) return out
-  // 같은 타일에는 선전포고가 하나만 걸린다 (이미 누군가 노린 타일은 제외)
-  const targeted = (defenderId: number, cityId: number, tileId: number) =>
-    s.declarations.some((d) => d.defenderId === defenderId && d.cityId === cityId && d.tileId === tileId)
+  // 같은 타일에도 여러 문명이 선전포고할 수 있다. 정산 때 앞선 문명이 타일을 차지해 대상 문명이 바뀌면 뒤의 선전포고는 전투 없이 끝난다 (startNextBattle)
   if (freeWorkers(p) < 1 && p.policy !== 'despotism') return out // 전제정치 시행 중에는 선전포고에 일꾼이 필요 없다
   for (const city of p.cities) {
     for (const t of city.tiles) {
-      if (t.occupiedBy !== undefined && t.occupiedBy !== p.id && !s.players[t.occupiedBy].eliminated && !targeted(p.id, city.id, t.card.id)) {
+      if (t.occupiedBy !== undefined && t.occupiedBy !== p.id && !s.players[t.occupiedBy].eliminated) {
         out.push({ defenderId: t.occupiedBy, cityId: city.id, tileId: t.card.id, kind: 'retake' })
       }
     }
@@ -56,7 +54,6 @@ export function declarationTargets(s: GameState, p: Player): DeclTarget[] {
     if (opp.id === p.id) continue
     for (const city of opp.cities) {
       for (const t of city.tiles) {
-        if (targeted(opp.id, city.id, t.card.id)) continue
         if (t.role === 'city') {
           if (cityAttackable(opp, city)) out.push({ defenderId: opp.id, cityId: city.id, tileId: t.card.id, kind: 'city' })
         } else if (t.occupiedBy === undefined) {
@@ -78,14 +75,12 @@ export function occupiedTiles(s: GameState, p: Player): { defenderId: number; ci
   return out
 }
 
-/** 장군 불러들이기: 점령 중인 타일 하나를 풀고 장군을 돌려받는다 (차례에 1개까지). */
+/** 장군 불러들이기: 점령 중인 타일 하나를 풀고 장군을 돌려받는다. 원하는 만큼 몇 개든 풀 수 있다. */
 export function recallGeneral(s: GameState, p: Player, a: { defenderId: number; cityId: number; tileId: number }): void {
-  if (p.turn!.recalled) throw new RuleError('장군은 한 차례에 1개까지만 불러들일 수 있습니다')
   const found = findTile(s.players[a.defenderId], a.cityId, a.tileId)
   if (!found || found.tile.occupiedBy !== p.id) throw new RuleError('내 장군이 점령 중인 타일이 아닙니다')
   found.tile.occupiedBy = undefined
   p.returningGenerals += 1 // 다음 차례부터 쓸 수 있다
-  p.turn!.recalled = true
   say(s, `${civById(p.civId).name} 장군을 불러들임 (점령 해제, 다음 차례부터 사용)`)
 }
 
@@ -130,6 +125,15 @@ export function startNextBattle(s: GameState): boolean {
     if (att.eliminated || def.eliminated || !target) {
       // 대상이 사라졌으면 장군을 돌려받는다
       if (decl.kind !== 'retake' && !att.eliminated) att.generals += 1
+      continue
+    }
+    // 앞선 전투로 타일을 차지한 문명이 바뀌었으면 선전포고의 대상 문명도 바뀐 것이므로 전투 없이 끝난다.
+    // 일꾼 행동력만 쓴 셈이고 (일꾼은 위에서 풀렸다), 장군은 돌려받는다.
+    const holder = target.tile.occupiedBy
+    const changed = decl.kind === 'retake' ? holder !== decl.defenderId : decl.kind === 'normal' ? holder !== undefined : false
+    if (changed) {
+      say(s, `${civById(att.civId).name}의 선전포고: 대상 타일의 주인이 바뀌어 전투 없이 끝남`)
+      if (decl.kind !== 'retake') att.generals += 1
       continue
     }
     const b: BattleState = {

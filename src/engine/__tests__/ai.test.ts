@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { MAX_HOLD, AI_TUNE, aiStep, createGame, cardById, cardStats, MILITARY_CARDS, civById, CIVS, happiness, rankTop, totalWorkers } from '..'
+import { MAX_HOLD, AI_TUNE, actorOf, aiCandidates, aiStep, bestSlots, createGame, cardById, cardStats, MILITARY_CARDS, civById, CIVS, happiness, rankTop, totalWorkers } from '..'
 import type { GameState } from '..'
 
 /** AI끼리 게임을 끝까지(또는 maxSteps까지) 돌린다. */
@@ -157,5 +157,70 @@ describe('AI 견제 구도 (3명 이상)', () => {
   it('둘만 남으면 견제 구도를 쓰지 않는다', () => {
     const s = createGame({ seed: 1, civIds: ['korea', 'egypt'] })
     expect(rankTop(s)).toBeNull()
+  })
+})
+
+
+describe('AI 전투 배치와 생산 (원거리는 안쪽으로, 줄루에는 보병)', () => {
+  /** 한 문명에게 군사 카드를 주고 uid를 돌려준다 */
+  const give = (s: GameState, pid: number, defId: string, dir: 'L' | 'C' | 'R', unique?: string): number => {
+    const uid = s.nextUid++
+    s.players[pid].military.push({ uid, defId, dirs: [dir], unique })
+    return uid
+  }
+  const base = () => structuredClone(createGame({ seed: 1, civIds: ['korea', 'zulu'] }))
+
+  it('원거리 계열은 공격이 벽을 향하는 칸(왼쪽 방향 1번, 오른쪽 방향 4번)에 놓지 않는다', () => {
+    const s = base()
+    const a = give(s, 0, 'archer', 'L')
+    const b = give(s, 0, 'archer', 'L')
+    const c = give(s, 0, 'crossbowman', 'R')
+    const d = give(s, 0, 'composite_bowman', 'R')
+    const slots = bestSlots(s.players[0], [a, b, c, d])
+    expect(slots.slice().sort()).toEqual([a, b, c, d].sort()) // 같은 카드들을 그대로 쓴다
+    const at = (u: number) => slots.indexOf(u) + 1
+    for (const u of [a, b]) expect(at(u)).toBeGreaterThan(1) // 왼쪽 방향: 1번에서는 벽
+    for (const u of [c, d]) expect(at(u)).toBeLessThan(4) // 오른쪽 방향: 4번에서는 벽
+  })
+
+  it('벽을 향하는 칸은 창병 계열에게 내주고, 임피는 안쪽을 향하게 둔다', () => {
+    const s = base()
+    const spear = give(s, 0, 'spearman', 'L')
+    const archer1 = give(s, 0, 'archer', 'L')
+    const archer2 = give(s, 0, 'archer', 'L')
+    const impi = give(s, 0, 'pikeman', 'L', '임피')
+    // 왼쪽 방향 넷 중 하나는 반드시 1번(벽)이다: 그 자리는 창병이 맡는다
+    const slots = bestSlots(s.players[0], [archer1, archer2, impi, spear])
+    expect(slots[0]).toBe(spear)
+    // 카드가 셋이면 빈칸을 두어서라도 모두 안쪽을 향하게 한다
+    const three = bestSlots(s.players[0], [archer1, archer2, impi])
+    expect(three[0]).toBeNull()
+  })
+
+  it('아무 배치도 같은 카드를 두 번 쓰지 않고 4칸 안에 모두 놓는다', () => {
+    const s = base()
+    const ids = ['warrior', 'archer', 'spearman', 'cannon'].map((d, i) => give(s, 0, d, (['L', 'C', 'R', 'L'] as const)[i]))
+    const slots = bestSlots(s.players[0], ids)
+    expect(slots).toHaveLength(4)
+    expect(slots.filter((x) => x !== null).sort()).toEqual(ids.slice().sort())
+  })
+
+  it('줄루가 상대면 군사 카드를 만들 때 보병 계열을 먼저 만든다', () => {
+    const produceFirst = (civs: string[]): string => {
+      let s = createGame({ seed: 2, civIds: civs })
+      for (let i = 0; i < 400 && !(s.phase === 'produce' && s.players[actorOf(s)].id === 0 && s.players[0].turn); i++) s = aiStep(s).state
+      s = structuredClone(s)
+      const p = s.players[0]
+      p.techs.push(cardById('warrior').tech, cardById('composite_bowman').tech)
+      p.military = []
+      p.turn!.produced = []
+      p.turn!.yields.cities[0].hammer = 30
+      const act = aiCandidates(s).find((a) => a.type === 'produce')
+      if (!act || act.type !== 'produce') throw new Error('생산 후보가 없음')
+      return act.defId
+    }
+    expect(cardById('composite_bowman').cost).toBeGreaterThan(cardById('warrior').cost)
+    expect(produceFirst(['korea', 'russia'])).toBe('composite_bowman') // 가장 비싼 카드부터
+    expect(produceFirst(['korea', 'zulu'])).toBe('warrior') // 줄루(임피)가 상대면 보병 계열
   })
 })

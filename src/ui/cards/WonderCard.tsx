@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 import type { WonderCardDef } from '../../engine'
-import { conditionText, wonderEffectText } from '../format'
+import { ICON, conditionText, wonderEffectText } from '../format'
 import { cardImage } from './cardImages'
 
 interface Props {
@@ -33,7 +33,7 @@ export function WonderCard({ wonder, caption, width = 260, owned, dim, note }: P
       ) : (
         <div className="face">
           <div className="face-title">
-            {wonder.name} · 🔨{wonder.minHammers}
+            {wonder.name} · {ICON.hammer}{wonder.minHammers}
           </div>
           <div className="face-text">
             <p>{conditionText(wonder.condition)}</p>
