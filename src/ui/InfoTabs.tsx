@@ -47,7 +47,7 @@ function rowOf(id: string): number {
  * 기술 트리: 가로는 열(과학 비용), 세로는 도표의 줄. 선행 기술은 왼쪽, 후행 기술은 오른쪽에 놓이고 화살표로 이어진다.
  * 보유·연구 가능·잠김은 테두리로 보여 주고, 카드를 누르면 크게 본다.
  */
-export function TechTree({ player, fit }: { player: Player; fit?: { width: number; height: number } | 'screen' }) {
+export function TechTree({ player, fit, glow }: { player: Player; fit?: { width: number; height: number } | 'screen'; glow?: boolean }) {
   // 열 10개가 가로 스크롤 없이 한눈에 들어오도록 카드 폭을 화면 폭에 맞춘다.
   // fit을 주면 그 넓이·높이 안에 표 전체(10열 × 7줄)가 스크롤 없이 들어가도록 카드 크기를 정한다.
   // fit='screen'이면 표가 놓인 자리에서 화면 아래 끝까지의 높이와 칸 폭에 맞춘다 (페이지를 내리지 않고 한눈에).
@@ -99,7 +99,7 @@ export function TechTree({ player, fit }: { player: Player; fit?: { width: numbe
             const note = `${t.name} — ${pre ? `선행: ${pre}` : '연결선 없음: 같은 비용의 다른 기술이 있어야 함'}`
             return (
               <div key={t.id} data-slot={t.id} className="techmap-cell" style={{ gridColumn: t.column, gridRow: rowOf(t.id) + 2 }}>
-                <TechCard tech={t} width={cardW} note={note} state={owned ? 'owned' : prereqsMet(player, t) ? 'available' : 'locked'} />
+                <TechCard tech={t} width={cardW} note={note} state={owned ? 'owned' : prereqsMet(player, t) ? 'available' : 'locked'} glow={glow} />
               </div>
             )
           })}

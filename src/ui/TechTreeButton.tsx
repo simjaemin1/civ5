@@ -37,7 +37,7 @@ export function TechTreeButton({ player }: { player: Player }) {
             </b>
             <button onClick={() => setOpen(false)}>닫기 ✕</button>
           </div>
-          <TechTree player={player} fit={box} />
+          <TechTree player={player} fit={box} glow />
         </div>
       )}
     </>
