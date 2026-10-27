@@ -17,7 +17,7 @@ import { Help } from '../prefs'
  *  - 스웨덴의 장군: 같은 조건의 타일, 가진 장군 수만큼
  *  - 몽골의 상대 타일 일꾼: 내 장군이 아직 올라가 있는 타일
  */
-function rememberedPlacement(game: PanelProps['game'], player: PanelProps['player']): { placed: Set<number>; generals: Set<number>; enemy: Placement[]; returned: number } {
+function rememberedPlacement(game: PanelProps['game'], player: PanelProps['player']): { placed: Set<number>; generals: Set<number>; enemy: Placement[] } {
   const placed = new Set<number>()
   const generals = new Set<number>()
   const enemy: Placement[] = []
@@ -54,7 +54,7 @@ function rememberedPlacement(game: PanelProps['game'], player: PanelProps['playe
       generalsLeft--
     }
   }
-  return { placed, generals, enemy, returned: want - placed.size - generals.size - enemy.length }
+  return { placed, generals, enemy }
 }
 
 /** 일꾼 배치 단계: 타일을 눌러 일꾼을 올리고, 산출 미리보기를 보고 확정한다. */
@@ -188,7 +188,6 @@ export function PlacePanel({ game, player, dispatch }: PanelProps) {
               </span>
             )
           })}
-          {initial.returned > 0 && <span className="chip warn">타일을 빼앗기거나 일꾼이 줄어 돌아온 일꾼 {initial.returned}명</span>}
           <button
             onClick={() => {
               setPlaced(new Set())
