@@ -1,5 +1,5 @@
 import { CityTag } from '../icons'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { TECHS, canHammerScience, happiness, researchableTechs, totalWorkers } from '../../engine'
 import { TechTree } from '../InfoTabs'
 import { TechCard } from '../cards/TechCard'
@@ -15,6 +15,14 @@ export function ResearchPanel({ game, player, dispatch }: PanelProps) {
   const canHammer = canHammerScience(player)
   const cities = turn.yields.cities
   // 도시별로 과학에 쓸 식량·망치 (도시 id → 개수)
+  const [treeOpen, setTreeOpen] = useState(false)
+  // Esc로 기술표를 닫는다
+  useEffect(() => {
+    if (!treeOpen) return
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setTreeOpen(false)
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [treeOpen])
   const [foodBy, setFoodBy] = useState<Record<number, number>>({})
   const [hammerBy, setHammerBy] = useState<Record<number, number>>({})
   const foodConv = cities.reduce((n, c) => n + (foodBy[c.cityId] ?? 0), 0)
@@ -75,8 +83,22 @@ export function ResearchPanel({ game, player, dispatch }: PanelProps) {
     : null
 
   return (
-    <div className="panel">
-      <h3>기술 연구 (한 차례에 1개)</h3>
+    <div className="panel research-panel">
+      <div className="research-head">
+        <h3>기술 연구 (한 차례에 1개)</h3>
+        <button className={treeOpen ? 'primary' : ''} aria-expanded={treeOpen} onClick={() => setTreeOpen(!treeOpen)} title="선행·후행 기술을 한눈에 봅니다. 기술 카드 위에 펼쳐집니다">
+          🗺 기술표 {treeOpen ? '접기' : '펴보기'}
+        </button>
+      </div>
+      {treeOpen && (
+        <div className="tree-overlay" role="dialog" aria-label="기술표">
+          <div className="tree-overlay-head">
+            <b>기술표 (선행 → 후행)</b>
+            <button onClick={() => setTreeOpen(false)}>닫기 ✕</button>
+          </div>
+          <TechTree player={player} />
+        </div>
+      )}
       <p>
         {ICON.science} 과학 {turn.yields.science}
         {canFood && ` (+식량 변환 ${foodConv})`}
@@ -160,10 +182,6 @@ export function ResearchPanel({ game, player, dispatch }: PanelProps) {
           {' '}(교육학을 연구하면 이 제한이 사라집니다)
         </p>
       )}
-      <details className="tree-peek">
-        <summary>🗺 기술표 펴보기 (선행·후행 기술 확인)</summary>
-        <TechTree player={player} />
-      </details>
       <Help>카드를 누르면 바로 연구합니다. 흐린 카드는 식량·망치를 모두 바꿔도 과학이 모자랍니다. 바꿔야 하는 카드를 누르면 필요한 만큼 바꾸는 안을 보여 줍니다.</Help>
       <ConfirmButton className="" hotkey warn={skipWarn} onClick={() => dispatch({ type: 'skipResearch' })}>
         이번 차례는 연구하지 않음

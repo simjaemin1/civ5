@@ -422,6 +422,12 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
 .upgrade-row { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: flex-start; padding: 6px 0; border-bottom: 1px dashed var(--line); }
 .upgrade-opts { display: flex; flex-direction: column; gap: 8px; }
 .city h3 small.unplaced { color: #b36b00; font-weight: 700; }
+.research-panel { position: relative; }
+.research-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.research-head h3 { margin: 0; }
+/* 기술표는 기술 카드 위에 겹쳐 펼쳐진다: 펼쳐도 아래 내용이 밀리지 않는다 */
+.tree-overlay { position: absolute; z-index: 30; left: 0; right: 0; top: 46px; max-height: 80vh; overflow: auto; background: var(--panel); border: 2px solid var(--accent); border-radius: 10px; padding: 8px 10px; box-shadow: 0 8px 28px rgba(0,0,0,0.35); }
+.tree-overlay-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; position: sticky; top: 0; background: var(--panel); z-index: 1; }
 .tree-peek { margin: 8px 0; } .tree-peek summary { cursor: pointer; font-weight: 600; width: fit-content; padding: 3px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
 
 /* 일꾼 배치: 요약 칩은 작고 일정한 글씨, 예상 산출과 배치 확정은 크게 */
