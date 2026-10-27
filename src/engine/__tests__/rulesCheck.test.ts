@@ -15,6 +15,8 @@ describe('사용자 확인 규칙', () => {
     const artemis = WONDER_CARDS.find((w) => w.id === 'temple_of_artemis')!.effects.find((e) => e.kind === 'militaryCostMinus')
     expect(artemis && 'bases' in artemis ? [...artemis.bases].sort() : []).toEqual(['archer', 'chariot', 'spearman', 'warrior'])
     expect(WONDER_CARDS.find((w) => w.name === '치첸이사')!.effects).toContainEqual({ kind: 'happiness', amount: 2 })
+    // 에펠탑: 턴당 관광 +4, 행복 +1 (정책을 바꾸지 않는다)
+    expect(WONDER_CARDS.find((w) => w.id === 'eiffel_tower')!.effects).toEqual([{ kind: 'tourism', amount: 4 }, { kind: 'happiness', amount: 1 }])
   })
   it('일반 선전포고는 점령되지 않은 상대 타일만 노린다', () => {
     const s = createGame({ seed: 1, civIds: ['korea', 'germany', 'china'] })

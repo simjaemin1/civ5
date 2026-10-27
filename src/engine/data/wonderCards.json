@@ -206,10 +206,6 @@
       "minHammers": 8,
       "effects": [
         {
-          "kind": "setPolicy",
-          "policy": "equality"
-        },
-        {
           "kind": "tourism",
           "amount": 4
         },
