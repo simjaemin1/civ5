@@ -230,7 +230,7 @@ export function OnlineGameScreen({ online, onExit }: Props) {
           </details>
           <button onClick={onExit}>나가기</button>
           <TechTreeButton player={me} />
-          <CivEmblem player={peekId !== null ? game.players[peekId] : me} />
+          <CivEmblem player={me} away={peekId !== null} onHome={() => setPeek(null)} />
         </div>
       </header>
       {error && (
@@ -270,7 +270,7 @@ export function OnlineGameScreen({ online, onExit }: Props) {
             </>
           )}
         </div>
-        <SidePanel game={game} seats={seats} actor={actor} viewer={me.id} onView={(id) => setPeek(id === me.id || id === peekId ? null : { id, self: me.id })} viewing={peekId} />
+        <SidePanel game={game} seats={seats} actor={actor} viewer={me.id} onView={(id) => setPeek({ id, self: me.id })} viewing={peekId} />
       </div>
       <LogPanel game={game} />
     </div>

@@ -488,13 +488,7 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
 .lab-flags { display: flex; flex-wrap: wrap; gap: 4px 14px; }
 .lab .hand { display: flex; flex-wrap: wrap; gap: 6px; }
 
-/* 내 문명 자세히: 문명 기호를 누르면 맨 위에서 겹쳐 뜬다 */
-.civ-float { color: var(--ink); text-align: left; position: fixed; z-index: 40; right: 12px; top: 72px; width: min(900px, calc(100vw - 24px)); max-height: calc(100vh - 88px); overflow: auto; background: var(--panel); border: 2px solid var(--accent); border-radius: 10px; padding: 8px 10px; box-shadow: 0 10px 32px rgba(0,0,0,0.4); }
-.civ-float .tree-overlay-head b { color: #2a1d0e; font-size: 1.05rem; }
-.civ-float-top { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; margin-bottom: 8px; }
-.civ-float-top > .side-sec { flex: 1 1 220px; min-width: 0; }
-.civ-float h4 { margin: 4px 0 6px; }
-.civ-emblem.on { box-shadow: 0 0 0 3px #fffaf0, 0 0 0 5px #12303a; }
+.civ-emblem.away { box-shadow: 0 0 0 3px #fffaf0, 0 0 0 5px #12303a; }
 /* 맨 위 줄의 정보 탭: 누르면 내용이 겹쳐 뜬다 */
 .top-tabs { margin: 0; flex-wrap: wrap; }
 .top .top-tabs button.active { background: var(--active-bg); border-color: var(--accent); font-weight: 700; }

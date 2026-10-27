@@ -28,7 +28,7 @@ export function TurnOrder({ game, seats, actor, onView, viewing }: { game: GameS
               onKeyDown={onView && ((e) => (e.key === 'Enter' || e.key === ' ') && onView(id))}
               tabIndex={onView ? 0 : undefined}
               role={onView ? 'button' : undefined}
-              title={onView ? `${civName(game, id)} 시점으로 보기 (영토·직전 차례 산출)` : undefined}
+              title={onView ? `${civName(game, id)} 현황 보기 (영토·직전 차례 산출·기술). 내 내정 화면으로는 오른쪽 위 문명 기호` : undefined}
             >
               <span className="who">
                 {state === 'now' ? '▶ ' : state === 'done' ? '✓ ' : ''}

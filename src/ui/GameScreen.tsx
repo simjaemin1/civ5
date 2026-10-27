@@ -310,7 +310,7 @@ export function GameScreen({ initial, seats, onExit }: Props) {
           </details>
           <button onClick={onExit}>나가기</button>
           <TechTreeButton player={player} />
-          <CivEmblem player={peekId !== null ? game.players[peekId] : player} />
+          <CivEmblem player={player} away={peekId !== null} onHome={() => setPeek(null)} />
         </div>
       </header>
       {error && <div className="error banner-error">⚠ {error}</div>}
@@ -346,7 +346,7 @@ export function GameScreen({ initial, seats, onExit }: Props) {
             </>
           )}
         </div>
-        <SidePanel game={game} seats={seats} actor={actor} viewer={viewer} onView={(id) => setPeek(id === player.id || id === peekId ? null : { id, self: player.id })} viewing={peekId} />
+        <SidePanel game={game} seats={seats} actor={actor} viewer={viewer} onView={(id) => setPeek({ id, self: player.id })} viewing={peekId} />
       </div>
       <LogPanel game={game} />
     </div>
