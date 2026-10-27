@@ -831,6 +831,22 @@ describe('도시 공격·탈환·탈락', () => {
     expect(s.players[0].military.some((c) => c.defId === 'atomic_bomb')).toBe(false)
   })
 
+  it('원자폭탄은 만리장성처럼 자신의 차례 어느 단계에서든 쓸 수 있다 (일꾼 배치 단계에서도)', () => {
+    let s = round2()
+    s = mod(s, (c) => {
+      const city = c.players[1].cities[0]
+      city.tiles.push({ card: tile(['평지']), role: 'extra' })
+      city.tiles.at(-1)!.occupiedBy = 0
+      give(c, 0, 'atomic_bomb')
+    })
+    expect(s.phase).toBe('place')
+    const extra = s.players[1].cities[0].tiles.at(-1)!.card.id
+    s = apply(s, { type: 'useAtomicBomb', defenderId: 1, cityId: 0, tileId: extra })
+    expect(s.players[1].cities[0].tiles.some((t) => t.card.id === extra)).toBe(false)
+    expect(s.players[0].military.some((c) => c.defId === 'atomic_bomb')).toBe(false)
+    expect(s.phase).toBe('place') // 단계는 그대로
+  })
+
   it('원자폭탄으로 사라진 추가 타일의 빈 자리를 새 타일이 먼저 메운다', () => {
     let s = round2()
     s = mod(s, (c) => {

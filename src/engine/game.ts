@@ -275,7 +275,7 @@ export function apply(prev: GameState, action: Action): GameState {
       claimFreeCard(s, p, action)
       return s
     case 'useAtomicBomb':
-      expectPhase(s, 'produce')
+      expectPhase(s, 'place', 'research', 'produce', 'declare') // 만리장성처럼 자신의 차례에는 언제든 쓸 수 있다
       detonateAtomicBomb(s, p, action)
       return s
     case 'useGreatWall':

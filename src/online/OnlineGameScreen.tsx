@@ -20,6 +20,7 @@ import { CardDiscardPanel } from '../ui/panels/CardDiscardPanel'
 import { DiscardPanel } from '../ui/panels/DiscardPanel'
 import { ConfirmButton } from '../ui/ConfirmButton'
 import { PendingPanel } from '../ui/panels/PendingPanel'
+import { AtomicBombPanel } from '../ui/panels/AtomicBombPanel'
 import { PlacePanel } from '../ui/panels/PlacePanel'
 import { ProducePanel } from '../ui/panels/ProducePanel'
 import { ResearchPanel } from '../ui/panels/ResearchPanel'
@@ -268,6 +269,7 @@ export function OnlineGameScreen({ online, onExit }: Props) {
               </ConfirmButton>
             </div>
           )}
+          {mine && !over && game.phase !== 'setup' && game.phase !== 'battle' && <AtomicBombPanel game={game} player={me} dispatch={dispatch} />}
           {inTurn && <TurnSteps game={game} phases={undo.phases} locked={undo.locked} onUndo={() => undoTurn(1)} onJump={(i) => undoTurn(undo.phases.length - i)} />}
           {main}
           {showBoard && <Board game={game} player={me} />}

@@ -19,6 +19,7 @@ import { ChoicesPanel } from './panels/ChoicesPanel'
 import { CardDiscardPanel } from './panels/CardDiscardPanel'
 import { DiscardPanel } from './panels/DiscardPanel'
 import { ConfirmButton } from './ConfirmButton'
+import { AtomicBombPanel } from './panels/AtomicBombPanel'
 import { PlacePanel } from './panels/PlacePanel'
 import { ProducePanel } from './panels/ProducePanel'
 import { ResearchPanel } from './panels/ResearchPanel'
@@ -338,6 +339,7 @@ export function GameScreen({ initial, seats, onExit }: Props) {
               </ConfirmButton>
             </div>
           )}
+          {!over && !curtain && !actorSeat.ai && game.phase !== 'setup' && game.phase !== 'battle' && <AtomicBombPanel game={game} player={player} dispatch={dispatch} />}
           {key && !over && <TurnSteps game={game} phases={turnHistory.map((h) => h.phase)} locked={lockedInTurn} onJump={jumpInTurn} onUndo={undoInTurn} />}
           {main}
           {showBoard && <Board game={game} player={player} />}
