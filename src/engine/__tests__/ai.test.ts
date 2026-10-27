@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { MAX_HOLD, AI_TUNE, actorOf, aiCandidates, aiStep, bestSlots, createGame, cardById, cardStats, MILITARY_CARDS, civById, CIVS, happiness, rankTop, totalWorkers } from '..'
+import { MAX_HOLD, AI_TUNE, actorOf, aiCandidates, aiStep, apply, bestSlots, createGame, cardById, cardStats, MILITARY_CARDS, civById, CIVS, happiness, rankTop, totalWorkers, usableInBattle } from '..'
 import type { GameState } from '..'
 
 /** AI끼리 게임을 끝까지(또는 maxSteps까지) 돌린다. */
@@ -204,6 +204,35 @@ describe('AI 전투 배치와 생산 (원거리는 안쪽으로, 줄루에는 �
     expect(slots).toHaveLength(4)
     expect(slots.filter((x) => x !== null).sort()).toEqual(ids.slice().sort())
   })
+
+  it('전투 배치의 첫 후보는 규칙을 지키고, 쓸 수 있는 카드가 있으면 빈 배치를 내지 않는다 (전함·원자폭탄 거르기)', () => {
+    const combos: [number, string[]][] = [
+      [1001, ['england', 'netherlands']],
+      [1002, ['england', 'aztec', 'france']],
+      [1003, ['netherlands', 'huns', 'england']],
+      [1004, ['france', 'england', 'zulu', 'mongolia']],
+    ]
+    let arranges = 0
+    let withUnusable = 0
+    for (const [seed, civs] of combos) {
+      let s = createGame({ seed, civIds: civs })
+      for (let i = 0; i < 6000 && s.phase !== 'over'; i++) {
+        if (s.phase === 'battle' && s.battle?.step === 'arrange') {
+          const pid = actorOf(s)
+          const p = s.players[pid]
+          const first = aiCandidates(s)[0]
+          expect(() => apply(s, first), `시드 ${seed} 배치`).not.toThrow()
+          const usable = p.military.filter((c) => usableInBattle(s, s.battle!, p, c)).length
+          if (first.type === 'arrangeBattle' && usable > 0) expect(first.slots.some((x) => x !== null)).toBe(true)
+          if (usable < p.military.length) withUnusable++
+          arranges++
+        }
+        s = aiStep(s).state
+      }
+    }
+    expect(arranges).toBeGreaterThan(50)
+    expect(withUnusable).toBeGreaterThan(0) // 쓸 수 없는 카드를 든 채 배치하는 경우가 실제로 나온다
+  }, 120000)
 
   it('줄루가 상대면 군사 카드를 만들 때 보병 계열을 먼저 만든다', () => {
     const produceFirst = (civs: string[]): string => {

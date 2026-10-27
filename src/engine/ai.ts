@@ -7,7 +7,7 @@ import { apply, researchableTechs } from './game'
 import { canHammerScience, ctxOf, culture, happiness, rationalismScience, tileYield, totalWorkers, tourism } from './yields'
 import { investableWonders, minHammers } from './wonders'
 import { MAX_HOLD, cardCost, heldCount, producible, uniqueOf, upgradeTargets } from './military'
-import { declarationTargets, findTile, occupiedTiles, targetSlot } from './war'
+import { declarationTargets, findTile, occupiedTiles, targetSlot, usableInBattle } from './war'
 import { currentPlayer, defaultTileCity } from './core'
 
 /** 규칙 검증용 단순 휴리스틱 AI. 후보 행동을 순서대로 시도해 규칙을 어기지 않는 첫 행동을 쓴다. */
@@ -692,11 +692,15 @@ function battleCandidates(s: GameState): Action[] {
     }
     // 도시를 공격할 때는 공성 카드를 반드시 내보낸다 (살아남아 이겨야 도시가 파괴된다)
     const siegeFirst = (uid: number) => (b.decl.kind === 'city' && b.decl.attackerId === pid && cardStats(p.military.find((c) => c.uid === uid)!).siege ? 1000 : 0)
-    const usable = p.military.map((c) => c.uid).sort((x, y) => power(y) + siegeFirst(y) - (power(x) + siegeFirst(x)))
+    // 이 전투에 쓸 수 없는 카드(해안이 아닌 전투의 전함, 원자폭탄 등)는 빼고 고른다
+    const usable = p.military
+      .filter((c) => usableInBattle(s, b, p, c))
+      .map((c) => c.uid)
+      .sort((x, y) => power(y) + siegeFirst(y) - (power(x) + siegeFirst(x)))
     const picked = usable.slice(0, 4)
     return [
       { type: 'arrangeBattle', playerId: pid, slots: bestSlots(p, picked) },
-      { type: 'arrangeBattle', playerId: pid, slots: [usable[0] ?? null, usable[1] ?? null, usable[2] ?? null, usable[3] ?? null] },
+      { type: 'arrangeBattle', playerId: pid, slots: [picked[0] ?? null, picked[1] ?? null, picked[2] ?? null, picked[3] ?? null] },
       { type: 'arrangeBattle', playerId: pid, slots: [null, null, null, null] },
     ]
   }
