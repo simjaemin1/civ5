@@ -11,10 +11,12 @@ interface Props {
   onStart: (seats: Seat[], seed: number) => void
   onResume?: () => void
   onOnline?: () => void
+  /** 모의 전투 랩 */
+  onLab?: () => void
 }
 
 /** 시작 화면: 문명과 사람/AI를 고른다 (2~6명) */
-export function SetupScreen({ onStart, onResume, onOnline }: Props) {
+export function SetupScreen({ onStart, onResume, onOnline, onLab }: Props) {
   const [seats, setSeats] = useState<Seat[]>([
     { civId: 'korea', ai: false },
     { civId: 'russia', ai: true },
@@ -34,6 +36,11 @@ export function SetupScreen({ onStart, onResume, onOnline }: Props) {
       {onOnline && (
         <p>
           <button onClick={onOnline}>🌐 온라인으로 하기 (방 만들기 / 입장)</button>
+        </p>
+      )}
+      {onLab && (
+        <p>
+          <button onClick={onLab}>⚔ 모의 전투 랩 (카드를 골라 전투만 해 보기)</button>
         </p>
       )}
       <div className="scroll">
