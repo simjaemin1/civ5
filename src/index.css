@@ -453,3 +453,15 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
 /* 전투 장면: 재생 중 체력이 0이 된 카드 (파괴는 재생이 끝난 뒤 한꺼번에) */
 .unit.doomed { border-color: var(--err); box-shadow: 0 0 0 2px var(--err-line) inset; }
 .unit.doomed .state { color: var(--err); font-size: 0.78rem; }
+
+/* 모의 전투 랩 */
+.lab { padding: 12px 16px; max-width: 1200px; margin: 0 auto; }
+.lab-bar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-bottom: 12px; }
+.lab-common { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 12px; }
+.lab-sides { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 12px; }
+.lab-side { border: 1px solid var(--line, #8884); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.lab-side h3 { margin: 0 0 8px; }
+.lab-add { display: flex; gap: 6px; margin: 8px 0; }
+.lab-add select { flex: 1; min-width: 0; }
+.lab-flags { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.lab .hand { display: flex; flex-wrap: wrap; gap: 6px; }
