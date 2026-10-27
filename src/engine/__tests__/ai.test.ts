@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { MAX_HOLD, AI_TUNE, actorOf, aiCandidates, aiStep, apply, bestSlots, createGame, cardById, cardStats, MILITARY_CARDS, civById, CIVS, happiness, rankTop, totalWorkers, usableInBattle } from '..'
+import { MAX_HOLD, AI_TUNE, actorOf, aiCandidates, aiStep, apply, bestSlots, createGame, cardById, cardStats, MILITARY_CARDS, civById, CIVS, happiness, rankTop, totalWorkers, usableInBattle, WONDER_CARDS } from '..'
 import type { GameState } from '..'
 
 /** AI끼리 게임을 끝까지(또는 maxSteps까지) 돌린다. */
@@ -251,5 +251,54 @@ describe('AI 전투 배치와 생산 (원거리는 안쪽으로, 줄루에는 �
     expect(cardById('composite_bowman').cost).toBeGreaterThan(cardById('warrior').cost)
     expect(produceFirst(['korea', 'russia'])).toBe('composite_bowman') // 가장 비싼 카드부터
     expect(produceFirst(['korea', 'zulu'])).toBe('warrior') // 줄루(임피)가 상대면 보병 계열
+  })
+})
+
+describe('AI 불가사의 투자 (경매 읽기)', () => {
+  /** 0번 문명의 생산 단계까지 돌리고, 투자할 수 있는 불가사의가 있게 망치를 넉넉히 준다 */
+  const atProduce = (): GameState => {
+    let s = createGame({ seed: 3, civIds: ['egypt', 'korea', 'russia'] })
+    for (let i = 0; i < 3000 && !(s.phase === 'produce' && actorOf(s) === 0 && s.players[0].turn && s.round >= 8); i++) s = aiStep(s).state
+    s = structuredClone(s)
+    const p = s.players[0]
+    for (const w of WONDER_CARDS) if (!p.techs.includes(w.tech)) p.techs.push(w.tech)
+    p.turn!.produced = []
+    p.military = [] // 군대가 없으면 카드부터 만들지만 투자 후보는 여전히 나온다
+    for (const y of p.turn!.yields.cities) y.hammer = 12
+    return s
+  }
+  const investTargets = (s: GameState): string[] => aiCandidates(s).flatMap((a) => (a.type === 'invest' ? [a.wonderId] : []))
+
+  it('앞사람이 이미 더 많이 투자한 불가사의에는 투자 후보를 내지 않는다', () => {
+    const s = atProduce()
+    const open = investTargets(s)
+    expect(open.length).toBeGreaterThan(1)
+    const [beaten, ...rest] = open
+    s.investments = [{ wonderId: beaten, playerId: 1, cityId: 0, hammers: 13 }]
+    s.wonderProgress = {}
+    const after = investTargets(s)
+    expect(after).not.toContain(beaten)
+    expect(after).toEqual(expect.arrayContaining(rest))
+  })
+
+  it('앞사람과 같은 금액이면 투자하지 않지만, 그 앞사람이 이번에 완성하게 되면 동률로 막는다', () => {
+    const s = atProduce()
+    const [target] = investTargets(s)
+    s.investments = [{ wonderId: target, playerId: 1, cityId: 0, hammers: 12 }]
+    s.wonderProgress = {}
+    expect(investTargets(s)).not.toContain(target)
+    const need = WONDER_CARDS.find((w) => w.id === target)!.progressNeeded
+    s.wonderProgress = { [target]: { 1: need - 1 } }
+    const cands = aiCandidates(s)
+    const first = cands.findIndex((a) => a.type === 'invest' && a.wonderId === target)
+    expect(first).toBeGreaterThanOrEqual(0)
+    expect(cands.slice(0, first).some((a) => a.type === 'produce' || a.type === 'invest')).toBe(false) // 막는 투자가 가장 먼저
+  })
+
+  it('다른 문명의 진척도가 2 이상 앞선 불가사의는 포기한다', () => {
+    const s = atProduce()
+    const [target] = investTargets(s)
+    s.wonderProgress = { [target]: { 2: 2 } }
+    expect(investTargets(s)).not.toContain(target)
   })
 })
