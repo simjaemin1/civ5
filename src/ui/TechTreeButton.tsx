@@ -1,22 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { Player } from '../engine'
 import { TechTree } from './InfoTabs'
+import { treeFitBox as fitBox } from './treeFit'
 import techIconUrl from '../assets/icons/tech.png'
-
-/** 기술표 창의 바깥 여백·테두리·제목 줄 (카드 크기를 화면에 맞출 때 뺀다) */
-const FLOAT_TOP = 72
-const FLOAT_BOTTOM = 12
-const FLOAT_SIDE = 12
-const FLOAT_PAD = 24
-const FLOAT_HEAD = 44
-
-/** 창 안에 표 전체가 스크롤 없이 들어가는 넓이·높이 */
-function fitBox() {
-  return {
-    width: window.innerWidth - 2 * FLOAT_SIDE - FLOAT_PAD,
-    height: window.innerHeight - FLOAT_TOP - FLOAT_BOTTOM - FLOAT_PAD - FLOAT_HEAD,
-  }
-}
 
 /**
  * 맨 위 줄의 과학 플라스크 버튼: 누르면 기술표가 화면 위에 겹쳐 펼쳐진다 (아래 내용이 밀리지 않는다).

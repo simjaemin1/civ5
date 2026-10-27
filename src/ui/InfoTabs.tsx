@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { GameState, PolicyId, Player } from '../engine'
 import { ArrowLayer } from './ArrowLayer'
 import type { Arrow } from './ArrowLayer'
@@ -99,30 +99,54 @@ export function TechTree({ player, fit }: { player: Player; fit?: { width: numbe
   )
 }
 
-type Tab = 'tech' | 'wonder' | 'policy' | 'card' | 'unique' | 'log'
+type Tab = 'wonder' | 'policy' | 'card' | 'unique'
 
+// 기술 트리는 플라스크 버튼과 겹쳐서 빼고, 로그는 화면 아래 칸(LogPanel)에 둔다 (사용자 결정)
+const TABS: [Tab, string][] = [
+  ['wonder', '불가사의'],
+  ['policy', '정책'],
+  ['card', '군사 카드'],
+  ['unique', '고유 유닛'],
+]
+
+/**
+ * 맨 위 줄의 정보 탭(불가사의·정책·군사 카드·고유 유닛).
+ * 탭을 누르면 그 내용이 화면 위에 겹쳐 뜬다 (아래 내용이 밀리지 않는다). 같은 탭을 다시 누르거나 닫기, Esc로 닫는다.
+ */
 export function InfoTabs({ game, viewer }: { game: GameState; viewer: number }) {
-  const [tab, setTab] = useState<Tab>('tech')
-  const me = game.players[viewer]
+  const [tab, setTab] = useState<Tab | null>(null)
+  useEffect(() => {
+    if (!tab) return
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setTab(null)
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [tab])
   return (
-    <div className="panel">
-      <div className="tabs">
-        {(
-          [
-            ['tech', '기술 트리'],
-            ['wonder', '불가사의'],
-            ['policy', '정책'],
-            ['card', '군사 카드'],
-            ['unique', '고유 유닛'],
-            ['log', '로그'],
-          ] as [Tab, string][]
-        ).map(([k, name]) => (
-          <button key={k} className={tab === k ? 'active' : ''} onClick={() => setTab(k)}>
+    <>
+      <div className="tabs top-tabs" role="tablist" aria-label="정보">
+        {TABS.map(([k, name]) => (
+          <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'active' : ''} onClick={() => setTab(tab === k ? null : k)}>
             {name}
           </button>
         ))}
       </div>
-      {tab === 'tech' && <TechTree player={me} />}
+      {tab && (
+        <div className="tree-float info-float" role="dialog" aria-label={TABS.find(([k]) => k === tab)![1]}>
+          <div className="tree-overlay-head">
+            <b>{TABS.find(([k]) => k === tab)![1]}</b>
+            <button onClick={() => setTab(null)}>닫기 ✕</button>
+          </div>
+          <TabContent game={game} viewer={viewer} tab={tab} />
+        </div>
+      )}
+    </>
+  )
+}
+
+function TabContent({ game, viewer, tab }: { game: GameState; viewer: number; tab: Tab }) {
+  const me = game.players[viewer]
+  return (
+    <>
       {tab === 'wonder' && (
         <div>
           <div className="wonder-grid">
@@ -212,13 +236,20 @@ export function InfoTabs({ game, viewer }: { game: GameState; viewer: number }) 
           </div>
         </div>
       )}
-      {tab === 'log' && (
-        <div className="log">
-          {[...game.log].reverse().map((l, i) => (
-            <div key={i}>{l}</div>
-          ))}
-        </div>
-      )}
+    </>
+  )
+}
+
+/** 화면 아래 칸의 전체 기록 (최근 것이 위) */
+export function LogPanel({ game }: { game: GameState }) {
+  return (
+    <div className="panel">
+      <h3>로그</h3>
+      <div className="log">
+        {[...game.log].reverse().map((l, i) => (
+          <div key={i}>{l}</div>
+        ))}
+      </div>
     </div>
   )
 }
