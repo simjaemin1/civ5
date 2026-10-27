@@ -551,4 +551,6 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
 .tile.has-img.gen img, .tile.gen:not(.has-img) { outline: 3px solid #d32f2f; }
 .tile-city-token .occupier small { margin-top: -4px; }
 /* 몽골: 점령 중인 상대 타일 (도시 칸으로 끌어다 놓는다) */
-.enemy-tile { width: 118px; display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: grab; }
+.enemy-tile { width: 118px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+/* 몽골: 일꾼을 쓸 도시 고르기 (남은 일꾼이 없으면 검게 꺼진다) */
+.pick-city button.primary:disabled { background: #222; color: #888; border-color: #222; opacity: 1; cursor: not-allowed; }
