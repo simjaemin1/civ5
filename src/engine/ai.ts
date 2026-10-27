@@ -9,6 +9,7 @@ import { conditionMet, investableWonders, minHammers } from './wonders'
 import { MAX_HOLD, cardCost, heldCount, producible, uniqueOf, upgradeTargets } from './military'
 import { declarationTargets, findTile, occupiedTiles, targetSlot, usableInBattle } from './war'
 import { currentPlayer, defaultTileCity } from './core'
+import { turnKey } from './undo'
 
 /** 규칙 검증용 단순 휴리스틱 AI. 후보 행동을 순서대로 시도해 규칙을 어기지 않는 첫 행동을 쓴다. */
 
@@ -42,13 +43,19 @@ let starving = false
 /** 이웃의 군사에 비해 수비가 모자라면 망치를 더 챙긴다 */
 let defending = false
 
+/** 지금 상황에서 자원 한 단위의 가치 (질주·수비·과학 기아에 따라 바뀐다) */
+function yieldWeights(p: Player): { food: number; hammer: number; science: number; gold: number } {
+  if (aiStyle === 'hammer') return { food: 1.5, hammer: 4, science: 0.3, gold: 0 }
+  if (defending) return { food: 1.6, hammer: 3, science: 0.8, gold: 0.2 }
+  // 아폴로 질주·과학 기아: 식량이 곧 과학이므로 식량과 과학을 크게 친다
+  if (rushingApollo(p) || rushingCulture(p) || starving) return { food: 3, hammer: 0.5, science: 3, gold: 0.2 }
+  return { food: 1.6, hammer: 1.1, science: AI_TUNE.scienceWeight, gold: 0.4 }
+}
+
 function tileScore(p: Player, card: TileCard): number {
   const y = tileYield(card, ctxOf(p))
-  if (aiStyle === 'hammer') return y.hammer * 4 + y.food * 1.5 + y.science * 0.3
-  // 아폴로 질주·과학 기아: 식량이 곧 과학이므로 식량과 과학을 크게 친다
-  if (defending) return y.food * 1.6 + y.hammer * 3 + y.science * 0.8 + y.gold * 0.2
-  if (rushingApollo(p) || rushingCulture(p) || starving) return y.food * 3 + y.science * 3 + y.hammer * 0.5 + y.gold * 0.2
-  return weight(y)
+  const w = yieldWeights(p)
+  return y.food * w.food + y.hammer * w.hammer + y.science * w.science + y.gold * w.gold
 }
 
 function foundAction(p: Player, hand: TileCard[]): Action {
@@ -78,6 +85,241 @@ function placements(p: Player, reserveFree: number): { cityId: number; tileId: n
     }
   }
   return out
+}
+
+// ───── 차례 계획기 ─────
+// 자원은 모아 둘 수 없고 문턱(카드 비용·성장선·기술 비용)에 닿아야 쓸모가 있다. 그래서 타일을 고정 가중치로 고르지 않고,
+// 배치 후보를 열거해 문턱 기준으로 어림한 뒤 상위 몇 개를 엔진으로 차례 끝까지 실제로 돌려 보고 고른다.
+
+/** 도시 하나에서 열거할 배치 조합의 상한 (넘으면 좋은 타일 묶음만 남긴다) */
+const PLAN_MAX_COMBOS = 400
+
+type Placed = { cityId: number; tileId: number }
+interface CityPlan {
+  cityId: number
+  placed: Placed[]
+  food: number
+  hammer: number
+  science: number
+  gold: number
+}
+
+/** 한 도시의 배치 조합: 산출이 같은 타일을 묶어 일꾼 k명을 놓는 경우를 모두 센다 (산출 합이 같은 조합은 하나만) */
+function cityPlans(p: Player, city: Player['cities'][number], k: number, base: { food: number; hammer: number }): CityPlan[] {
+  const ctx = ctxOf(p)
+  const groups = new Map<string, { y: ReturnType<typeof tileYield>; ids: number[]; score: number }>()
+  for (const t of city.tiles) {
+    if (t.role === 'city' || (t.occupiedBy !== undefined && t.occupiedBy !== p.id)) continue
+    const y = tileYield(t.card, ctx)
+    const key = `${y.food},${y.hammer},${y.science},${y.gold}`
+    const g = groups.get(key) ?? { y, ids: [], score: tileScore(p, t.card) }
+    g.ids.push(t.card.id)
+    groups.set(key, g)
+  }
+  let list = [...groups.values()].sort((a, b) => b.score - a.score)
+  const combos = (gs: typeof list): number => {
+    // 조합 수 어림: 묶음마다 0..min(장수, k)
+    let n = 1
+    for (const g of gs) n *= Math.min(g.ids.length, k) + 1
+    return n
+  }
+  while (list.length > 1 && combos(list) > PLAN_MAX_COMBOS * 4) list = list.slice(0, -1)
+  const out = new Map<string, CityPlan>()
+  const counts: number[] = []
+  const walk = (i: number, left: number) => {
+    if (i === list.length || left === 0) {
+      const placed: Placed[] = []
+      const y = { food: base.food, hammer: base.hammer, science: 0, gold: 0 }
+      list.forEach((g, j) => {
+        for (let n = 0; n < (counts[j] ?? 0); n++) {
+          placed.push({ cityId: city.id, tileId: g.ids[n] })
+          y.food += g.y.food
+          y.hammer += g.y.hammer
+          y.science += g.y.science
+          y.gold += g.y.gold
+        }
+      })
+      if (ctx.techs.has('robotics')) y.hammer = Math.max(y.hammer, 10)
+      const key = `${y.food},${y.hammer},${y.science},${y.gold}`
+      if (!out.has(key) && out.size < PLAN_MAX_COMBOS) out.set(key, { cityId: city.id, placed, ...y })
+      return
+    }
+    // 남은 묶음에 다 놓을 수 없으면 이 묶음에서 더 놓아야 한다: 일꾼은 빠짐없이 놓는다 (산출은 음수가 없다)
+    const rest = list.slice(i + 1).reduce((n, g) => n + g.ids.length, 0)
+    for (let c = Math.min(left, list[i].ids.length); c >= Math.max(0, left - rest); c--) {
+      counts[i] = c
+      walk(i + 1, left - c)
+    }
+    counts[i] = 0
+  }
+  walk(0, k)
+  return [...out.values()]
+}
+
+/** 도시별로 망치를 쓸 수 있는 곳: 만들 수 있는 군사 카드의 비용, 투자할 수 있는 불가사의는 최소 망치를 음수로 */
+function hammerUse(s: GameState, p: Player): Map<number, number[]> {
+  const out = new Map<number, number[]>()
+  for (const city of p.cities) {
+    const costs: number[] = []
+    for (const o of cardOptions(p)) {
+      if (o.def.notBattle || o.def.special === 'coastalOnly' || (!o.unique && heldCount(p, o.def.id) >= MAX_HOLD) || !producible(s, p, o.def.id, o.unique, city)) continue
+      costs.push(cardCost(p, o.def, o.unique ? uniqueOf(p, o.unique) : undefined))
+    }
+    for (const w of investableWonders(s, p, city)) costs.push(-minHammers(p, w)) // 음수: 불가사의 최소 망치
+    out.set(city.id, costs)
+  }
+  return out
+}
+
+/** 일꾼 하나가 늘거나 줄 때의 가치: 일꾼은 앞으로 여러 차례 타일 하나만큼 산출한다 (차례 수 어림) */
+const PLAN_WORKER_TURNS = 3
+
+/** 타일 한 장의 평균 가치 (일꾼이 늘거나 줄 때 쓴다) */
+function workerValue(p: Player): number {
+  const tiles = p.cities.flatMap((c) => c.tiles).filter((t) => t.role !== 'city')
+  const avg = tiles.length ? tiles.reduce((n, t) => n + tileScore(p, t.card), 0) / tiles.length : 3
+  return avg * PLAN_WORKER_TURNS
+}
+
+/**
+ * 배치 조합 하나의 문턱 기준 어림 가치 (엔진을 돌리지 않는다).
+ * 자원은 문턱에 닿아 실제로 쓰인 몫만 센다: 산 기술의 비용, 만든 카드의 비용(또는 불가사의 투자), 성장·감소, 승급.
+ * 남아서 사라지는 몫은 0이다. 자원 한 단위의 가치는 지금 타일을 고르는 가중치(yieldWeights)를 그대로 쓴다.
+ */
+function roughPlanValue(p: Player, plans: CityPlan[], science: number, gold: number, techCosts: number[], uses: Map<number, number[]>): number {
+  const W = yieldWeights(p)
+  const wv = workerValue(p)
+  let v = 0
+  const cap = happiness(p)
+  const workers = totalWorkers(p)
+  // 생산: 도시마다 망치로 닿는 가장 비싼 카드, 또는 불가사의 투자 (망치 전부)
+  for (const c of plans) {
+    let used = 0
+    for (const x of uses.get(c.cityId)!) {
+      if (x >= 0 && x <= c.hammer) used = Math.max(used, x)
+      else if (x < 0 && -x <= c.hammer) used = Math.max(used, c.hammer)
+    }
+    v += used * W.hammer
+  }
+  // 성장: 식량 정산 (기술을 위해 바꾼 식량은 뺀다)
+  const growth = (conv: number): number => {
+    let g = 0
+    let left = conv
+    let n = workers
+    for (const c of plans) {
+      const w = p.cities.find((x) => x.id === c.cityId)!.workers
+      const take = Math.min(left, Math.max(0, c.food - w))
+      left -= take
+      const f = c.food - take
+      if (f < w && p.policy !== 'liberty') g -= wv
+      else if (f >= 2 * w && n < cap) {
+        g += wv
+        n++
+      }
+    }
+    return g
+  }
+  // 연구: 과학(+ 문자가 있으면 일꾼 유지분을 넘는 식량)으로 닿는 가장 비싼 기술
+  const spare = p.techs.includes('writing') ? plans.reduce((n, c) => n + Math.max(0, c.food - p.cities.find((x) => x.id === c.cityId)!.workers), 0) : 0
+  let best = growth(0)
+  for (const cost of techCosts) {
+    if (cost > science + spare) continue
+    const conv = Math.max(0, cost - science)
+    best = Math.max(best, (cost - conv) * W.science + conv * W.food + W.science + growth(conv))
+  }
+  v += best
+  // 금: 승급 비용(카드 비용 3~10)에 닿으면
+  if (gold >= 3 && p.military.length) v += Math.min(gold, 10) * W.gold
+  return v
+}
+
+/** 엔진으로 끝까지 돌린 차례의 실제 가치 (roughPlanValue와 같은 잣대): 산 기술, 쓴 망치, 일꾼 증감, 승급에 쓴 금 */
+function playedValue(s0: GameState, pid: number, placement: Placed[]): number {
+  const p0 = s0.players[pid]
+  const W = yieldWeights(p0)
+  const wv = workerValue(p0)
+  let s = apply(s0, { type: 'placeWorkers', placements: placement })
+  const gold0 = s.players[pid].turn!.yields.gold
+  const key = turnKey(s0)
+  let v = 0
+  for (let i = 0; i < 60; i++) {
+    if (s.phase === 'over' || s.phase === 'battle' || turnKey(s) !== key || actorOf(s) !== pid) break
+    const { state, action } = aiStep(s)
+    const p = s.players[pid]
+    if (action.type === 'produce') v += cardCost(p, cardById(action.defId), action.unique ? uniqueOf(p, action.unique) : undefined) * W.hammer
+    else if (action.type === 'invest') v += action.hammers * W.hammer
+    else if (action.type === 'research') {
+      const cost = TECHS.find((t) => t.id === action.techId)?.cost ?? 0
+      const conv = Math.min(cost, action.foodToScience ?? 0)
+      v += (cost - conv) * W.science + conv * W.food + W.science
+    }
+    s = state
+  }
+  const p1 = s.players[pid]
+  v += (totalWorkers(p1) - totalWorkers(p0)) * wv
+  if (p1.turn) v += (gold0 - p1.turn.yields.gold) * W.gold
+  return v
+}
+
+/** 문턱 기준으로 고른 일꾼 배치. 어림 1등이 지금 배치(타일 점수 순)와 다를 때만 엔진으로 둘을 끝까지 돌려 비교한다 */
+function plannedPlacements(s: GameState, p: Player, reserveFree: number): Placed[] | null {
+  if (!p.cities.length || aiStyle !== 'default') return null
+  let budget = Math.max(0, totalWorkers(p) - p.busyWorkers - (p.held || p.scouting ? 1 : 0) - reserveFree)
+  const q = structuredClone(p)
+  for (const c of q.cities) {
+    c.placed = []
+    c.enemyPlaced = []
+    c.generalPlaced = []
+  }
+  const base = computeYields(q)
+  const perCity: CityPlan[][] = []
+  for (const city of p.cities) {
+    const k = Math.min(city.workers, budget)
+    budget -= k
+    perCity.push(cityPlans(p, city, k, base.cities.find((c) => c.cityId === city.id)!))
+  }
+  // 도시가 둘 이상이면 조합이 곱해지므로 도시마다 앞쪽(좋은 타일 순) 일부만 남긴다
+  while (perCity.reduce((n, l) => n * l.length, 1) > PLAN_MAX_COMBOS * 2) {
+    const big = perCity.reduce((a, l, i) => (l.length > perCity[a].length ? i : a), 0)
+    perCity[big] = perCity[big].slice(0, Math.ceil(perCity[big].length / 2))
+  }
+  let combos: CityPlan[][] = [[]]
+  for (const l of perCity) combos = combos.flatMap((c) => l.map((x) => [...c, x]))
+  if (combos.length <= 1) return null
+  const techCosts = [...new Set(researchableTechs(s).map((t) => t.cost))]
+  const uses = hammerUse(s, p)
+  const value = (c: CityPlan[]) => roughPlanValue(p, c, base.science + c.reduce((n, x) => n + x.science, 0), base.gold + c.reduce((n, x) => n + x.gold, 0), techCosts, uses)
+  let top = combos[0]
+  let topV = -Infinity
+  for (const c of combos) {
+    const v = value(c)
+    if (v > topV + 1e-9) {
+      top = c
+      topV = v
+    }
+  }
+  const greedy = placements(p, reserveFree)
+  const planned = top.flatMap((c) => c.placed)
+  // 산출이 같으면(같은 타일 묶음) 지금 배치를 그대로 쓴다
+  const sig = (pl: Placed[]) => {
+    const y = { food: 0, hammer: 0, science: 0, gold: 0 }
+    for (const x of pl) {
+      const t = p.cities.find((c) => c.id === x.cityId)!.tiles.find((t) => t.card.id === x.tileId)!
+      const ty = tileYield(t.card, ctxOf(p))
+      y.food += ty.food
+      y.hammer += ty.hammer
+      y.science += ty.science
+      y.gold += ty.gold
+    }
+    return `${pl.map((x) => x.cityId).sort().join()}|${y.food},${y.hammer},${y.science},${y.gold}`
+  }
+  if (sig(planned) === sig(greedy)) return null
+  try {
+    return playedValue(s, p.id, planned) > playedValue(s, p.id, greedy) + 1e-9 ? planned : null
+  } catch (e) {
+    if (!(e instanceof RuleError)) throw e
+    return null
+  }
 }
 
 /** 목표 기술들까지 아직 연구하지 못한 선행 기술(목표 포함) 목록 */
@@ -136,7 +378,14 @@ function boostTechValue(p: Player, techId: string): number {
   return v
 }
 
+/** 이번 차례에 망치를 쓸 곳(만들 수 있는 군사 카드나 투자할 불가사의)이 하나도 없다 (researchCandidates가 정한다) */
+let idleHammers = false
+/** 군사 카드를 열어 주는 기술 */
+const unlocksCard = (techId: string): boolean => MILITARY_CARDS.some((c) => c.tech === techId && !c.uniqueOnly && !c.notBattle)
+
 function buildPriority(p: Player, t: TechDef): number {
+  // 망치를 쓸 곳이 없으면 군사 카드를 여는 비용 0 기술(농업·궁술·청동기술·목축업)을 나침반보다 먼저 연다
+  if (idleHammers && t.cost === 0 && unlocksCard(t.id)) return 350
   if (p.techs.includes('compass') === false && COMPASS_CHAIN.has(t.id)) return 300
   let v = boostTechValue(p, t.id)
   const mountainFirstCity = !!p.cities[0]?.tiles.some((x) => (x.role === 'city' || x.role === 'side') && x.card.terrains.includes('산'))
@@ -184,6 +433,7 @@ function researchCandidates(s: GameState, p: Player): Action[] {
       : cultureFirst(p) && !p.techs.includes('acoustics')
         ? missingFor(p, ['acoustics']) // 문화가 급하면 음향학(문화 +1)부터
         : undefined
+  idleHammers = [...hammerUse(s, p).values()].every((costs) => costs.length === 0)
   const techs = researchableTechs(s).sort((a, b) => techPriority(b, rush, p) - techPriority(a, rush, p))
   for (const t of techs) {
     let need = t.cost - turn.yields.science
@@ -805,8 +1055,10 @@ export function aiCandidates(s: GameState): Action[] {
       defending = armyOf(p) < defenseTarget(s, p)
       starving = baseScience < Math.min(...researchableTechs(s).map((t) => t.cost), 99)
       const reserve = p.generals > 0 && p.military.length >= 2 ? 1 : 0
+      const planned = plannedPlacements(s, p, reserve)
       return [
         ...scoutCandidates(s, p),
+        ...(planned ? [{ type: 'placeWorkers' as const, placements: planned }] : []),
         { type: 'placeWorkers', placements: placements(p, reserve) },
         { type: 'placeWorkers', placements: placements(p, 0) },
         { type: 'placeWorkers', placements: [] },
