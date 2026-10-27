@@ -50,10 +50,10 @@ export function battleCards(p: Player, coastal: boolean): number {
 /** 해안 타일 전투의 공격 전투력 보너스: 영국 +1, 알렉산드리아 등대 +1 */
 export const coastalBonus = (p: Player): number => (p.civId === 'england' ? 1 : 0) + (p.wonders.includes('great_lighthouse') ? 1 : 0)
 
-/** 도시 주변 4칸(위·아래·왼쪽·오른쪽) 중 이 문명이 점령한 칸 수 */
-export function sidesHeld(city: City, by: number): { held: number; total: number; open: number } {
+/** 도시 주변 4칸(위·아래·왼쪽·오른쪽) 중 이 문명이 점령한 칸 수(held)와 어느 문명이든 점령당한 칸 수(any) */
+export function sidesHeld(city: City, by: number): { held: number; any: number; total: number; open: number } {
   const sides = city.tiles.filter((t) => t.role === 'side')
-  return { held: sides.filter((t) => t.occupiedBy === by).length, total: 4, open: city.openSides.length }
+  return { held: sides.filter((t) => t.occupiedBy === by).length, any: sides.filter((t) => t.occupiedBy !== undefined).length, total: 4, open: city.openSides.length }
 }
 
 /** 선전포고 목표가 해안 타일인지 (해안 타일 전투) */

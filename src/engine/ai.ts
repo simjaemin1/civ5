@@ -214,11 +214,10 @@ function warlordVictim(s: GameState, p: Player): number | null {
   const open = new Set(declarationTargets(s, p).filter((t) => t.kind !== 'retake').map((t) => t.defenderId))
   let rivals = s.players.filter((o) => o.id !== p.id && !o.eliminated && o.cities.length > 0)
   if (!rivals.length) return null
-  // 지금 선전포고할 수 있는 타일이 있는 상대만 (다른 문명이 4칸을 나눠 점령한 도시는 아무도 칠 수 없다)
+  // 지금 선전포고할 수 있는 타일이 있는 상대만
   if (rivals.some((o) => open.has(o.id))) rivals = rivals.filter((o) => open.has(o.id))
-  const contested = (o: Player) => conquestCity(o).tiles.some((t) => t.role === 'side' && t.occupiedBy !== undefined && t.occupiedBy !== p.id)
   const score = (o: Player) =>
-    (contested(o) ? -8 : 0) + occupied.filter((t) => t.defenderId === o.id).length * 4 + (o.policy === 'tradition' ? 3 : 0) - strengthOf(o) * 0.4 - standing(o) * 0.05
+    occupied.filter((t) => t.defenderId === o.id).length * 4 + (o.policy === 'tradition' ? 3 : 0) - strengthOf(o) * 0.4 - standing(o) * 0.05
   return rivals.sort((x, y) => score(y) - score(x) || x.id - y.id)[0].id
 }
 /** 전투에 내는 상위 4장의 힘 (체력 + 공격력×2): 서로 4장씩이면 동점은 수비가 이기므로 앞서야 공격한다 */
@@ -574,7 +573,7 @@ function declareCandidates(s: GameState, p: Player): Action[] {
       }
     }
     const targets = declarationTargets(s, p)
-      .filter((t) => aim === null || t.kind === 'retake' || t.defenderId === aim)
+      .filter((t) => aim === null || t.kind === 'retake' || t.defenderId === aim || (isWarlord(p) && t.kind === 'city'))
       .filter((t) => rate(t) >= 0)
       .sort((a, b) => rate(b) - rate(a))
     for (const t of targets) out.push({ type: 'declareWar', defenderId: t.defenderId, cityId: t.cityId, tileId: t.tileId })

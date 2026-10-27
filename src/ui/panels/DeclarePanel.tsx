@@ -102,9 +102,9 @@ export function DeclarePanel({ game, player, dispatch }: PanelProps) {
                     const s = sidesHeld(city, player.id)
                     const blocked = city.id === 0 && boardOwner.cities.length > 1
                     return (
-                      <span className={s.held === 4 && !blocked ? 'ok' : 'muted'}>
-                        · 사면 점령 {s.held}/4{s.open > 0 ? ` (빈 면 ${s.open})` : ''}
-                        {blocked ? ' · 두 번째 도시를 먼저 파괴해야 공격 가능' : s.held === 4 ? ' · 도시 공격 가능' : ''}
+                      <span className={s.any === 4 && s.open === 0 && !blocked ? 'ok' : 'muted'}>
+                        · 사면 점령 {s.any}/4 (내 장군 {s.held}){s.open > 0 ? ` (빈 면 ${s.open})` : ''}
+                        {blocked ? ' · 두 번째 도시를 먼저 파괴해야 공격 가능' : s.any === 4 && s.open === 0 ? ' · 도시 공격 가능 (누구의 장군이든 4칸이 점령되면 가능)' : ''}
                       </span>
                     )
                   }

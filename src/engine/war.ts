@@ -24,11 +24,11 @@ export function findTile(p: Player, cityId: number, tileId: number): { city: Cit
   return city && tile ? { city, tile } : null
 }
 
-/** 도시 타일을 공격하려면 위·아래·왼쪽·오른쪽 4칸을 모두 내 장군으로 점령해야 한다. */
-function cityAttackable(attacker: Player, defender: Player, city: City): boolean {
+/** 도시 타일은 위·아래·왼쪽·오른쪽 4칸이 모두 (어느 문명이든) 장군에게 점령당해 있으면 누구나 공격할 수 있다. */
+function cityAttackable(defender: Player, city: City): boolean {
   if (city.openSides.length > 0) return false
   const sides = city.tiles.filter((t) => t.role === 'side')
-  if (sides.length !== SIDES.length || !sides.every((t) => t.occupiedBy === attacker.id)) return false
+  if (sides.length !== SIDES.length || !sides.every((t) => t.occupiedBy !== undefined)) return false
   // 두 번째 도시가 있으면 첫 도시의 도시 타일은 공격할 수 없다
   if (city.id === 0 && defender.cities.length > 1) return false
   return true
@@ -56,7 +56,7 @@ export function declarationTargets(s: GameState, p: Player): DeclTarget[] {
       for (const t of city.tiles) {
         if (targeted(opp.id, city.id, t.card.id)) continue
         if (t.role === 'city') {
-          if (cityAttackable(p, opp, city)) out.push({ defenderId: opp.id, cityId: city.id, tileId: t.card.id, kind: 'city' })
+          if (cityAttackable(opp, city)) out.push({ defenderId: opp.id, cityId: city.id, tileId: t.card.id, kind: 'city' })
         } else if (t.occupiedBy === undefined) {
           out.push({ defenderId: opp.id, cityId: city.id, tileId: t.card.id, kind: 'normal' })
         }

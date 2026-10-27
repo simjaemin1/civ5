@@ -370,6 +370,22 @@ describe('선전포고', () => {
     expect(declarationTargets(s, s.players[0]).some((t) => t.tileId === cityTile)).toBe(false)
   })
 
+  it('도시 4칸이 어느 문명의 장군에게든 점령되어 있으면 누구나 도시에 선전포고할 수 있다', () => {
+    const s = mod(round2(['korea', 'russia', 'china'], [hand4(), hand4(), hand4()]), (c) => {
+      const city = c.players[1].cities[0]
+      city.tiles.push({ card: tile(['평지']), role: 'side', side: 'W' })
+      city.openSides = []
+      // 4칸을 모두 제3의 문명(중국)이 점령: 0번 문명은 한 칸도 점령하지 않았다
+      for (const t of city.tiles) if (t.role === 'side') t.occupiedBy = 2
+      c.players[0].generals = 1
+    })
+    const cityTile = s.players[1].cities[0].tiles.find((t) => t.role === 'city')!.card.id
+    expect(declarationTargets(s, s.players[0]).some((t) => t.kind === 'city' && t.tileId === cityTile)).toBe(true)
+    // 한 칸이라도 비어 있으면 안 된다
+    const gap = mod(s, (c) => (c.players[1].cities[0].tiles.find((t) => t.role === 'side')!.occupiedBy = undefined))
+    expect(declarationTargets(gap, gap.players[0]).some((t) => t.kind === 'city')).toBe(false)
+  })
+
   it('한 차례에 한 번만 선전포고할 수 있다', () => {
     let s = mod(round2(), (c) => (c.players[0].generals = 2))
     s = toDeclare(s)
