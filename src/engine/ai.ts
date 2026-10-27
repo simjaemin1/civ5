@@ -7,7 +7,7 @@ import { apply, researchableTechs } from './game'
 import { canHammerScience, ctxOf, culture, happiness, rationalismScience, tileYield, totalWorkers, tourism } from './yields'
 import { investableWonders, minHammers } from './wonders'
 import { MAX_HOLD, cardCost, heldCount, producible, uniqueOf, upgradeTargets } from './military'
-import { declarationTargets, occupiedTiles } from './war'
+import { declarationTargets, findTile, occupiedTiles } from './war'
 import { currentPlayer, defaultTileCity } from './core'
 
 /** 규칙 검증용 단순 휴리스틱 AI. 후보 행동을 순서대로 시도해 규칙을 어기지 않는 첫 행동을 쓴다. */
@@ -20,7 +20,7 @@ export const setAiStyle = (style: 'default' | 'hammer'): void => {
 
 /** 튜닝값 (시뮬레이션으로 조정) */
 /** 시뮬레이션(30판)으로 고른 값: 정책은 과학 12 미만이면 합리주의·자유로, 과학이론 우선도 +60, 아폴로 질주는 남은 기술 8개부터 (더 일찍 달리면 오히려 판이 길어진다) */
-export const AI_TUNE = { scienceWeight: 1.3, apolloRush: 8, policyNeed: 12, coalition: true, cultureRush: 9, cultureSlack: 2 }
+export const AI_TUNE = { scienceWeight: 1.3, apolloRush: 8, policyNeed: 12, coalition: true, cultureRush: 9, cultureSlack: 2, warlord: true, warlordArmy: 6 }
 
 const weight = (y: { food: number; hammer: number; science: number; gold: number }) =>
   y.food * 1.6 + y.hammer * 1.1 + y.science * AI_TUNE.scienceWeight + y.gold * 0.4
@@ -144,6 +144,8 @@ function buildPriority(p: Player, t: TechDef): number {
   if (t.id === 'radar') v -= 60 // 정책이 전제정치로 바뀐다 (아폴로 질주 때만 감수)
   // 고유 유닛이 초반에 열리는 문명은 그 길이 최우선, 고유 유닛 시대에는 장군(기마술)을 일찍 얻어 상대 좋은 타일을 압박한다
   if (uniqueRoute(p)?.has(t.id)) v += 400
+  // 전쟁광은 도시를 칠 공성 카드(대포)를 서둘러 연다 (훈족은 고유 유닛 공성추)
+  if (isWarlord(p) && !hasSiege(p) && siegeRoute(p).has(t.id)) v += 350
   if (t.id === 'horseback' && (inUniqueEra(p) || !!uniqueRoute(p))) v += 150
   return v
 }
@@ -156,12 +158,14 @@ function techPriority(t: TechDef, rush?: Set<string>, p?: Player): number {
     else if (e.kind === 'secondCity') v += 8
     else if (e.kind === 'culture') v += 4
     else if (e.kind === 'tourismPerCulture') v += rush ? 0 : 60 // 관광이 상대 문화를 넘으면 문화 승리
-    else if (e.kind === 'policy') v += 3
+    else if (e.kind === 'policy') v += p && isWarlord(p) ? 45 : 3 // 전쟁광: 전제정치를 고를 때마다 장군 +1
     else if (e.kind === 'hammerToScience') v += 3
     else if (e.kind === 'sciencePerTurn') v += e.amount * 10
-    else if (e.kind === 'general') v += 2
+    else if (e.kind === 'general') v += p && isWarlord(p) ? 70 : 2
     else if (e.kind === 'scienceVictory') v += 1000
   }
+  // 전쟁광은 새 군사 카드를 열어 주는 기술을 서두른다
+  if (p && isWarlord(p)) v += MILITARY_CARDS.filter((c) => c.tech === t.id && !c.uniqueOnly && !c.notBattle).length * 10
   return v
 }
 
@@ -184,7 +188,9 @@ function researchCandidates(s: GameState, p: Player): Action[] {
     let hammerConv = 0
     if (need > 0 && p.techs.includes('writing')) {
 // 자유 정책에서는 일꾼을 굶겨도 잃지 않으므로 식량을 전부 과학으로 돌릴 수 있다
-      foodConv = Math.min(need, Math.max(0, p.policy === 'liberty' ? food : food - totalWorkers(p)))
+      // 전쟁광이 공성 카드(대포)를 여는 화학은 일꾼 몇 명을 잃더라도 식량을 모두 과학으로 돌려 연구한다
+      const spare = p.policy === 'liberty' || (isWarlord(p) && t.id === 'chemistry' && !hasSiege(p) && siegeRoute(p).has(t.id)) ? food : food - totalWorkers(p)
+      foodConv = Math.min(need, Math.max(0, spare))
       need -= foodConv
     }
     if (need > 0 && canHammerScience(p)) {
@@ -196,6 +202,38 @@ function researchCandidates(s: GameState, p: Player): Action[] {
   out.push({ type: 'skipResearch' })
   return out
 }
+
+/** 전쟁광 문명(훈족·줄루·몽골): 전제정치로 장군을 모으고 군대를 많이 뽑아, 한 상대를 골라 좋은 타일을 선점령한 뒤 도시를 공격해 탈락시킨다 */
+const WARLORDS = new Set(['huns', 'zulu', 'mongolia'])
+const isWarlord = (p: Player): boolean => AI_TUNE.warlord && WARLORDS.has(p.civId)
+/** 산업시대(비용 6열 이상 기술)가 열리기 전: 이때까지 군대로 몰아붙인다 */
+const preIndustrial = (s: GameState): boolean => !s.players.some((o) => !o.eliminated && o.techs.some((id) => (TECHS.find((t) => t.id === id)?.column ?? 0) >= 6))
+/** 이 문명이 노리는 한 상대: 이미 점령한 타일이 많고(꾸준히), 군대가 약하고, 전통으로 일꾼을 줄여 약해진 상대 */
+function warlordVictim(s: GameState, p: Player): number | null {
+  const occupied = occupiedTiles(s, p)
+  const open = new Set(declarationTargets(s, p).filter((t) => t.kind !== 'retake').map((t) => t.defenderId))
+  let rivals = s.players.filter((o) => o.id !== p.id && !o.eliminated && o.cities.length > 0)
+  if (!rivals.length) return null
+  // 지금 선전포고할 수 있는 타일이 있는 상대만 (다른 문명이 4칸을 나눠 점령한 도시는 아무도 칠 수 없다)
+  if (rivals.some((o) => open.has(o.id))) rivals = rivals.filter((o) => open.has(o.id))
+  const contested = (o: Player) => conquestCity(o).tiles.some((t) => t.role === 'side' && t.occupiedBy !== undefined && t.occupiedBy !== p.id)
+  const score = (o: Player) =>
+    (contested(o) ? -8 : 0) + occupied.filter((t) => t.defenderId === o.id).length * 4 + (o.policy === 'tradition' ? 3 : 0) - strengthOf(o) * 0.4 - standing(o) * 0.05
+  return rivals.sort((x, y) => score(y) - score(x) || x.id - y.id)[0].id
+}
+/** 전투에 내는 상위 4장의 힘 (체력 + 공격력×2): 서로 4장씩이면 동점은 수비가 이기므로 앞서야 공격한다 */
+function strengthOf(p: Player): number {
+  return p.military
+    .map((c) => {
+      const st = cardStats(c)
+      return st.hp === undefined ? 0 : st.hp + (st.choose ?? st.marks[0]?.power ?? st.markPower ?? 0) * 2
+    })
+    .sort((x, y) => y - x)
+    .slice(0, 4)
+    .reduce((n, v) => n + v, 0)
+}
+/** 상대 도시 중 공격 대상이 될 도시 (두 번째 도시가 있으면 그쪽을 먼저 무너뜨려야 한다) */
+const conquestCity = (o: Player) => (o.cities.length > 1 ? o.cities[o.cities.length - 1] : o.cities[0])
 
 const armyOf = (p: Player): number => p.military.filter((c) => cardStats(c).hp !== undefined).length
 
@@ -224,6 +262,21 @@ function uniqueRoute(p: Player): Set<string> | undefined {
   visit(early.id)
   return need
 }
+/** 한 기술까지 아직 연구하지 않은 선행 기술 묶음 */
+function routeTo(p: Player, techId: string): Set<string> {
+  const need = new Set<string>()
+  const visit = (id: string) => {
+    if (p.techs.includes(id) || need.has(id)) return
+    need.add(id)
+    for (const pre of TECHS.find((t) => t.id === id)?.prereqs ?? []) visit(pre)
+  }
+  visit(techId)
+  return need
+}
+/** 도시 공격에는 공성 카드가 필요하다 (대포·야포, 훈족은 공성추) */
+/** 전쟁광이 공성 카드를 열려고 연구해야 하는 기술 (훈족은 고유 유닛 공성추가 있어 해당 없음) */
+const siegeRoute = (p: Player): Set<string> => (civById(p.civId).uniques.some((u) => u.name === '공성추') ? new Set() : routeTo(p, 'chemistry'))
+const hasSiege = (p: Player): boolean => p.military.some((c) => cardStats(c).siege)
 /** 고유 유닛 시대: 고유 유닛 기술을 열었다 */
 const inUniqueEra = (p: Player): boolean => uniqueTechs(p).some((id) => p.techs.includes(id))
 
@@ -274,6 +327,14 @@ function policyOrder(s: GameState, p: Player): Policy[] {
   const withNone = base + (writing ? Math.max(0, food - totalWorkers(p)) : 0)
   // 앞으로 만날 비용 10대 기술을 감당할 수 있는지 (번성 뒤에도 막히지 않도록 여유 있게)
   const need = Math.max(cheapest, AI_TUNE.policyNeed)
+  // 전쟁광: 타일이 괜찮으면 전제정치(장군 +1, 선전포고에 일꾼 불필요), 상대가 전통으로 약해졌을 때도 전제정치, 타일이 모자라면 미학으로 타협한다 (산업시대 전)
+  if (isWarlord(p) && preIndustrial(s)) {
+    const terr = p.cities.flatMap((c) => c.tiles).filter((t) => t.role !== 'city')
+    const avg = terr.length ? terr.reduce((n, t) => n + weight(tileYield(t.card, ctxOf(p))), 0) / terr.length : 0
+    const weakRival = s.players.some((o) => o.id !== p.id && !o.eliminated && o.policy === 'tradition')
+    aiDebug.policyReason = '전쟁광'
+    return avg >= POOR_TILES || weakRival ? ['despotism', 'aesthetics', ...POLICY_PREFERENCE] : ['aesthetics', 'despotism', ...POLICY_PREFERENCE]
+  }
   // 맨 처음 고르는 정책은 전통 아니면 미학으로 고정한다: 당장 남는 식량(식량 − 일꾼)이 없으면 미학, 있으면 전통.
   if ((p.policyPicks ?? 0) === 0) {
     aiDebug.policyReason = '첫 정책'
@@ -407,6 +468,8 @@ function foundSecond(hand: TileCard[]): Action {
   return { type: 'buildSecondCity', cityTileId: city.id, sideTiles }
 }
 
+const isSiegeAction = (a: Action): boolean => a.type === 'produce' && (cardById(a.defId).line === 'siege' || a.unique === '공성추')
+
 function produceCandidates(s: GameState, p: Player): Action[] {
   const out: Action[] = []
   const turn = p.turn!
@@ -418,7 +481,7 @@ function produceCandidates(s: GameState, p: Player): Action[] {
       .filter((w) => minHammers(p, w) <= h)
       // 과학 정책(합리주의·자유)을 평등 등으로 덮어쓰는 불가사의는 피한다
       .filter((w) => !(['rationalism', 'liberty'].includes(p.policy ?? '') && w.effects.some((e) => e.kind === 'setPolicy' && e.policy !== 'liberty')))
-      .sort((a, b) => (cultureFirst(p) ? Number(b.id === 'sistine_chapel') - Number(a.id === 'sistine_chapel') : 0) || b.minHammers - a.minHammers)
+      .sort((a, b) => (isWarlord(p) ? Number(b.id === 'statue_of_zeus') - Number(a.id === 'statue_of_zeus') : 0) || (cultureFirst(p) ? Number(b.id === 'sistine_chapel') - Number(a.id === 'sistine_chapel') : 0) || b.minHammers - a.minHammers)
     const wonderActions: Action[] = wonders.map((w) => ({ type: 'invest', cityId: city.id, wonderId: w.id, hammers: h }))
     const cardActions: Action[] = []
     for (const o of cardOptions(p)) {
@@ -427,7 +490,11 @@ function produceCandidates(s: GameState, p: Player): Action[] {
     }
     // 군대가 3장 미만이거나 이웃의 군사에 비해 수비가 모자라면 군사 카드를 먼저, 그 뒤에는 불가사의에 망치를 모두 건다
     const needDefense = army < defenseTarget(s, p)
-    out.push(...(army < 3 || needDefense || aiStyle === 'hammer' ? [...cardActions, ...wonderActions] : [...wonderActions, ...cardActions]))
+    const warRush = isWarlord(p) && preIndustrial(s)
+    const rush = warRush && (army < AI_TUNE.warlordArmy || (!hasSiege(p) && cardActions.some(isSiegeAction)))
+    // 공성 카드가 없으면 그것부터 만든다 (도시를 치려면 공성 카드가 살아남아야 한다)
+    if (warRush && !hasSiege(p)) cardActions.sort((x, y) => Number(isSiegeAction(y)) - Number(isSiegeAction(x)))
+    out.push(...(army < 3 || needDefense || rush || aiStyle === 'hammer' ? [...cardActions, ...wonderActions] : [...wonderActions, ...cardActions]))
   }
   // 3) 금으로 승급 (가장 높은 단계부터 시도한다)
   if (!turn.upgraded && turn.yields.gold > 0) {
@@ -442,6 +509,7 @@ function produceCandidates(s: GameState, p: Player): Action[] {
     const cheap = occupiedTiles(s, p)
       .map((t) => ({ t, v: tileImportance(s, t.defenderId, t.cityId, t.tileId) }))
       .filter((x) => x.v < KEEP_OCCUPIED)
+      .filter((x) => !(isWarlord(p) && keepForConquest(s, p, x.t)))
       .sort((a, b) => a.v - b.v)
     for (const { t } of cheap) out.push({ type: 'recallGeneral', ...t })
   }
@@ -469,6 +537,14 @@ function tileImportance(s: GameState, ownerId: number, cityId: number, tileId: n
 /** 이만큼 중요한 상대 타일은 장군을 올려 둔 채 계속 점령한다 (상대의 성장을 누른다) */
 const KEEP_OCCUPIED = 4.5
 
+/** 전쟁광이 노리는 상대 도시의 4칸 점령은 도시 공격의 발판이라 풀지 않는다 */
+function keepForConquest(s: GameState, p: Player, t: { defenderId: number; cityId: number; tileId: number }): boolean {
+  if (t.defenderId !== warlordVictim(s, p)) return false
+  const o = s.players[t.defenderId]
+  const found = findTile(o, t.cityId, t.tileId)
+  return !!found && found.tile.role === 'side' && found.city.id === conquestCity(o).id
+}
+
 function declareCandidates(s: GameState, p: Player): Action[] {
   const out: Action[] = []
   const army = p.military.filter((c) => cardStats(c).hp !== undefined).length
@@ -482,10 +558,25 @@ function declareCandidates(s: GameState, p: Player): Action[] {
     // 셋 이상이면 한 사람을 집중공략하지 않고, 딸리는 나라들이 함께 1등을 견제한다.
     // 1등은 2등을 견제한다. 탈환은 언제든 할 수 있다.
     const top = AI_TUNE.coalition ? rankTop(s) : null
-    const aim = top ? (p.id === top.leader.id ? top.runnerUp.id : top.leader.id) : null
+    let aim = top ? (p.id === top.leader.id ? top.runnerUp.id : top.leader.id) : null
+    let rate = value
+    if (isWarlord(p)) {
+      // 한 상대에 집중한다: 도시를 칠 수 있으면 도시(탈락), 아니면 그 도시의 4칸 → 좋은 타일 순으로 선점령
+      aim = warlordVictim(s, p)
+      // 힘이 앞서지 않으면 장군만 낭비하므로 선전포고하지 않고 군대를 더 키운다 (탈환은 언제든)
+      if (aim !== null && strengthOf(p) < strengthOf(s.players[aim]) * 1.15) aim = -1
+      rate = (t) => {
+        if (t.kind === 'retake') return 1000
+        if (t.kind === 'city') return hasSiege(p) ? 500 : -1
+        const o = s.players[t.defenderId]
+        const side = t.cityId === conquestCity(o).id && findTile(o, t.cityId, t.tileId)?.tile.role === 'side'
+        return tileImportance(s, t.defenderId, t.cityId, t.tileId) + (side ? 8 : 0)
+      }
+    }
     const targets = declarationTargets(s, p)
       .filter((t) => aim === null || t.kind === 'retake' || t.defenderId === aim)
-      .sort((a, b) => value(b) - value(a))
+      .filter((t) => rate(t) >= 0)
+      .sort((a, b) => rate(b) - rate(a))
     for (const t of targets) out.push({ type: 'declareWar', defenderId: t.defenderId, cityId: t.cityId, tileId: t.tileId })
   } else {
     for (const t of declarationTargets(s, p)) {
@@ -505,7 +596,9 @@ function battleCandidates(s: GameState): Action[] {
       const st = cardStats(p.military.find((c) => c.uid === uid)!)
       return (st.hp ?? 0) + (st.choose ?? st.marks[0]?.power ?? st.markPower ?? 0) * 2
     }
-    const usable = p.military.map((c) => c.uid).sort((x, y) => power(y) - power(x))
+    // 도시를 공격할 때는 공성 카드를 반드시 내보낸다 (살아남아 이겨야 도시가 파괴된다)
+    const siegeFirst = (uid: number) => (b.decl.kind === 'city' && b.decl.attackerId === pid && cardStats(p.military.find((c) => c.uid === uid)!).siege ? 1000 : 0)
+    const usable = p.military.map((c) => c.uid).sort((x, y) => power(y) + siegeFirst(y) - (power(x) + siegeFirst(x)))
     return [
       { type: 'arrangeBattle', playerId: pid, slots: [usable[0] ?? null, usable[1] ?? null, usable[2] ?? null, usable[3] ?? null] },
       { type: 'arrangeBattle', playerId: pid, slots: [null, null, null, null] },

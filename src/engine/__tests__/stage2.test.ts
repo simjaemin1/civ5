@@ -596,6 +596,27 @@ describe('AI 정책 고르기 (타일·불가사의·성장에 따라)', () => {
     expect(aiDebug.policyReason).toBe('후반 타일')
   })
 
+  const warlord = (rivalTradition: boolean) => {
+    let s = toResearch(solo('mongolia'))
+    return mod(s, (c) => {
+      c.players[0].pendingPolicies = 1
+      c.players[0].policyPicks = 1
+      const rival = structuredClone(c.players[0])
+      rival.id = 1
+      rival.policy = rivalTradition ? 'tradition' : 'liberty'
+      c.players.push(rival)
+    })
+  }
+
+  it('전쟁광(몽골)은 산업시대 전에 상대가 전통으로 약해졌으면 전제정치를 고른다', () => {
+    expect(firstPolicy(warlord(true))).toBe('despotism')
+    expect(aiDebug.policyReason).toBe('전쟁광')
+  })
+
+  it('전쟁광은 타일이 모자라고 약한 상대도 없으면 미학으로 타협한다', () => {
+    expect(firstPolicy(warlord(false))).toBe('aesthetics')
+  })
+
   it('후반 타일이 한 장뿐이면 스퍼트하지 않는다', () => {
     const s = ready(hand4([{}, { resource: 'oil' }, {}, {}]))
     firstPolicy(s)
