@@ -47,23 +47,34 @@ function rowOf(id: string): number {
  * 기술 트리: 가로는 열(과학 비용), 세로는 도표의 줄. 선행 기술은 왼쪽, 후행 기술은 오른쪽에 놓이고 화살표로 이어진다.
  * 보유·연구 가능·잠김은 테두리로 보여 주고, 카드를 누르면 크게 본다.
  */
-export function TechTree({ player, fit }: { player: Player; fit?: { width: number; height: number } }) {
+export function TechTree({ player, fit }: { player: Player; fit?: { width: number; height: number } | 'screen' }) {
   // 열 10개가 가로 스크롤 없이 한눈에 들어오도록 카드 폭을 화면 폭에 맞춘다.
   // fit을 주면 그 넓이·높이 안에 표 전체(10열 × 7줄)가 스크롤 없이 들어가도록 카드 크기를 정한다.
+  // fit='screen'이면 표가 놓인 자리에서 화면 아래 끝까지의 높이와 칸 폭에 맞춘다 (페이지를 내리지 않고 한눈에).
   const wrap = useRef<HTMLDivElement>(null)
   const [measuredW, setCardW] = useState(110)
-  const cardW = fit ? fitCardW(fit) : measuredW
-  const fitted = !!fit
+  const cardW = fit && fit !== 'screen' ? fitCardW(fit) : measuredW
+  const fixed = !!fit && fit !== 'screen'
+  const screen = fit === 'screen'
   useLayoutEffect(() => {
-    if (fitted) return
+    if (fixed) return
     const el = wrap.current
     if (!el) return
-    const measure = () => setCardW(Math.max(56, Math.min(150, Math.floor((el.clientWidth - 9 * TECH_GAP - 8) / 10))))
+    const measure = () => {
+      if (screen) {
+        const top = el.getBoundingClientRect().top + window.scrollY
+        setCardW(fitCardW({ width: el.clientWidth, height: Math.max(320, window.innerHeight - top - 12) }))
+      } else setCardW(Math.max(56, Math.min(150, Math.floor((el.clientWidth - 9 * TECH_GAP - 8) / 10))))
+    }
     measure()
     const ro = new ResizeObserver(measure)
     ro.observe(el)
-    return () => ro.disconnect()
-  }, [fitted])
+    window.addEventListener('resize', measure)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', measure)
+    }
+  }, [fixed, screen])
   const cols = Array.from({ length: 10 }, (_, i) => i + 1)
   const arrows: Arrow[] = TECHS.flatMap((t) =>
     (t.prereqs ?? []).map((pre) => ({

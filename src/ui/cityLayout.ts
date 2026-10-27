@@ -2,12 +2,14 @@ import { extraSlotOf } from '../engine'
 import type { City, Side } from '../engine'
 import { SIDE_LABEL } from './format'
 
-/** 문화로 얻은 타일이 놓이는 자리: 십자(도시+4면) 둘레의 네 모서리부터, 그다음 오른쪽 줄·왼쪽 줄 순서로 쌓아 간다 */
+/**
+ * 문화로 얻은 타일이 놓이는 자리: 십자(도시+4면) 둘레의 네 모서리로 3×3을 채운 뒤에는 아래로 한 줄(왼쪽·가운데·오른쪽)씩 늘려 간다.
+ * 도시는 가로로 나란히 놓이므로 도시 판은 옆으로 넓어지지 않고 아래로 길어진다 (사용자 결정).
+ */
 export function extraPosition(i: number): { x: number; y: number } {
   if (i < 4) return { x: i % 2 === 0 ? -1 : 1, y: i < 2 ? -1 : 1 } // 1 왼쪽 위, 2 오른쪽 위, 3 왼쪽 아래, 4 오른쪽 아래
   const j = i - 4
-  const k = Math.floor(j / 3) // 세 칸짜리 줄: 오른쪽 → 왼쪽 → 오른쪽 …
-  return { x: k % 2 === 0 ? 2 + k / 2 : -2 - (k - 1) / 2, y: (j % 3) - 1 } // 위, 가운데, 아래 순서
+  return { x: (j % 3) - 1, y: 2 + Math.floor(j / 3) } // 아래 줄: 왼쪽, 가운데, 오른쪽 순서
 }
 
 const CROSS: { key: string; x: number; y: number; side?: Side }[] = [
