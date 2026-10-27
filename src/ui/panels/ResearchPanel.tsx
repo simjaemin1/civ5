@@ -1,7 +1,6 @@
 import { CityTag } from '../icons'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { TECHS, canHammerScience, happiness, researchableTechs, totalWorkers } from '../../engine'
-import { TechTree } from '../InfoTabs'
 import { TechCard } from '../cards/TechCard'
 import { ICON, josa } from '../format'
 import type { PanelProps } from './types'
@@ -15,14 +14,6 @@ export function ResearchPanel({ game, player, dispatch }: PanelProps) {
   const canHammer = canHammerScience(player)
   const cities = turn.yields.cities
   // 도시별로 과학에 쓸 식량·망치 (도시 id → 개수)
-  const [treeOpen, setTreeOpen] = useState(false)
-  // Esc로 기술표를 닫는다
-  useEffect(() => {
-    if (!treeOpen) return
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setTreeOpen(false)
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [treeOpen])
   const [foodBy, setFoodBy] = useState<Record<number, number>>({})
   const [hammerBy, setHammerBy] = useState<Record<number, number>>({})
   const foodConv = cities.reduce((n, c) => n + (foodBy[c.cityId] ?? 0), 0)
@@ -83,22 +74,8 @@ export function ResearchPanel({ game, player, dispatch }: PanelProps) {
     : null
 
   return (
-    <div className="panel research-panel">
-      <div className="research-head">
-        <h3>기술 연구 (한 차례에 1개)</h3>
-        <button className={treeOpen ? 'primary' : ''} aria-expanded={treeOpen} onClick={() => setTreeOpen(!treeOpen)} title="선행·후행 기술을 한눈에 봅니다. 기술 카드 위에 펼쳐집니다">
-          🗺 기술표 {treeOpen ? '접기' : '펴보기'}
-        </button>
-      </div>
-      {treeOpen && (
-        <div className="tree-overlay" role="dialog" aria-label="기술표">
-          <div className="tree-overlay-head">
-            <b>기술표 (선행 → 후행)</b>
-            <button onClick={() => setTreeOpen(false)}>닫기 ✕</button>
-          </div>
-          <TechTree player={player} />
-        </div>
-      )}
+    <div className="panel">
+      <h3>기술 연구 (한 차례에 1개)</h3>
       <p>
         {ICON.science} 과학 {turn.yields.science}
         {canFood && ` (+식량 변환 ${foodConv})`}

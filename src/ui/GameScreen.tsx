@@ -4,6 +4,7 @@ import type { Action, GameState } from '../engine'
 import { RuleError, actorOf, aiStep, apply, civById, culture, happiness, totalWorkers, tourism } from '../engine'
 import { Board } from './Board'
 import { CivEmblem } from './CivEmblem'
+import { TechTreeButton } from './TechTreeButton'
 import { CivInspector } from './CivInspector'
 import { InfoTabs } from './InfoTabs'
 import { SidePanel } from './SidePanel'
@@ -309,6 +310,7 @@ export function GameScreen({ initial, seats, onExit }: Props) {
             </div>
           </details>
           <button onClick={onExit}>나가기</button>
+          <TechTreeButton player={player} />
           <CivEmblem civId={player.civId} />
         </div>
       </header>
