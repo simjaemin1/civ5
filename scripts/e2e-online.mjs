@@ -15,7 +15,8 @@ await A.p.getByText('온라인으로 하기').click()
 await A.p.getByPlaceholder('닉네임').fill('방장')
 await A.p.getByText('방 만들기').click()
 await A.p.getByTestId('invite').waitFor()
-const invite = await A.p.getByTestId('invite').innerText()
+// 초대 주소는 같은 와이파이 주소로 나올 수 있으니, 이 점검에서는 BASE로 바꿔 쓴다
+const invite = BASE + new URL(await A.p.getByTestId('invite').innerText()).search
 log('invite', invite)
 await A.p.locator('select').first().selectOption('korea')
 

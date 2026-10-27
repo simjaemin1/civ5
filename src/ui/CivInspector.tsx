@@ -6,7 +6,7 @@ import { Board } from './Board'
 import { TechTree } from './InfoTabs'
 import { CivCard } from './cards/CivCard'
 import { PolicyCard } from './cards/PolicyCard'
-import { policyName } from './format'
+import { ICON, policyName } from './format'
 
 interface Props {
   game: GameState
@@ -42,7 +42,7 @@ export function CivInspector({ game, seats, actor }: Props) {
         })}
       </div>
       <p className="summary">
-        <span>문화 <b>{culture(p)}</b></span>
+        <span>{ICON.culture} 문화 <b>{culture(p)}</b></span>
         <span>관광 <b>{tourism(p)}</b></span>
         <span><Icon name="worker" size={16} /> 일꾼/행복 <b>{totalWorkers(p)}/{p.cities.length ? happiness(p) : '-'}</b></span>
         <span>기술 <b>{p.techs.length}</b></span>

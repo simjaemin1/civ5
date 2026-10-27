@@ -1,6 +1,9 @@
 import generalUrl from '../assets/icons/general.png'
+import { RES_NAME, RES_URL } from './resUrls'
+import type { ResName } from './resUrls'
 import cityUrl from '../assets/icons/city.png'
 import workerUrl from '../assets/icons/worker.png'
+
 
 const URLS = { general: generalUrl, worker: workerUrl, city: cityUrl }
 
@@ -18,4 +21,10 @@ export function CityTag({ id, label = false }: { id: number; label?: boolean }) 
       {label && <small>{id + 1}</small>}
     </span>
   )
+}
+
+
+/** 글자 크기에 맞춰 커지는 자원 아이콘 (원본 그림 그대로) */
+export function Res({ name }: { name: ResName }) {
+  return <img className="res-icon" src={RES_URL[name]} alt={RES_NAME[name]} title={RES_NAME[name]} draggable={false} />
 }

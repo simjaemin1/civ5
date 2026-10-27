@@ -326,7 +326,7 @@ export function GameScreen({ initial, seats, onExit }: Props) {
           <div className="stats">
             {player.cities.length > 0 && (
               <span>
-                문화 {culture(player)} · 관광 {tourism(player)} · <Icon name="worker" size={16} /> {totalWorkers(player)}/{happiness(player)} · <Icon name="general" size={16} /> {player.generals}
+                {ICON.culture} 문화 {culture(player)} · 관광 {tourism(player)} · <Icon name="worker" size={16} /> {totalWorkers(player)}/{happiness(player)} · <Icon name="general" size={16} /> {player.generals}
                 {!actorSeat.ai && !over && game.phase !== 'setup' && <span className="muted"> · Enter: 이 단계 확정</span>}
               </span>
             )}

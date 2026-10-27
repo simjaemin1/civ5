@@ -264,7 +264,7 @@ export function OnlineGameScreen({ online, onExit }: Props) {
           <div className="stats">
             {me.cities.length > 0 && (
               <span>
-                나: {civById(me.civId).name} · 문화 {culture(me)} · 관광 {tourism(me)} · <Icon name="worker" size={16} /> {totalWorkers(me)}/{happiness(me)} ·{' '}
+                나: {civById(me.civId).name} · {ICON.culture} 문화 {culture(me)} · 관광 {tourism(me)} · <Icon name="worker" size={16} /> {totalWorkers(me)}/{happiness(me)} ·{' '}
                 <Icon name="general" size={16} /> {me.generals}
                 {inTurn && <span className="muted"> · Enter: 이 단계 확정</span>}
               </span>

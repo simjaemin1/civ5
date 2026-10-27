@@ -1,14 +1,27 @@
 import type { Dir, PolicyId, TechDef, WonderCondition, WonderEffect } from '../engine'
 import { MILITARY_CARDS, POLICIES, RESOURCES, WONDERS, WONDER_CARDS, cardById, cardStats } from '../engine'
 import type { PartialYield, Terrain, TileCard, Yield } from '../engine'
+import { Res } from './icons'
 
-export const ICON = { food: '🍎', hammer: '🔨', science: '🧪', gold: '🪙' } as const
+/** 글 사이에 넣는 자원 아이콘: `{ICON.food}` */
+export const ICON = {
+  food: <Res name="food" />,
+  hammer: <Res name="hammer" />,
+  gold: <Res name="gold" />,
+  culture: <Res name="culture" />,
+  science: <Res name="science" />,
+} as const
 
-export function yieldText(y: PartialYield | Yield): string {
-  const parts = (['food', 'hammer', 'science', 'gold'] as const)
-    .filter((k) => (y[k] ?? 0) !== 0)
-    .map((k) => `${ICON[k]}${y[k]}`)
-  return parts.length ? parts.join(' ') : '없음'
+/** 타일 산출 한 줄: 아이콘과 숫자. 없으면 "없음" */
+export function yieldText(y: PartialYield | Yield) {
+  const parts = (['food', 'hammer', 'science', 'gold'] as const).filter((k) => (y[k] ?? 0) !== 0)
+  if (!parts.length) return '없음'
+  return parts.map((k) => (
+    <span key={k} className="res-amount">
+      <Res name={k} />
+      {y[k]}
+    </span>
+  ))
 }
 
 export const TERRAIN_COLOR: Record<Terrain, string> = {
@@ -115,7 +128,8 @@ export function techCardLines(t: TechDef): string[] {
   if (lux.length) lines.push(`자신이 보유한 타일 중 ${lux.map((r) => r.name).join('·')} 존재 시 행복 +1`)
   const boosts = Object.values(RESOURCES).flatMap((r) => (r.boosts ?? []).filter((b) => b.tech === t.id).map((b) => ({ r, b })))
   for (const { r, b } of boosts) {
-    const y = (['food', 'hammer', 'science', 'gold'] as const).filter((k) => (b.yield[k] ?? 0) !== 0).map((k) => `${ICON[k]}+${b.yield[k]}`).join(' ')
+    const NAME = { food: '식량', hammer: '망치', science: '과학', gold: '금' } as const
+    const y = (['food', 'hammer', 'science', 'gold'] as const).filter((k) => (b.yield[k] ?? 0) !== 0).map((k) => `${NAME[k]} +${b.yield[k]}`).join(' ')
     lines.push(`${b.nextTurn ? '다음 자신의 차례부터' : '자신의 차례에'} ${r.name} 타일의 산출량 ${y}`)
   }
   for (const e of t.effects) {

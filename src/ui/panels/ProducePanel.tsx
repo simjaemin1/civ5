@@ -31,9 +31,9 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
   /** 이 금액으로 투자하면 이번 라운드에 몇 위인지 (앞사람 투자액은 공개) */
   const rankOf = (wonderId: string, amt: number): { text: string; cls: string } => {
     const { top } = bidsOf(wonderId)
-    if (amt > top) return { text: later ? `🔨${amt}이면 지금 단독 1위 (뒤에 ${later}명이 더 낼 수 있음)` : `🔨${amt}이면 단독 1위 확정 (뒤에 투자할 사람이 없음)`, cls: 'ok' }
-    if (amt === top) return { text: `🔨${amt}이면 공동 1위 → 아무도 진척도를 못 얻음. 🔨${top + 1} 이상 필요`, cls: 'error' }
-    return { text: `🔨${amt}이면 1위가 아님. 🔨${top + 1} 이상 필요`, cls: 'error' }
+    if (amt > top) return { text: later ? `망치 ${amt}이면 지금 단독 1위 (뒤에 ${later}명이 더 낼 수 있음)` : `망치 ${amt}이면 단독 1위 확정 (뒤에 투자할 사람이 없음)`, cls: 'ok' }
+    if (amt === top) return { text: `망치 ${amt}이면 공동 1위 → 아무도 진척도를 못 얻음. 망치 ${top + 1} 이상 필요`, cls: 'error' }
+    return { text: `망치 ${amt}이면 1위가 아님. 망치 ${top + 1} 이상 필요`, cls: 'error' }
   }
   const leftovers = player.cities
     .filter((c) => !turn.produced.includes(c.id) && cityCanProduce(game, player, c.id))
@@ -102,7 +102,7 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
                             <small>
                               이번 라운드 투자:{' '}
                               {bidsOf(w.id).bids.length
-                                ? bidsOf(w.id).bids.map((b) => `${civById(game.players[b.playerId].civId).name} 🔨${b.hammers}`).join(' · ')
+                                ? bidsOf(w.id).bids.map((b) => `${civById(game.players[b.playerId].civId).name} 망치 ${b.hammers}`).join(' · ')
                                 : '아직 없음'}
                             </small>
                             <small className={rankOf(w.id, amt).cls}>{rankOf(w.id, amt).text}</small>

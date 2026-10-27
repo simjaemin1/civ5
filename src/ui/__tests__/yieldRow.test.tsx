@@ -18,7 +18,7 @@ describe('타일 산출 아이콘 줄 다시 그리기', () => {
     const html = renderToStaticMarkup(<YieldRow printed={{ food: 2, gold: 1 }} actual={Y({ food: 1, gold: 1, science: 1 })} />)
     expect(count(html, 'minus')).toBe(1)
     expect(count(html, 'plus')).toBe(1)
-    const order = [...html.matchAll(/src="[^"]*yield-(\w+)\.png"/g)].map((m) => m[1])
+    const order = [...html.matchAll(/src="[^"]*res-(\w+)\.png"/g)].map((m) => m[1])
     expect(order).toEqual(['food', 'food', 'gold', 'science'])
   })
 })

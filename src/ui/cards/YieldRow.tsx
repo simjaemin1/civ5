@@ -1,12 +1,9 @@
-import foodUrl from '../../assets/icons/yield-food.png'
-import hammerUrl from '../../assets/icons/yield-hammer.png'
-import goldUrl from '../../assets/icons/yield-gold.png'
-import scienceUrl from '../../assets/icons/yield-science.png'
+import { RES_URL } from '../resUrls'
 import type { PartialYield, Yield } from '../../engine'
 
 /** 카드 하단 산출 아이콘 순서 (실제 카드: 식량 → 망치 → 금 → 과학) */
 const ORDER = ['food', 'hammer', 'gold', 'science'] as const
-const URL = { food: foodUrl, hammer: hammerUrl, gold: goldUrl, science: scienceUrl }
+const URL = RES_URL
 const NAME = { food: '식량', hammer: '망치', gold: '금', science: '과학' }
 
 /** 카드 그림 기준 배치 (255×364 카드에서 아이콘 지름 약 33px, 간격 약 36.7px, 줄 중심 높이 91.4%) */
@@ -16,7 +13,7 @@ const MAX_SPAN = 94
 
 /**
  * 기술·문명·불가사의 효과로 산출이 카드에 인쇄된 값과 달라진 타일에, 카드 하단 아이콘 줄을 실제 산출로 다시 그린다.
- * 아이콘은 실제 카드 그림에서 따 왔다. 인쇄값보다 늘어난 아이콘은 초록 테두리, 줄어든 아이콘은 흐리게 보여 준다.
+ * 아이콘은 원본 그림(res-*.png)을 쓴다. 인쇄값보다 늘어난 아이콘은 초록 테두리, 줄어든 아이콘은 흐리게 보여 준다.
  */
 export function YieldRow({ printed, actual }: { printed: PartialYield; actual: Yield }) {
   const same = ORDER.every((k) => (printed[k] ?? 0) === actual[k])
