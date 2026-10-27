@@ -66,7 +66,12 @@ export function GameScreen({ initial, seats, onExit }: Props) {
   // 한 번에 전투가 여러 개 끝나도 하나씩 차례로 보여 준다 (가장 오래된 것부터)
   const reports = game.battleReports ?? []
   const [seenBattle, setSeenBattle] = useState(() => (reports.length ? reports[reports.length - 1].seq : 0))
-  const pendingReport = seats.some((s) => !s.ai) ? (reports.find((r) => r.seq > seenBattle) ?? null) : null
+  // 되돌리기로 전투 전으로 돌아가면 다시 치를 전투가 같은 번호를 받으므로, 본 번호도 함께 되돌린다 (안 그러면 장면이 영영 안 뜬다)
+  const lastSeq = reports.at(-1)?.seq ?? 0
+  if (lastSeq < seenBattle) setSeenBattle(lastSeq)
+  // 오른쪽 "지난 전투"에서 고른 전투를 다시 본다
+  const [replaySeq, setReplaySeq] = useState<number | null>(null)
+  const pendingReport = seats.some((s) => !s.ai) ? (reports.find((r) => r.seq > seenBattle) ?? reports.find((r) => r.seq === replaySeq) ?? null) : null
 
   const actor = actorOf(game)
   const actorSeat = seats[actor]
@@ -257,7 +262,10 @@ export function GameScreen({ initial, seats, onExit }: Props) {
                 ? pendingReport.defenderId
                 : pendingReport.attackerId
           }
-          onClose={() => setSeenBattle(pendingReport.seq)}
+          onClose={() => {
+            setSeenBattle((n) => Math.max(n, pendingReport.seq))
+            setReplaySeq(null)
+          }}
           lossSound={!seats[pendingReport.attackerId].ai || !seats[pendingReport.defenderId].ai}
         />
       )}
@@ -347,7 +355,7 @@ export function GameScreen({ initial, seats, onExit }: Props) {
             </>
           )}
         </div>
-        <SidePanel game={game} seats={seats} actor={actor} viewer={viewer} onView={(id) => setPeek({ id, self: player.id })} viewing={peekId} />
+        <SidePanel game={game} seats={seats} actor={actor} viewer={viewer} onView={(id) => setPeek({ id, self: player.id })} viewing={peekId} onShowBattle={setReplaySeq} />
       </div>
       <LogPanel game={game} />
     </div>

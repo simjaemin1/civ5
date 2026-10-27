@@ -559,3 +559,5 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
 .attack-dmg { position: absolute; top: 50%; transform: translate(-50%, -50%); background: #fff8ec; border: 2px solid #c0392b; border-radius: 12px; padding: 0 8px; font-weight: 800; color: #c0392b; white-space: nowrap; }
 /* 카드 놓기: 놓인 자리는 카드 아래에 */
 .hand-cap { display: block; text-align: center; font-size: 0.78rem; color: var(--muted); }
+.battle-replays { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+.battle-replays button { font-size: 0.85rem; padding: 2px 8px; }

@@ -64,6 +64,8 @@ export function OnlineGameScreen({ online, onExit }: Props) {
   // 접속한 시점까지의 전투는 이미 본 것으로 치고, 그 뒤에 끝난 전투부터 장면을 보여 준다 (렌더 때마다 새로 계산하면 영영 안 뜬다)
   const [seenBattle, setSeenBattle] = useState<number>(() => online.view?.battleReports?.at(-1)?.seq ?? 0)
   const [autoNote, setAutoNote] = useState('')
+  // 오른쪽 "지난 전투"에서 고른 전투를 다시 본다
+  const [replaySeq, setReplaySeq] = useState<number | null>(null)
   const { prefs, set: setPrefs } = usePrefs()
   useGameSounds(game, game?.viewer)
   // 되돌린 직후에는 자동 넘기기를 멈춘다 (되돌리자마자 다시 넘어가지 않게). 같은 상태에 두 번 보내지 않게 보낸 seq를 기억한다
@@ -108,7 +110,10 @@ export function OnlineGameScreen({ online, onExit }: Props) {
 
   // 전투 결과: 한 번에 여러 개 끝나도 오래된 것부터 하나씩. 접속한 시점까지의 전투는 이미 본 것으로 친다
   const reports = game.battleReports ?? []
-  const pendingReport = reports.find((r) => r.seq > seenBattle) ?? null
+  // 되돌리기로 전투 전으로 돌아가면 다시 치를 전투가 같은 번호를 받으므로, 본 번호도 함께 되돌린다
+  const lastSeq = reports.at(-1)?.seq ?? 0
+  if (lastSeq < seenBattle) setSeenBattle(lastSeq)
+  const pendingReport = reports.find((r) => r.seq > seenBattle) ?? reports.find((r) => r.seq === replaySeq) ?? null
 
   const actor = actorOf(game)
   const actorPlayer = game.players[actor]
@@ -175,7 +180,7 @@ export function OnlineGameScreen({ online, onExit }: Props) {
 
   return (
     <div className="game">
-      {pendingReport && <BattleReportModal key={pendingReport.seq} game={game} report={pendingReport} viewerId={game.viewer} lossSound={pendingReport.attackerId === game.viewer || pendingReport.defenderId === game.viewer} onClose={() => setSeenBattle(pendingReport.seq)} />}
+      {pendingReport && <BattleReportModal key={pendingReport.seq} game={game} report={pendingReport} viewerId={game.viewer} lossSound={pendingReport.attackerId === game.viewer || pendingReport.defenderId === game.viewer} onClose={() => { setSeenBattle((n) => Math.max(n, pendingReport.seq)); setReplaySeq(null) }} />}
       <header className="top">
         <div>
           <b>라운드 {game.round}</b> · {PHASE[game.phase]} · <span className="who">{civById(actorPlayer.civId).name}</span>
@@ -270,7 +275,7 @@ export function OnlineGameScreen({ online, onExit }: Props) {
             </>
           )}
         </div>
-        <SidePanel game={game} seats={seats} actor={actor} viewer={me.id} onView={(id) => setPeek({ id, self: me.id })} viewing={peekId} />
+        <SidePanel game={game} seats={seats} actor={actor} viewer={me.id} onView={(id) => setPeek({ id, self: me.id })} viewing={peekId} onShowBattle={setReplaySeq} />
       </div>
       <LogPanel game={game} />
     </div>

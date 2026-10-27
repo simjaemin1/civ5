@@ -51,6 +51,26 @@ export function TurnOrder({ game, seats, actor, onView, viewing }: { game: GameS
 }
 
 /** 이번 라운드에 걸린 선전포고. 보는 사람이 목표이면 강조한다 (규칙: 받은 쪽은 자기 차례에 대비할 수 있다). */
+/** 가장 최근 라운드에 치른 전투: 누르면 전투 장면을 다시 본다 */
+export function RecentBattles({ game, onShow }: { game: GameState; onShow: (seq: number) => void }) {
+  const reports = game.battleReports ?? []
+  const last = reports.at(-1)
+  if (!last) return null
+  const list = reports.filter((r) => r.round === last.round)
+  return (
+    <section className="side-sec">
+      <h4>⚔ 라운드 {last.round} 전투</h4>
+      <div className="battle-replays">
+        {list.map((r) => (
+          <button key={r.seq} onClick={() => onShow(r.seq)} title="전투 장면 다시 보기">
+            ▶ {civName(game, r.attackerId)} vs {civName(game, r.defenderId)} — {r.winner === 'attacker' ? '공격' : '수비'} 승
+          </button>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 export function Threats({ game, viewer }: { game: GameState; viewer: number }) {
   const list = game.declarations
   return (
@@ -135,7 +155,7 @@ export function RecentLog({ game, lines = 12 }: { game: GameState; lines?: numbe
   )
 }
 
-export function SidePanel({ game, seats, actor, viewer, onView, viewing }: { game: GameState; seats: { ai: boolean }[]; actor: number; viewer: number; onView?: (id: number) => void; viewing?: number | null }) {
+export function SidePanel({ game, seats, actor, viewer, onView, viewing, onShowBattle }: { game: GameState; seats: { ai: boolean }[]; actor: number; viewer: number; onView?: (id: number) => void; viewing?: number | null; onShowBattle?: (seq: number) => void }) {
   return (
     <aside className="side">
       <div className="side-civ">
@@ -144,6 +164,7 @@ export function SidePanel({ game, seats, actor, viewer, onView, viewing }: { gam
       </div>
       <TurnOrder game={game} seats={seats} actor={actor} onView={onView} viewing={viewing} />
       <Threats game={game} viewer={viewer} />
+      {onShowBattle && <RecentBattles game={game} onShow={onShowBattle} />}
       <WonderRace game={game} viewer={viewer} />
       <RecentLog game={game} />
     </aside>
