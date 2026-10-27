@@ -302,3 +302,60 @@ describe('AI 불가사의 투자 (경매 읽기)', () => {
     expect(investTargets(s)).not.toContain(target)
   })
 })
+
+describe('AI 차례 계획기 (문턱 기준 일꾼 배치)', () => {
+  it('일꾼이 행복 상한에 차서 성장할 수 없으면, 남는 식량 대신 군사 카드 비용에 닿는 망치 타일에 일꾼을 올린다', () => {
+    let s = createGame({ seed: 4, civIds: ['korea', 'russia'] })
+    for (let i = 0; i < 500 && !(s.phase === 'place' && actorOf(s) === 0 && s.round >= 3); i++) s = aiStep(s).state
+    s = structuredClone(s)
+    const p = s.players[0]
+    p.techs = ['agriculture'] // 전사(망치 3)만 만들 수 있다
+    p.military = []
+    p.policy = null
+    p.held = null
+    p.scouting = false
+    p.busyWorkers = 0
+    p.generals = 0
+    p.wonders = []
+    const card = (id: number, terrains: string[]) => ({ id, terrains }) as never
+    const city = p.cities[0]
+    p.cities = [city]
+    // 도시(숲: 식량 1, 망치 1) + 평지 3장(식량 2) + 언덕 2장(망치 2), 일꾼은 행복 상한만큼
+    const tiles = [9002, 9003, 9004].map((id) => ({ card: card(id, ['평지']), role: 'extra' as const })).concat([9005, 9006].map((id) => ({ card: card(id, ['언덕']), role: 'extra' as const })))
+    city.tiles = [{ card: card(9001, ['숲']), role: 'city' }, ...tiles]
+    city.openSides = []
+    city.workers = happiness(p)
+    expect(city.workers).toBe(3)
+    const place = aiCandidates(s).find((a) => a.type === 'placeWorkers')
+    if (!place || place.type !== 'placeWorkers') throw new Error('배치 후보 없음')
+    const hills = place.placements.filter((x) => x.tileId >= 9005).length
+    const food = 1 + 2 * (place.placements.length - hills)
+    const hammer = 1 + 2 * hills
+    // 타일 점수 순(평지 3장)이면 식량 7이 성장 없이 사라지고 망치 1로는 아무것도 못 만든다
+    expect(hills).toBeGreaterThanOrEqual(1)
+    expect(food).toBeGreaterThanOrEqual(3) // 일꾼을 잃지 않는다
+    expect(hammer).toBeGreaterThanOrEqual(3) // 전사(망치 3)를 만든다
+    const next = apply(s, place)
+    expect(next.players[0].turn!.yields.cities[0].hammer).toBe(hammer)
+  })
+
+  it('망치를 쓸 곳(군사 카드·불가사의)이 없으면 군사 카드를 여는 비용 0 기술을 먼저 연구한다', () => {
+    let s = createGame({ seed: 5, civIds: ['russia', 'korea'] })
+    for (let i = 0; i < 500 && !(s.phase === 'research' && actorOf(s) === 0); i++) s = aiStep(s).state
+    s = structuredClone(s)
+    const p = s.players[0]
+    p.techs = [] // 문자(대도서관)처럼 불가사의를 여는 기술도 없다
+    // 문화가 급한 상태(음향학 먼저)가 아니게: 일꾼은 행복보다 적고, 영토 타일은 좋게
+    for (const c of p.cities) {
+      c.workers = 1
+      for (const t of c.tiles) if (t.role !== 'city') t.card = { ...t.card, terrains: ['오아시스'], resource: undefined, wonder: undefined }
+    }
+    const first = aiCandidates(s).find((a) => a.type === 'research')
+    if (!first || first.type !== 'research') throw new Error('연구 후보 없음')
+    expect(['agriculture', 'archery', 'animal_husbandry', 'bronze_working']).toContain(first.techId)
+    // 이미 카드를 만들 수 있으면 평소 순서(나침반 계열)를 따른다
+    p.techs = ['agriculture']
+    const usual = aiCandidates(s).find((a) => a.type === 'research')
+    expect(usual && usual.type === 'research' && usual.techId).toBe('sailing')
+  })
+})
