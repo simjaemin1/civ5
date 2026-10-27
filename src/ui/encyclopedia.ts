@@ -119,13 +119,17 @@ function policyEntry(id: PolicyId): Entry {
 function resourceEntry(id: string): Entry {
   const r = RESOURCES[id]
   const kind = resKind(id)!
-  const rows: Row[] = yieldStr(r.printed) ? [{ label: '타일 산출', items: [yieldStr(r.printed)] }] : []
+  // 카드에 그려진 산출(금 3, 철·말 망치 +1 등)은 보면 알므로 적지 않는다. 기술을 연구해야 생기는 효과만 적는다
+  const rows: Row[] = []
   if (r.luxuryTech) {
     const t = techById(r.luxuryTech)
     rows.push({ label: '행복 +1', items: ['이 자원 타일을 가지고 다음 기술을 연구하면 행복 +1', '\n', ...techLine(t)] })
   }
   const cards = MILITARY_CARDS.filter((c) => c.requires === id)
   if (cards.length) rows.push({ label: '필요로 하는 카드', items: cards.flatMap((c, i) => (i ? [', ', cardRef(c.id)] : [cardRef(c.id)])) })
+  // 이 자원이 건설 조건인 불가사의 (석재 → 마우솔레움)
+  const needWonders = WONDER_CARDS.filter((w) => w.condition?.kind === 'stoneInCity' && id === 'stone')
+  if (needWonders.length) rows.push({ label: '건설 조건인 불가사의', items: needWonders.flatMap((w, i) => [...(i ? [', '] : []), { kind: 'wonder' as const, id: w.id, label: w.name }, ` (${conditionText(w.condition)})`]) })
   for (const b of r.boosts ?? []) rows.push({ label: '산출 증가', items: [`${yieldStr(b.yield)}${b.nextTurn ? ' (연구한 다음 차례부터)' : ''} — 이 기술을 연구하면`, '\n', ...techLine(techById(b.tech))] })
   return { kind, id, title: r.name, rows }
 }

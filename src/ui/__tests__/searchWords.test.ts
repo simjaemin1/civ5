@@ -31,6 +31,9 @@ describe('검색·도감', () => {
     expect(text('tech', 'electricity')).toContain('기술 줄: 교육학 → 음향학 → 과학이론 → 전기 (과학 10)')
     expect(text('strategic', 'aluminum')).toContain('교육학 → 음향학 → 과학이론 → 전기 (과학 10)')
     expect(text('strategic', 'aluminum')).not.toContain('타일 산출')
+    expect(text('luxury', 'furs')).not.toContain('금 +3') // 카드에 보이는 산출은 적지 않는다
+    expect(text('strategic', 'iron')).not.toContain('망치')
+    expect(searchWords('사적지')[0]).toMatchObject({ kind: 'rule', id: 'historic' })
     expect(iron).toContain('해금 군사 카드: 장검사 (철 필요)')
     expect(text('tech', 'trapping')).toContain('행복 +1 (타일 보유 시): 상아, 모피')
     expect(text('luxury', 'furs')).toContain('목축업 → 기마술 → 수렵 (과학 1)')
