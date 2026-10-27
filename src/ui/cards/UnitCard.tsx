@@ -14,8 +14,6 @@ interface Props {
   onClick?: () => void
   /** onClick이 없을 때 누르면 크게 보기 */
   zoomable?: boolean
-  /** 카드 위에 겹쳐 보여 줄 글 (예: 대미지) */
-  overlay?: string
   title?: string
   /** 상대 쪽에서 마주 보는 카드처럼 180도 뒤집어 보여 준다 */
   flip?: boolean
@@ -24,7 +22,7 @@ interface Props {
 const POS: Record<Dir, string> = { L: '8%', C: '50%', R: '92%' }
 
 /** 군사 카드 한 장. 그림이 등록돼 있으면 그림을, 없으면 능력치로 그린 카드 얼굴(전투력 별 위치 = 공격 방향)을 보여 준다. */
-export function UnitCard({ card, width = 150, selected, dim, onClick, zoomable = true, overlay, title, flip }: Props) {
+export function UnitCard({ card, width = 150, selected, dim, onClick, zoomable = true, title, flip }: Props) {
   const [zoom, setZoom] = useState(false)
   const img = unitImage(card)
   const st = cardStats({ uid: 0, ...card })
@@ -74,7 +72,6 @@ export function UnitCard({ card, width = 150, selected, dim, onClick, zoomable =
           </div>
         </div>
       )}
-      {overlay && <span className="overlay">{overlay}</span>}
     </button>
   )
   return (

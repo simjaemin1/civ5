@@ -33,10 +33,10 @@ function Unit({ u, live, dir, final }: { u: BattleUnitReport | null; live: Live;
   const doomed = !final && live.dmg >= u.hp
   const taken = u.attackDamage + u.counterDamage
   return (
-    <div className={`unit ${dead ? 'dead' : 'alive'}${doomed ? ' doomed' : ''}${live.attacking ? ` lunge-${dir}` : ''}${live.hit ? ' hit' : ''}`} key={live.hit}>
+    // 카드 위에는 아무것도 겹치지 않는다 (사용자 결정): 공격·피격은 칸 테두리 색으로, 공격 선과 대미지는 두 줄 사이 빈 곳에 그린다
+    <div className={`unit ${dead ? 'dead' : 'alive'}${doomed ? ' doomed' : ''}${live.attacking ? ' attacking' : ''}${live.hit ? ' hit' : ''}`} key={live.hit}>
       <div className="cardwrap">
         <UnitCard card={u.inst} width={150} zoomable={false} flip={dir === 'down'} />
-        {live.hit > 0 && <span className="pop">−{live.hit}</span>}
       </div>
       <div className="hpbar" title={`체력 ${left}/${u.hp}`}>
         {Array.from({ length: u.hp }, (_, i) => (
@@ -54,6 +54,31 @@ function Unit({ u, live, dir, final }: { u: BattleUnitReport | null; live: Live;
         )}
       </span>
       <span className="state">{dead ? '💥 파괴' : final ? '✔ 생존' : doomed ? '⚠ 치명상 (전투 끝에 파괴)' : '\u00a0'}</span>
+    </div>
+  )
+}
+
+/** 두 줄(위·아래 진영) 사이 빈 곳에 지금 공격을 긴 화살표로 그리고, 대미지·반격은 화살표 가운데에 적는다 */
+function AttackLine({ step, topId }: { step: Step | null; topId: number }) {
+  // 위 줄은 왼쪽부터 4·3·2·1번, 아래 줄은 1·2·3·4번
+  const colOf = (p: { pid: number; slot: number }) => (p.pid === topId ? 5 - p.slot : p.slot)
+  if (!step) return <div className="attack-gap" aria-hidden="true" />
+  const x1 = (colOf(step.from) - 0.5) * 100
+  const x2 = (colOf(step.to) - 0.5) * 100
+  const down = step.from.pid === topId
+  const [y1, y2] = down ? [2, 46] : [46, 2]
+  return (
+    <div className="attack-gap" aria-hidden="true">
+      <svg viewBox="0 0 400 48" preserveAspectRatio="none">
+        <line x1={x1} y1={y1} x2={x2} y2={y2} vectorEffect="non-scaling-stroke" />
+      </svg>
+      <span className={`attack-head ${down ? 'down' : 'up'}`} style={{ left: `${x2 / 4}%` }}>
+        {down ? '▼' : '▲'}
+      </span>
+      <span className="attack-dmg" style={{ left: `${(x1 + x2) / 8}%` }}>
+        −{step.power}
+        {step.counter ? ` · 반격 −${step.counter}` : ''}
+      </span>
     </div>
   )
 }
@@ -180,13 +205,7 @@ export function BattleReportModal({ game, report, viewerId, onClose, lossSound =
                 </div>
               ))}
             </div>
-            <div className="scene-row vs">
-              {cols.map((c) => (
-                <div key={`v${c}`} className="cell arrow-gap">
-                  &nbsp;
-                </div>
-              ))}
-            </div>
+            <AttackLine step={done ? null : current} topId={topId} />
             <div className="scene-row">
               {cols.map((c) => (
                 <div key={`b${c}`} className="cell" data-slot={`${bottomId}:${c}`}>

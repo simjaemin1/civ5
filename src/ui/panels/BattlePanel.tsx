@@ -92,9 +92,10 @@ function Arrange({ game, me, enemy, dispatch }: { game: GameState; me: Player; e
               selected={held === c.uid}
               dim={placed.has(c.uid)}
               onClick={() => setHeld(held === c.uid ? null : c.uid)}
-              overlay={placed.has(c.uid) ? `${slots.indexOf(c.uid) + 1}번에 놓음` : undefined}
               title={placed.has(c.uid) ? '이미 자리에 있음 (다른 자리를 누르면 옮김)' : cardText(c)}
             />
+            {/* 놓인 자리는 카드 위가 아니라 카드 아래에 적는다 */}
+            <small className="hand-cap">{placed.has(c.uid) ? `${slots.indexOf(c.uid) + 1}번에 놓음` : '\u00a0'}</small>
           </div>
         ))}
       </div>
