@@ -297,8 +297,6 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .chips button { font-size: 0.85rem; }
 
 /* 군사 카드 그림 위 공격 방향 화살표 */
-.dir-badges { position: absolute; left: 0; right: 0; top: 2px; height: 0; pointer-events: none; }
-.dir-badge { position: absolute; transform: translateX(-50%); min-width: 22px; height: 22px; line-height: 22px; border-radius: 50%; background: #b3261e; color: #fff; font-weight: 800; font-size: 14px; text-align: center; box-shadow: 0 0 0 2px #fff; }
 
 /* 선전포고 목표 타일 */
 .target-badge { background: var(--err); color: #fff; border-radius: 999px; padding: 0 6px; font-size: 0.75rem; }

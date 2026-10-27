@@ -3,8 +3,7 @@ import type { Dir } from '../../engine'
 import { MILITARY_CARDS, UNIQUES, cardById, cardStats } from '../../engine'
 import { unitImage } from './unitImage'
 import type { UnitCardData } from './unitImage'
-import { DIR_LABEL, ICON } from '../format'
-import { DIR_ARROW } from '../battleView'
+import { ICON } from '../format'
 
 interface Props {
   card: UnitCardData
@@ -41,19 +40,7 @@ export function UnitCard({ card, width = 150, selected, dim, onClick, zoomable =
       title={title ?? st.name}
     >
       {img ? (
-        <>
-          <img src={img} alt={st.name} draggable={false} />
-          {/* 작은 그림에서는 전투력 별이 잘 안 보여서 공격 방향을 화살표로 겹쳐 보여 준다 */}
-          {w <= 160 && st.choose === undefined && st.marks.length > 0 && (
-            <span className="dir-badges">
-              {st.marks.map((m) => (
-                <span key={m.dir} className="dir-badge" style={{ left: POS[m.dir] }} title={`${DIR_LABEL[m.dir]} 공격 ⚔${m.power}`}>
-                  {DIR_ARROW[m.dir]}
-                </span>
-              ))}
-            </span>
-          )}
-        </>
+        <img src={img} alt={st.name} draggable={false} />
       ) : (
         <div className="face unit-face">
           <div className="stars">
