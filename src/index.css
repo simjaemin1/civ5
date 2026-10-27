@@ -530,3 +530,7 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
 .emblem-pick.on { border-color: var(--accent); background: var(--active-bg); }
 .emblem-pick small { font-size: 0.72rem; white-space: nowrap; }
 .emblem-letter { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; background: #12303a; color: #fff; font-weight: 800; }
+/* 불모지 탈출 설명은 두 줄: 문장마다 한 줄, 칸 아래 가운데 (칸보다 넓어도 된다) */
+.waste-note { align-self: center; width: max-content; text-align: center; font-size: 0.78rem; }
+.waste-note span { display: block; white-space: nowrap; }
+@media (max-width: 600px) { .waste-note { width: auto; } .waste-note span { white-space: normal; } }

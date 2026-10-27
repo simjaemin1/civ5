@@ -122,7 +122,9 @@ export function CityBuilder({ hand, player, label, onBuild, extra, wasteland }: 
                 <ConfirmButton className="" disabled={at.w === undefined} warn={wasteland.warn} onClick={() => at.w !== undefined && wasteland.onDiscard(at.w)}>
                   불모지 탈출
                 </ConfirmButton>
-                <small className="muted">넣은 타일을 버리고 1장 새로 뽑습니다. 이번 차례는 끝납니다.</small>
+                <small className="muted waste-note">
+                  <span>넣은 타일을 버리고 1장 새로 뽑습니다.</span> <span>이번 차례는 끝납니다.</span>
+                </small>
               </div>
             </div>
           )}
