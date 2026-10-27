@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Action, GameState } from '../engine'
 import { RuleError, actorOf, aiStep, apply, civById, culture, happiness, totalWorkers, tourism } from '../engine'
 import { Board } from './Board'
+import { CivEmblem } from './CivEmblem'
 import { CivInspector } from './CivInspector'
 import { InfoTabs } from './InfoTabs'
 import { SidePanel } from './SidePanel'
@@ -308,6 +309,7 @@ export function GameScreen({ initial, seats, onExit }: Props) {
             </div>
           </details>
           <button onClick={onExit}>나가기</button>
+          <CivEmblem civId={player.civId} />
         </div>
       </header>
       {error && <div className="error banner-error">⚠ {error}</div>}

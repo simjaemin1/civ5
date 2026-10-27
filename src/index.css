@@ -460,3 +460,9 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
 /* 원자폭탄: 점령 중인 타일 고르기 */
 .atomic-tiles { display: flex; flex-wrap: wrap; gap: 10px; margin: 6px 0; }
 .atomic-pick { width: 118px; display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; }
+
+/* 오른쪽 위 문명 기호: 누르면 문명 카드가 뜬다 */
+.civ-emblem { width: 44px; height: 44px; padding: 0; border: 0; background: none; border-radius: 50%; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+.civ-emblem img { width: 44px; height: 44px; object-fit: contain; filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5)); }
+.civ-emblem:hover img, .civ-emblem:focus-visible img { transform: scale(1.08); }
+.civ-emblem span { font-weight: 800; font-size: 1.2rem; color: #fff; }

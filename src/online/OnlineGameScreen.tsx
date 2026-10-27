@@ -3,6 +3,7 @@ import type { Action, GameView } from '../engine'
 import { actorOf, civById, culture, happiness, totalWorkers, tourism, turnKey } from '../engine'
 import { Board } from '../ui/Board'
 import { BattleReportModal } from '../ui/BattleReportModal'
+import { CivEmblem } from '../ui/CivEmblem'
 import { CivInspector } from '../ui/CivInspector'
 import { InfoTabs } from '../ui/InfoTabs'
 import { SidePanel } from '../ui/SidePanel'
@@ -234,6 +235,7 @@ export function OnlineGameScreen({ online, onExit }: Props) {
             </div>
           </details>
           <button onClick={onExit}>나가기</button>
+          <CivEmblem civId={me.civId} />
         </div>
       </header>
       {error && (
