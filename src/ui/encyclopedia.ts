@@ -1,5 +1,5 @@
 import { MILITARY_CARDS, POLICIES, RESOURCES, TECHS, WONDER_CARDS, cardById } from '../engine'
-import type { PolicyId, TechDef } from '../engine'
+import type { PolicyId, TechDef, WonderCardDef } from '../engine'
 import { conditionText, techOwnEffects, wonderEffectText } from './format'
 import { RULE_WORDS } from './ruleWords'
 
@@ -64,6 +64,16 @@ function techLine(t: TechDef, self = false): Item[] {
 /** 그 기술이 필요한 항목: 기술 줄 한 줄로 */
 const needTech = (id: string): Row[] => [{ label: '필요 기술', items: techLine(techById(id)) }]
 
+/** 불가사의 목록: 이름(누르면 넘어감) + 완성 효과를 한 줄씩. cond: 건설 조건도 함께 */
+function wonderLines(list: WonderCardDef[], cond = false): Item[] {
+  return list.flatMap((w, i) => [
+    ...(i ? ['\n'] : []),
+    { kind: 'wonder' as const, id: w.id, label: w.name },
+    ` — 완성하면 ${w.effects.map(wonderEffectText).join(', ')}`,
+    ...(cond && w.condition ? [` (조건: ${conditionText(w.condition)})`] : []),
+  ])
+}
+
 function techEntry(t: TechDef): Entry {
   const rows: Row[] = [{ label: '기술 줄', items: techLine(t, true) }]
   const cards = MILITARY_CARDS.filter((c) => c.tech === t.id && !c.uniqueOnly)
@@ -76,7 +86,7 @@ function techEntry(t: TechDef): Entry {
   for (const c of cards) if (c.line && c.tier) MILITARY_CARDS.filter((o) => o.line === c.line && o.tier! < c.tier! && !o.uniqueOnly).forEach((o) => obsolete.add(o.id))
   if (obsolete.size) rows.push({ label: '더 못 만드는 카드', items: [...obsolete].flatMap((id, i) => (i ? [', ', cardRef(id)] : [cardRef(id)])) })
   const wonders = WONDER_CARDS.filter((w) => w.tech === t.id)
-  if (wonders.length) rows.push({ label: '해금 불가사의', items: wonders.flatMap((w, i) => [...(i ? [', '] : []), { kind: 'wonder' as const, id: w.id, label: w.name }]) })
+  if (wonders.length) rows.push({ label: '해금 불가사의', items: wonderLines(wonders, true) })
   const lux = Object.entries(RESOURCES).filter(([, r]) => r.luxuryTech === t.id)
   if (lux.length) rows.push({ label: '행복 +1 (타일 보유 시)', items: lux.flatMap(([id], i) => (i ? [', ', resRef(id)] : [resRef(id)])) })
   const boosts = Object.entries(RESOURCES).flatMap(([id, r]) => (r.boosts ?? []).filter((b) => b.tech === t.id).map((b) => ({ id, b })))
@@ -112,7 +122,9 @@ function policyEntry(id: PolicyId): Entry {
   rows.push({ label: '정책을 고르는 기술', items: any.flatMap((t, i) => (i ? [', ', techRef(t.id)] : [techRef(t.id)])) })
   if (special.length) rows.push({ label: '이 정책으로 바꾸는 기술', items: special.flatMap((t, i) => (i ? [', ', techRef(t.id)] : [techRef(t.id)])) })
   const wonders = WONDER_CARDS.filter((w) => w.condition?.kind === 'policy' && w.condition.policy === id)
-  if (wonders.length) rows.push({ label: '이 정책일 때 불가사의', items: wonders.flatMap((w, i) => [...(i ? [', '] : []), { kind: 'wonder' as const, id: w.id, label: w.name }]) })
+  if (wonders.length) rows.push({ label: '이 정책일 때 짓는 불가사의', items: wonderLines(wonders) })
+  const toThis = WONDER_CARDS.filter((w) => w.effects.some((e) => e.kind === 'setPolicy' && e.policy === id))
+  if (toThis.length) rows.push({ label: '이 정책으로 바꾸는 불가사의', items: wonderLines(toThis, true) })
   return { kind: 'policy', id, title: p.name, rows }
 }
 
@@ -129,7 +141,7 @@ function resourceEntry(id: string): Entry {
   if (cards.length) rows.push({ label: '필요로 하는 카드', items: cards.flatMap((c, i) => (i ? [', ', cardRef(c.id)] : [cardRef(c.id)])) })
   // 이 자원이 건설 조건인 불가사의 (석재 → 마우솔레움)
   const needWonders = WONDER_CARDS.filter((w) => w.condition?.kind === 'stoneInCity' && id === 'stone')
-  if (needWonders.length) rows.push({ label: '건설 조건인 불가사의', items: needWonders.flatMap((w, i) => [...(i ? [', '] : []), { kind: 'wonder' as const, id: w.id, label: w.name }, ` (${conditionText(w.condition)})`]) })
+  if (needWonders.length) rows.push({ label: '필요로 하는 불가사의', items: wonderLines(needWonders) })
   for (const b of r.boosts ?? []) rows.push({ label: '산출 증가', items: [`${yieldStr(b.yield)}${b.nextTurn ? ' (연구한 다음 차례부터)' : ''} — 이 기술을 연구하면`, '\n', ...techLine(techById(b.tech))] })
   return { kind, id, title: r.name, rows }
 }
