@@ -393,7 +393,7 @@
       "id": "atomic_bomb",
       "name": "원자폭탄",
       "line": null,
-      "cost": 11,
+      "cost": 15,
       "tech": "atomic_theory",
       "special": "atomicBomb",
       "notBattle": true,

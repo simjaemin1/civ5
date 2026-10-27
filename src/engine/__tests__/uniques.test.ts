@@ -76,6 +76,14 @@ describe('고유 유닛 데이터', () => {
     expect(st('제고이센')).toMatchObject({ hp: 6, def: 2, coastalOnly: true })
   })
 
+  it('팬저(독일, 탱크): 카드에 적힌 대로 체력 5·방어력 3·전투력 6, 비용 8', () => {
+    const u = UNIQUES['팬저']
+    expect(u.def).toMatchObject({ base: 'tank', cost: 8, hp: 5, def: 3, choose: 6 })
+    expect(u.def.text).toContain('전투력 6')
+    expect(cardStats({ uid: 0, defId: 'tank', unique: '팬저' })).toMatchObject({ hp: 5, def: 3, choose: 6, baseId: 'tank' })
+    expect(cardById('atomic_bomb').cost).toBe(15) // 원자폭탄 카드 그림의 비용
+  })
+
   it('연노병은 마크가 둘이라 방향 조합 3종(왼+가운데, 왼+오른쪽, 가운데+오른쪽)이 있다', () => {
     const s = startGame(['china'], [hand4()])
     expect([...s.uniqueSupply['연노병']].sort()).toEqual(['CR', 'LC', 'LR'])
