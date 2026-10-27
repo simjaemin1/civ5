@@ -515,10 +515,11 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
 .build-row .cross { grid-template-columns: repeat(3, min(118px, calc((100vw - 96px) / 3))); }
 .build-row button.tile.empty.build-cell { aspect-ratio: 255 / 364; min-height: 0; height: auto; }
 .build-row .c-n, .build-row .c-w, .build-row .c-e, .build-row .c-s, .build-row .c-c { min-width: 0; }
-/* 불모지 탈출 칸: 십자 오른쪽 빈 곳의 한가운데 (사용자 결정). 십자는 왼쪽에서 조금 띄운다 */
+/* 불모지 탈출 칸: 십자 오른쪽 빈 곳의 가로 한가운데, 높이는 도시 타일과 같은 줄 (사용자 결정). 십자는 왼쪽에서 조금 띄운다 */
 .build-row .cross { margin-left: clamp(0px, 3vw, 32px); }
-.wasteland-area { flex: 1 1 140px; align-self: center; display: flex; justify-content: center; }
-.wasteland-area .wasteland-cell { width: min(118px, calc((100vw - 96px) / 3)); }
+.build-row .cross.with-waste { flex: 1 1 auto; grid-template-columns: repeat(3, min(118px, calc((100vw - 96px) / 4))) minmax(0, 1fr); grid-template-areas: '. n . .' 'w c e z' '. s . z'; }
+.cross .wasteland-area { grid-area: z; align-self: start; justify-self: center; }
+.wasteland-area .wasteland-cell { width: min(118px, calc((100vw - 96px) / 4)); }
 /* 오른쪽 칸 맨 위: 내 문명 카드 */
 .side-civ .civ-card { width: 100% !important; max-width: 100%; }
 /* 고유 유닛 탭: 문명 기호를 눌러 고른다 */

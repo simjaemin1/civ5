@@ -113,20 +113,20 @@ export function CityBuilder({ hand, player, label, onBuild, extra, wasteland }: 
         1장은 도시, 나머지는 위·오른쪽·아래·왼쪽 중 서로 다른 면에 붙입니다 (5장을 넘는 타일은 추가 타일). 타일을 눌러 집은 뒤 다른 칸을 누르면 자리가 바뀝니다. 도시는 식량이 있는 타일을 추천합니다.
       </Help>
       <div className="row build-row">
-        <div className="cross">
+        <div className={`cross${wasteland ? ' with-waste' : ''}`}>
           {CELLS.filter((k) => !k.startsWith('x')).map((k) => <div key={k} style={{ display: 'contents' }}>{renderCell(k)}</div>)}
-        </div>
-        {wasteland && (
-          <div className="wasteland-area">
-            <div className="wasteland-cell">
-              {renderCell('w')}
-              <ConfirmButton className="" disabled={at.w === undefined} warn={wasteland.warn} onClick={() => at.w !== undefined && wasteland.onDiscard(at.w)}>
-                불모지 탈출
-              </ConfirmButton>
-              <small className="muted">넣은 타일을 버리고 1장 새로 뽑습니다. 이번 차례는 끝납니다.</small>
+          {wasteland && (
+            <div className="wasteland-area">
+              <div className="wasteland-cell">
+                {renderCell('w')}
+                <ConfirmButton className="" disabled={at.w === undefined} warn={wasteland.warn} onClick={() => at.w !== undefined && wasteland.onDiscard(at.w)}>
+                  불모지 탈출
+                </ConfirmButton>
+                <small className="muted">넣은 타일을 버리고 1장 새로 뽑습니다. 이번 차례는 끝납니다.</small>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
         {hand.length > 5 && (
           <div className="extra-cells">
             <small className="muted">추가 타일 {hand.length - 5}장 — 십자(5칸)에 놓지 않은 타일은 영토로 붙습니다</small>
