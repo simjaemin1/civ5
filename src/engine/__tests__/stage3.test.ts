@@ -285,7 +285,7 @@ describe('고유 유닛은 3장만 존재한다', () => {
     const [t1, t2] = s.players[0].military.map((c) => c.uid)
     s = arrange(s, 0, [t1, t2, null, null])
     s = arrange(s, 1, [null, d, null, null])
-    // 러시아가 먼저 대상을 고른다: 탱크 두 장(전투력 4+4=8)이 체력 5의 테르시오를 파괴
+    // 러시아가 먼저 대상을 고른다: 탱크 두 장(전투력 5+5=10)이 체력 5의 테르시오를 파괴
     s = apply(s, { type: 'chooseTargets', playerId: 0, picks: { [t1]: d, [t2]: d } })
     expect(ids(s, 1)).not.toContain(d)
     expect(s.uniqueSupply['테르시오']).toHaveLength(3)
@@ -304,7 +304,7 @@ describe('고유 유닛은 3장만 존재한다', () => {
     const [t1, t2] = s.players[1].military.map((c) => c.uid)
     s = arrange(s, 0, [ship, null, null, null])
     s = arrange(s, 1, [t1, t2, null, null])
-    s = apply(s, { type: 'chooseTargets', playerId: 1, picks: { [t1]: ship, [t2]: ship } }) // 4+4=8 ≥ 체력 8
+    s = apply(s, { type: 'chooseTargets', playerId: 1, picks: { [t1]: ship, [t2]: ship } }) // 5+5=10 ≥ 체력 8
     expect(s.players[0].military.some((c) => c.uid === ship)).toBe(false)
     expect(s.players[1].military.some((c) => c.uid === ship && c.unique === '제고이센')).toBe(true) // 오스만이 가져감
     expect(s.uniqueSupply['제고이센']).toHaveLength(2) // 재고에 돌아오지 않는다

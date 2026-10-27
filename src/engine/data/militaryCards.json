@@ -285,7 +285,7 @@
       "tech": "ballistics",
       "attack": {
         "choose": true,
-        "power": 4
+        "power": 5
       },
       "hp": 5,
       "def": 3,

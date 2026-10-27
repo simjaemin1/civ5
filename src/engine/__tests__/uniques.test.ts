@@ -82,6 +82,7 @@ describe('고유 유닛 데이터', () => {
     expect(u.def.text).toContain('전투력 6')
     expect(cardStats({ uid: 0, defId: 'tank', unique: '팬저' })).toMatchObject({ hp: 5, def: 3, choose: 6, baseId: 'tank' })
     expect(cardById('atomic_bomb').cost).toBe(15) // 원자폭탄 카드 그림의 비용
+    expect(cardStats({ uid: 0, defId: 'tank' })).toMatchObject({ hp: 5, def: 3, choose: 5 }) // 일반 탱크 카드: 전투력 5
   })
 
   it('연노병은 마크가 둘이라 방향 조합 3종(왼+가운데, 왼+오른쪽, 가운데+오른쪽)이 있다', () => {
@@ -117,25 +118,24 @@ describe('고유 유닛 데이터', () => {
 describe('고유 유닛 전투 효과', () => {
   it('예니체리: 공격한 대상이 파괴되면 체력 7 — 받은 대미지 6이어도 살아남는다', () => {
     const run = (withArcher: boolean, tanks = 1) => {
-      let jan = 0, archer = 0, warrior = 0
+      let jan = 0, archer = 0
       const tankIds: number[] = []
       let s = battle(['russia', 'ottoman'], (c) => {
         jan = unique(c, 1, '예니체리', 'C')
         for (let i = 0; i < tanks; i++) tankIds.push(give(c, 0, 'tank'))
         archer = give(c, 0, 'archer', 'C')
-        warrior = give(c, 0, 'warrior', 'L')
       }, 1)
-      const slots = [tankIds[0], tankIds[1] ?? null, withArcher ? archer : null, warrior]
+      const slots = [tankIds[0], tankIds[1] ?? null, withArcher ? archer : null, null]
       s = arrange(s, 0, slots)
       s = arrange(s, 1, [null, jan, null, null])
       s = pick(s, 0, Object.fromEntries(tankIds.map((t) => [t, jan])))
       return alive(s, 1, jan)
     }
-    // 대미지: 전차(4) + 궁수(1) + 전사(1) = 6. 궁수를 공격해 파괴했으므로 체력 7 → 생존
+    // 대미지: 탱크(5) + 궁수(1) = 6. 궁수를 공격해 파괴했으므로 체력 7 → 생존
     expect(run(true)).toBe(true)
     // 궁수가 없으면 공격한 대상이 없어 체력 5 → 대미지 5로 파괴
     expect(run(false)).toBe(false)
-    // 전차 두 장이면 대미지 10 → 체력 7이어도 파괴
+    // 탱크 두 장이면 대미지 11 → 체력 7이어도 파괴
     expect(run(true, 2)).toBe(false)
   })
 
@@ -296,21 +296,20 @@ describe('고유 유닛 전투 효과', () => {
 
   it('캐롤리언: 원래 상대 소유의 타일을 대상으로 전투할 때 체력 +1', () => {
     const run = (civs: string[]) => {
-      let car = 0, tank = 0, warrior = 0
+      let car = 0, tank = 0
       const sweden = civs.indexOf('sweden')
       const other = 1 - sweden
       let s = battle(civs, (c) => {
         car = unique(c, sweden, '캐롤리언', 'C')
         tank = give(c, other, 'tank')
-        warrior = give(c, other, 'warrior', 'C')
       }, 1)
       const slots = (pid: number, cards: (number | null)[]) => arrange(s, pid, cards)
       if (sweden === 0) {
         s = slots(0, [null, car, null, null])
-        s = arrange(s, 1, [tank, null, warrior, null])
+        s = arrange(s, 1, [tank, null, null, null])
         s = pick(s, 1, { [tank]: car })
       } else {
-        s = slots(0, [tank, null, warrior, null])
+        s = slots(0, [tank, null, null, null])
         s = arrange(s, 1, [null, car, null, null])
         s = pick(s, 0, { [tank]: car })
       }
