@@ -4,7 +4,6 @@ import { SIDES } from '../../engine'
 import type { Player } from '../../engine'
 import { TileView } from '../TileView'
 import { SIDE_LABEL } from '../format'
-import { Help } from '../prefs'
 import { ConfirmButton } from '../ConfirmButton'
 
 interface Props {
@@ -109,9 +108,7 @@ export function CityBuilder({ hand, player, label, onBuild, extra, wasteland }: 
   return (
     <div className="panel">
       <h3>{label}</h3>
-      <Help>
-        1장은 도시, 나머지는 위·오른쪽·아래·왼쪽 중 서로 다른 면에 붙입니다 (5장을 넘는 타일은 추가 타일). 타일을 눌러 집은 뒤 다른 칸을 누르면 자리가 바뀝니다. 도시는 식량이 있는 타일을 추천합니다.
-      </Help>
+      <small className="muted build-guide">타일을 눌러 집은 뒤 다른 칸을 누르면 자리가 바뀝니다. 도시를 세울 타일은 중앙에 놓으세요.</small>
       <div className="row build-row">
         <div className={`cross${wasteland ? ' with-waste' : ''}`}>
           {CELLS.filter((k) => !k.startsWith('x')).map((k) => <div key={k} style={{ display: 'contents' }}>{renderCell(k)}</div>)}
@@ -164,7 +161,7 @@ export function CityBuilder({ hand, player, label, onBuild, extra, wasteland }: 
             onBuild(at.city!, sideTiles)
           }}
         >
-          도시 건설
+          이대로 도시 건설
         </button>
         {extra}
       </div>

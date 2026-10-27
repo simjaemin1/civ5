@@ -561,3 +561,4 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
 .hand-cap { display: block; text-align: center; font-size: 0.78rem; color: var(--muted); }
 .battle-replays { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
 .battle-replays button { font-size: 0.85rem; padding: 2px 8px; }
+.build-guide { display: block; margin: -4px 0 6px; }
