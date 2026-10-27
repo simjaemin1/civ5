@@ -135,15 +135,18 @@ export function CityBuilder({ hand, player, label, onBuild, extra, wasteland }: 
             <div className="row">{CELLS.filter((k) => k.startsWith('x')).map((k) => <div key={k}>{renderCell(k)}</div>)}</div>
           </div>
         )}
+      </div>
+      {/* 집었다는 안내는 칸 줄 밖에 둔다: 칸 줄 안에 두면 십자가 좁아져 불모지 탈출 칸이 움직인다. 줄 높이는 늘 잡아 둔다 */}
+      <p className="muted held-note">
         {held !== null && (
-          <p className="muted">
+          <>
             <b>{card(held)?.terrains.join('·') || '타일'}</b> 타일을 집었습니다. 놓을 칸을 누르세요.{' '}
             <button className="link" onClick={() => setHeld(null)}>
               내려놓기
             </button>
-          </p>
+          </>
         )}
-      </div>
+      </p>
       {!valid &&
         (at.w !== undefined ? (
           <p className="muted">불모지 탈출 칸에 타일이 있습니다. 불모지 탈출을 누르거나, 도시를 세우려면 타일을 다시 도시 칸으로 옮기세요.</p>

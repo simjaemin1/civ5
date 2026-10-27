@@ -536,3 +536,4 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
 @media (max-width: 600px) { .waste-note { width: auto; } .waste-note span { white-space: normal; } }
 /* 도시 판의 빈 면도 타일 카드와 같은 크기 (타일 그림 비율 255:364) */
 .city-grid .tile.empty { aspect-ratio: 255 / 364; min-height: 0; height: auto; align-self: start; text-align: center; }
+.held-note { min-height: 1.5em; margin: 4px 0; }
