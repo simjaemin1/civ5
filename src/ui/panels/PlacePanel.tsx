@@ -140,6 +140,8 @@ export function PlacePanel({ game, player, dispatch }: PanelProps) {
   const canScout =
     deckSize(game) === 0
       ? { ok: false, why: '타일 덱이 비어 정찰할 수 없습니다' }
+      : player.scoutedRound === game.round
+        ? { ok: false, why: '정찰은 한 차례에 1장만 볼 수 있습니다 (이번 차례에 이미 봤습니다)' }
       : left < 1
         ? { ok: false, why: '정찰하려면 올린 일꾼을 1개 내리세요' }
         : { ok: true }

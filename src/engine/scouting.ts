@@ -16,6 +16,9 @@ export function scout(s: GameState, p: Player): void {
   if (p.scouting || p.held) throw new RuleError('이미 정찰 중이거나 타일을 맡아두고 있습니다')
   if (freeWorkers(p) < 1) throw new RuleError('정찰에 쓸 일꾼이 없습니다')
   if (s.deck.length === 0) throw new RuleError('타일 덱이 비었습니다')
+  // 규칙서 9장: 한 차례에 1장만 볼 수 있다. 나침반으로 맡아둔 뒤 돌려보내고 다시 정찰하는 것도 막는다
+  if (p.scoutedRound === s.round) throw new RuleError('정찰은 한 차례에 1장만 볼 수 있습니다 (이번 차례에 이미 봤습니다)')
+  p.scoutedRound = s.round
   p.scouted = s.deck.shift()!
   p.scouting = true
   say(s, `${civById(p.civId).name} 정찰`)

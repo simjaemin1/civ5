@@ -285,7 +285,7 @@ describe('고유 유닛은 3장만 존재한다', () => {
     const [t1, t2] = s.players[0].military.map((c) => c.uid)
     s = arrange(s, 0, [t1, t2, null, null])
     s = arrange(s, 1, [null, d, null, null])
-    // 러시아가 먼저 대상을 고른다: 탱크 두 장(전투력 4+4=8)이 체력 5의 테르시오를 파괴
+    // 러시아가 먼저 대상을 고른다: 탱크 두 장(전투력 5+5=10)이 체력 5의 테르시오를 파괴
     s = apply(s, { type: 'chooseTargets', playerId: 0, picks: { [t1]: d, [t2]: d } })
     expect(ids(s, 1)).not.toContain(d)
     expect(s.uniqueSupply['테르시오']).toHaveLength(3)
@@ -304,7 +304,7 @@ describe('고유 유닛은 3장만 존재한다', () => {
     const [t1, t2] = s.players[1].military.map((c) => c.uid)
     s = arrange(s, 0, [ship, null, null, null])
     s = arrange(s, 1, [t1, t2, null, null])
-    s = apply(s, { type: 'chooseTargets', playerId: 1, picks: { [t1]: ship, [t2]: ship } }) // 4+4=8 ≥ 체력 8
+    s = apply(s, { type: 'chooseTargets', playerId: 1, picks: { [t1]: ship, [t2]: ship } }) // 5+5=10 ≥ 체력 8
     expect(s.players[0].military.some((c) => c.uid === ship)).toBe(false)
     expect(s.players[1].military.some((c) => c.uid === ship && c.unique === '제고이센')).toBe(true) // 오스만이 가져감
     expect(s.uniqueSupply['제고이센']).toHaveLength(2) // 재고에 돌아오지 않는다
@@ -811,7 +811,7 @@ describe('도시 공격·탈환·탈락', () => {
     expect(s.players[0].cities[0].tiles[1].occupiedBy).toBe(1)
   })
 
-  it('원자폭탄: 내 장군이 올라간 상대 타일을 파괴하고 장군을 돌려받는다. 첫 5타일은 불가', () => {
+  it('원자폭탄: 내 장군이 올라간 상대 타일을 파괴하고 장군을 돌려받는다. 점령하지 않은 타일은 불가', () => {
     let s = round2()
     s = mod(s, (c) => {
       const city = c.players[1].cities[0]
@@ -821,14 +821,76 @@ describe('도시 공격·탈환·탈락', () => {
       give(c, 0, 'atomic_bomb')
     })
     s = play(s, { type: 'placeWorkers', placements: [] }, { type: 'skipResearch' })
-    const first5 = tileId(s, 1, 1)
-    expect(() => apply(s, { type: 'useAtomicBomb', defenderId: 1, cityId: 0, tileId: first5 })).toThrow(RuleError)
+    const notMine = tileId(s, 1, 2) // 점령하지 않은 타일
+    expect(() => apply(s, { type: 'useAtomicBomb', defenderId: 1, cityId: 0, tileId: notMine })).toThrow(RuleError)
     const extra = s.players[1].cities[0].tiles.at(-1)!.card.id
     const before = culture(s.players[1])
     s = apply(s, { type: 'useAtomicBomb', defenderId: 1, cityId: 0, tileId: extra })
     expect(culture(s.players[1])).toBe(before - 1)
     expect(s.players[0].generals).toBe(1)
     expect(s.players[0].military.some((c) => c.defId === 'atomic_bomb')).toBe(false)
+  })
+
+  it('원자폭탄은 첫 5타일(사면)도 파괴할 수 있고, 그 면은 빈 면이 되어 다음 문화 타일이 붙는다', () => {
+    let s = round2()
+    s = mod(s, (c) => {
+      const city = c.players[1].cities[0]
+      city.openSides = []
+      city.tiles[1].occupiedBy = 0
+      give(c, 0, 'atomic_bomb')
+    })
+    const target = s.players[1].cities[0].tiles[1]
+    const side = target.side!
+    s = play(s, { type: 'placeWorkers', placements: [] }, { type: 'skipResearch' })
+    const before = culture(s.players[1])
+    s = apply(s, { type: 'useAtomicBomb', defenderId: 1, cityId: 0, tileId: target.card.id })
+    const city = s.players[1].cities[0]
+    expect(culture(s.players[1])).toBe(before - 1)
+    expect(city.tiles.some((t) => t.card.id === target.card.id)).toBe(false)
+    expect(city.openSides).toEqual([side])
+    expect(s.players[0].generals).toBe(1)
+    // 다음 문화 타일은 반드시 그 면에 붙는다
+    s = mod(s, (c) => gainCulture(c, c.players[1], 1))
+    const added = s.players[1].cities[0].tiles.at(-1)!
+    expect(added).toMatchObject({ role: 'side', side })
+    expect(s.players[1].cities[0].openSides).toEqual([])
+  })
+
+  it('원자폭탄으로 도시 타일을 파괴하면 도시가 사라진다 (첫 도시면 탈락, 두 번째 도시가 있으면 첫 도시는 불가)', () => {
+    const base = () => {
+      let s = round2()
+      s = mod(s, (c) => {
+        c.players[1].cities[0].tiles[0].occupiedBy = 0
+        give(c, 0, 'atomic_bomb')
+      })
+      return play(s, { type: 'placeWorkers', placements: [] }, { type: 'skipResearch' })
+    }
+    const cityTile = (s: GameState) => s.players[1].cities[0].tiles[0].card.id
+    let s = base()
+    s = apply(s, { type: 'useAtomicBomb', defenderId: 1, cityId: 0, tileId: cityTile(s) })
+    expect(s.players[1].eliminated).toBe(true) // 하나뿐인 첫 도시
+    expect(s.players[0].generals).toBe(1) // 점령 중이던 장군이 돌아온다 (한 번만)
+    expect(s.players[0].military.some((c) => c.defId === 'atomic_bomb')).toBe(false)
+    // 두 번째 도시가 있으면 첫 도시의 도시 타일은 불가
+    let t = base()
+    t = mod(t, (c) => c.players[1].cities.push({ ...structuredClone(c.players[1].cities[0]), id: 1 }))
+    expect(() => apply(t, { type: 'useAtomicBomb', defenderId: 1, cityId: 0, tileId: cityTile(t) })).toThrow(RuleError)
+  })
+
+  it('원자폭탄은 만리장성처럼 자신의 차례 어느 단계에서든 쓸 수 있다 (일꾼 배치 단계에서도)', () => {
+    let s = round2()
+    s = mod(s, (c) => {
+      const city = c.players[1].cities[0]
+      city.tiles.push({ card: tile(['평지']), role: 'extra' })
+      city.tiles.at(-1)!.occupiedBy = 0
+      give(c, 0, 'atomic_bomb')
+    })
+    expect(s.phase).toBe('place')
+    const extra = s.players[1].cities[0].tiles.at(-1)!.card.id
+    s = apply(s, { type: 'useAtomicBomb', defenderId: 1, cityId: 0, tileId: extra })
+    expect(s.players[1].cities[0].tiles.some((t) => t.card.id === extra)).toBe(false)
+    expect(s.players[0].military.some((c) => c.defId === 'atomic_bomb')).toBe(false)
+    expect(s.phase).toBe('place') // 단계는 그대로
   })
 
   it('원자폭탄으로 사라진 추가 타일의 빈 자리를 새 타일이 먼저 메운다', () => {
@@ -1013,6 +1075,18 @@ describe('정찰과 나침반', () => {
     expect(me(s).held).toBeNull()
     expect(s.deck.some((c) => c.id === 999)).toBe(true)
     expect(freeWorkers(me(s))).toBe(1)
+  })
+
+  it('한 차례에 1장만 본다: 맡아둔 타일을 돌려보내도 그 차례에는 다시 정찰할 수 없고, 다음 차례에는 할 수 있다', () => {
+    let s = mod(start(), (c) => {
+      c.players[0].techs.push('compass')
+      c.players[0].cities[0].workers = 2
+    })
+    s = apply(apply(apply(s, { type: 'scout' }), { type: 'holdScouted' }), { type: 'releaseHeld' })
+    expect(() => apply(s, { type: 'scout' })).toThrow(/한 차례에 1장/)
+    s = play(s, { type: 'placeWorkers', placements: [] }, { type: 'skipResearch' }, { type: 'endProduction' })
+    while (me(s).id !== actorOf(s) || s.phase !== 'place') s = s.phase === 'declare' ? apply(s, { type: 'endTurn' }) : play(s, { type: 'placeWorkers', placements: [] }, { type: 'skipResearch' }, { type: 'endProduction' })
+    expect(apply(s, { type: 'scout' }).players[0].scouted).not.toBeNull()
   })
 })
 

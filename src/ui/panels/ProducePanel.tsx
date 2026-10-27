@@ -46,10 +46,6 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
           .join(' · ') + ' — 끝내면 사라집니다.'
       : null
 
-  const enemyExtra = game.players.flatMap((o) =>
-    o.cities.flatMap((c) => c.tiles.filter((t) => t.occupiedBy === player.id && t.role === 'extra').map((t) => ({ o, c, t }))),
-  )
-
   return (
     <div className="panel">
       <h3>생산 (도시마다 1개: 군사 카드 또는 불가사의 투자)</h3>
@@ -267,17 +263,6 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
       )}
 
       <div className="row">
-        {player.military.some((c) => c.defId === 'atomic_bomb') &&
-          enemyExtra.map(({ o, c, t }) => (
-            <ConfirmButton
-              key={t.card.id}
-              className=""
-              warn={`${civById(o.civId).name}의 ${t.card.terrains.join('·') || '자연경관'} 타일을 파괴합니다. 되돌릴 수 없습니다.`}
-              onClick={() => dispatch({ type: 'useAtomicBomb', defenderId: o.id, cityId: c.id, tileId: t.card.id })}
-            >
-              ☢ 원자폭탄: {civById(o.civId).name} 도시{c.id + 1} {t.card.terrains.join('·') || '자연경관'} 파괴
-            </ConfirmButton>
-          ))}
         <ConfirmButton hotkey warn={endWarn} onClick={() => dispatch({ type: 'endProduction' })}>
           {declarationTargets(game, player).length > 0 ? '생산 끝내기 → ⑤ 선전포고' : '생산 끝내기 → 식량 정산·차례 끝'}
         </ConfirmButton>
