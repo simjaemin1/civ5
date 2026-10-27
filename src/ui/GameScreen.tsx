@@ -315,9 +315,9 @@ export function GameScreen({ initial, seats, onExit }: Props) {
               <button disabled={history.length === 0} onClick={() => restore(history.length - 1, true)} title="규칙 검증용: 다른 사람·AI 차례를 넘어 마지막 사람 행동 전으로 돌아갑니다. 상대에게 공개된 정보도 되돌아갑니다.">
                 ↶ 차례를 넘어 되돌리기 (검증용)
               </button>
+              <button className="settings-exit" onClick={onExit}>나가기</button>
             </div>
           </details>
-          <button onClick={onExit}>나가기</button>
           <TechTreeButton player={player} />
           <CivEmblem player={player} away={peekId !== null} onHome={() => setPeek(null)} />
         </div>

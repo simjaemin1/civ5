@@ -231,9 +231,9 @@ export function OnlineGameScreen({ online, onExit }: Props) {
                   <button onClick={() => confirm('방을 폭파할까요? 모두 쫓겨나고 기록이 지워집니다.') && send({ type: 'closeRoom' })}>💣 방 폭파</button>
                 </>
               )}
+              <button className="settings-exit" onClick={onExit}>나가기</button>
             </div>
           </details>
-          <button onClick={onExit}>나가기</button>
           <TechTreeButton player={me} />
           <CivEmblem player={me} away={peekId !== null} onHome={() => setPeek(null)} />
         </div>

@@ -566,3 +566,4 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
 .wonder-card .wonder-owner { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 22%; aspect-ratio: 1; pointer-events: none; }
 .wonder-card .wonder-owner img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6)); }
 .wonder-card .wonder-owner b { display: grid; place-items: center; width: 100%; height: 100%; border-radius: 50%; background: #12303a; color: #fff; font-size: 1.4rem; }
+.settings-menu .settings-exit { margin-top: 6px; border-top: 1px solid var(--line); }
