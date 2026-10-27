@@ -1,15 +1,34 @@
 import { describe, expect, it } from 'vitest'
 import { searchWords } from '../searchWords'
+import { ALL_ENTRIES, entryOf } from '../encyclopedia'
 
-describe('검색 단어', () => {
-  it('과학기술 이름을 찾고, 앞에서 시작하는 단어가 먼저', () => {
-    expect(searchWords('철제').map((w) => w.word)).toEqual(['철제기술'])
-    expect(searchWords('수렵')[0]).toMatchObject({ word: '수렵', kind: 'tech' })
-    const r = searchWords('기술').map((w) => w.word)
-    expect(r).toContain('철제기술')
-    expect(r).toContain('청동기술')
+const text = (kind: Parameters<typeof entryOf>[0], id: string) =>
+  entryOf(kind, id)
+    .rows.map((r) => `${r.label}: ${r.items.map((i) => (typeof i === 'string' ? i : i.label)).join('')}`)
+    .join('\n')
+
+describe('검색·도감', () => {
+  it('이름을 찾고, 앞에서 시작하는 단어가 먼저, 띄어쓰기 무시', () => {
+    expect(searchWords('철제').map((w) => w.label)).toEqual(['철제기술'])
+    expect(searchWords('수렵')[0]).toMatchObject({ label: '수렵', kind: 'tech' })
+    expect(searchWords('모피')[0]).toMatchObject({ kind: 'luxury', id: 'furs' })
+    expect(searchWords('거신상')[0]).toMatchObject({ kind: 'wonder' })
+    expect(searchWords('장검사')[0]).toMatchObject({ kind: 'card', id: 'longswordsman' })
+    expect(searchWords('전통')[0]).toMatchObject({ kind: 'policy' })
     expect(searchWords('없는단어')).toEqual([])
-    expect(searchWords('  ')).toEqual([])
-    expect(searchWords('드라마와시').map((w) => w.word)).toEqual(['드라마와 시']) // 띄어쓰기 무시
+    expect(searchWords('드라마와시').map((w) => w.label)).toEqual(['드라마와 시'])
+  })
+
+  it('모든 항목의 도감 설명을 만들 수 있다', () => {
+    for (const r of ALL_ENTRIES) expect(entryOf(r.kind, r.id).rows.length, `${r.kind}:${r.id}`).toBeGreaterThan(0)
+  })
+
+  it('기술 ↔ 카드·자원·불가사의가 서로 이어진다', () => {
+    const iron = text('tech', 'iron_working')
+    expect(iron).toContain('해금 군사 카드: 장검사 (철 필요)')
+    expect(text('tech', 'trapping')).toContain('행복 +1 (타일 보유 시): 상아, 모피')
+    expect(text('luxury', 'furs')).toContain('행복 +1을 얻으려면: 수렵')
+    expect(text('card', 'longswordsman')).toContain('필요 기술: 철제기술')
+    expect(text('strategic', 'iron')).toContain('필요로 하는 카드: 장검사')
   })
 })

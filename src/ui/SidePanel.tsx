@@ -159,7 +159,7 @@ export function RecentLog({ game, lines = 12 }: { game: GameState; lines?: numbe
 export function SidePanel({ game, seats, actor, viewer, onView, viewing, onShowBattle }: { game: GameState; seats: { ai: boolean }[]; actor: number; viewer: number; onView?: (id: number) => void; viewing?: number | null; onShowBattle?: (seq: number) => void }) {
   return (
     <aside className="side">
-      <SearchBox player={game.players[viewer]} />
+      <SearchBox />
       <div className="side-civ">
         {/* 다른 문명 시점을 보는 중이면 그 문명의 카드 */}
         <CivCard civId={game.players[viewing ?? viewer].civId} width={376} />

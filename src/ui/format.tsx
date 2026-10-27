@@ -93,6 +93,13 @@ const TECH_EXTRA: Record<string, string> = {
   machinery: '앞으로 궁수 & 합성궁병 생산불가, 석궁병 생산가능',
 }
 
+/** 기술 자체의 효과 문구 (해금 카드·불가사의·자원은 빼고): 도감용 */
+export function techOwnEffects(t: TechDef): string[] {
+  const out = t.effects.map(techEffectLine).filter((l): l is string => !!l)
+  if (TECH_EXTRA[t.id]) out.push(TECH_EXTRA[t.id])
+  return out
+}
+
 function techEffectLine(e: TechDef['effects'][number]): string | null {
   switch (e.kind) {
     case 'general': return `위대한 장군 토큰을 ${e.amount}개 획득`

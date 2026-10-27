@@ -1,33 +1,30 @@
-import { useState } from 'react'
-import type { Player } from '../engine'
-import { TECHS, prereqsMet } from '../engine'
-import { TechCard } from './cards/TechCard'
+import { useEffect, useState } from 'react'
+import { KIND_LABEL, entryOf } from './encyclopedia'
+import type { Item, Ref } from './encyclopedia'
 import { searchWords } from './searchWords'
-import type { SearchWord } from './searchWords'
 
 /**
- * 오른쪽 칸 맨 위의 검색창: 글자를 치면 등록된 단어(지금은 과학기술) 중 맞는 것이 아래에 뜨고, 누르면 그 항목을 크게 본다.
- * 위·아래 화살표로 고르고 Enter로 연다. Esc로 닫는다.
+ * 오른쪽 칸 맨 위의 검색창: 글자를 치면 도감에 등록된 이름 중 맞는 것이 아래에 뜨고, 누르면 도감 창이 화면 위에 뜬다.
+ * 위·아래 화살표로 고르고 Enter로 연다.
  */
-export function SearchBox({ player }: { player: Player }) {
+export function SearchBox() {
   const [q, setQ] = useState('')
   const [focus, setFocus] = useState(false)
   const [sel, setSel] = useState(0)
-  const [shown, setShown] = useState<SearchWord | null>(null)
+  const [page, setPage] = useState<Ref | null>(null)
   const hits = searchWords(q)
-  const open = (w: SearchWord) => {
-    setShown(w)
+  const open = (w: Ref) => {
+    setPage(w)
     setQ('')
     setSel(0)
   }
-  const tech = shown?.kind === 'tech' ? TECHS.find((t) => t.id === shown.id) : undefined
   return (
     <div className="search-box">
       <input
         type="search"
         value={q}
-        placeholder="🔍 검색 (예: 철제기술)"
-        aria-label="검색"
+        placeholder="🔍 도감 검색 (예: 철제기술, 거신상, 모피)"
+        aria-label="도감 검색"
         onChange={(e) => {
           setQ(e.target.value)
           setSel(0)
@@ -49,24 +46,58 @@ export function SearchBox({ player }: { player: Player }) {
           {hits.length === 0 && <li className="muted none">등록된 단어가 없습니다</li>}
           {hits.map((w, i) => (
             <li key={`${w.kind}:${w.id}`} role="option" aria-selected={i === sel} className={i === sel ? 'on' : ''} onMouseDown={(e) => e.preventDefault()} onClick={() => open(w)}>
-              {w.word} <small className="muted">과학기술</small>
+              {w.label} <small className="muted">{KIND_LABEL[w.kind]}</small>
             </li>
           ))}
         </ul>
       )}
-      {tech && (
-        <div className="modal-backdrop" onClick={() => setShown(null)} role="dialog" aria-modal="true" aria-label={tech.name}>
-          <div className="zoom" onClick={(e) => e.stopPropagation()}>
-            <TechCard tech={tech} width={Math.min(360, window.innerWidth - 48)} zoomable={false} glow state={player.techs.includes(tech.id) ? 'owned' : prereqsMet(player, tech) ? 'available' : 'idle'} />
-            <p className="muted">
-              {player.techs.includes(tech.id) ? '보유 중' : prereqsMet(player, tech) ? '지금 연구할 수 있음' : `선행: ${(tech.prereqs ?? []).map((id) => TECHS.find((t) => t.id === id)?.name).join(', ') || '같은 비용의 다른 기술'}`}
-            </p>
-            <button className="primary" autoFocus onClick={() => setShown(null)}>
-              닫기
+      {page && <Encyclopedia start={page} onClose={() => setPage(null)} />}
+    </div>
+  )
+}
+
+/** 도감 창: 항목 설명. 다른 항목 이름을 누르면 그 항목으로 넘어가고, ← 로 돌아온다 */
+function Encyclopedia({ start, onClose }: { start: Ref; onClose: () => void }) {
+  const [stack, setStack] = useState<Ref[]>([start])
+  const cur = stack[stack.length - 1]
+  const entry = entryOf(cur.kind, cur.id)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+  const go = (r: Ref) => setStack([...stack, r])
+  const item = (it: Item, i: number) =>
+    typeof it === 'string' ? (
+      it === '\n' ? <br key={i} /> : <span key={i}>{it}</span>
+    ) : (
+      <button key={i} className="link wiki-link" onClick={() => go(it)}>
+        {it.label}
+      </button>
+    )
+  return (
+    <div className="modal-backdrop" onClick={onClose} role="dialog" aria-modal="true" aria-label={`도감: ${entry.title}`}>
+      <div className="modal wiki" onClick={(e) => e.stopPropagation()}>
+        <div className="wiki-head">
+          {stack.length > 1 && (
+            <button onClick={() => setStack(stack.slice(0, -1))} title="이전 항목">
+              ←
             </button>
-          </div>
+          )}
+          <h2>
+            {entry.title} <small className="muted">{KIND_LABEL[entry.kind]}</small>
+          </h2>
+          <button onClick={onClose}>닫기 ✕</button>
         </div>
-      )}
+        <dl className="wiki-rows">
+          {entry.rows.map((r) => (
+            <div key={r.label} className="wiki-row">
+              <dt>{r.label}</dt>
+              <dd>{r.items.map(item)}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
     </div>
   )
 }
