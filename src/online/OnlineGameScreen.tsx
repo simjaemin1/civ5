@@ -5,7 +5,7 @@ import { Board } from '../ui/Board'
 import { BattleReportModal } from '../ui/BattleReportModal'
 import { CivEmblem } from '../ui/CivEmblem'
 import { TechTreeButton } from '../ui/TechTreeButton'
-import { CivInspector } from '../ui/CivInspector'
+import { CivInspector, CivPeek } from '../ui/CivInspector'
 import { InfoTabs, LogPanel } from '../ui/InfoTabs'
 import { SidePanel } from '../ui/SidePanel'
 import { TurnSteps } from '../ui/TurnSteps'
@@ -73,6 +73,8 @@ export function OnlineGameScreen({ online, onExit }: Props) {
   const mine = !!game && isMyTurn(game)
   const over = game?.phase === 'over'
   const me = game ? game.players[game.viewer] : null
+  // 차례 순서에서 고른 문명의 시점 (내 문명이 바뀌면 풀린다)
+  const [peek, setPeek] = useState<{ id: number; self: number } | null>(null)
   const actorName = game ? civById(game.players[actorOf(game)].civId).name : ''
   useTurnTitle(!game ? '접속 중' : over ? '게임 종료' : mine ? '▶ 내 차례' : `${actorName} 차례 기다리는 중`)
   useEnterHotkey()
@@ -102,6 +104,7 @@ export function OnlineGameScreen({ online, onExit }: Props) {
   }, [game, me, prefs.autoSkip, mine, over, seq, send])
 
   if (!game || !room || !you || !me) return <p className="muted">게임 정보를 받는 중…</p>
+  const peekId = peek && peek.self === me.id ? peek.id : null
 
   // 전투 결과: 한 번에 여러 개 끝나도 오래된 것부터 하나씩. 접속한 시점까지의 전투는 이미 본 것으로 친다
   const reports = game.battleReports ?? []
@@ -239,6 +242,10 @@ export function OnlineGameScreen({ online, onExit }: Props) {
       {me.turn?.skipFoodSettle && mine && <div className="notice">📜 이번 차례는 식량 정산을 하지 않습니다 (전통/체제). 일꾼 수는 그대로입니다.</div>}
       <div className="game-body">
         <div className="main">
+          {peekId !== null ? (
+            <CivPeek game={game} id={peekId} actor={actor} onBack={() => setPeek(null)} />
+          ) : (
+            <>
           <div className="stats">
             {me.cities.length > 0 && (
               <span>
@@ -260,8 +267,10 @@ export function OnlineGameScreen({ online, onExit }: Props) {
           {main}
           {showBoard && <Board game={game} player={me} />}
           {!mine && !over && me.cities.length > 0 && <Board game={game} player={me} />}
+            </>
+          )}
         </div>
-        <SidePanel game={game} seats={seats} actor={actor} viewer={me.id} />
+        <SidePanel game={game} seats={seats} actor={actor} viewer={me.id} onView={(id) => setPeek(id === me.id || id === peekId ? null : { id, self: me.id })} viewing={peekId} />
       </div>
       <CivInspector game={game} seats={seats} actor={actor} />
       <LogPanel game={game} />

@@ -7,8 +7,8 @@ import { ICON, policyName } from './format'
 const civName = (game: GameState, pid: number) => civById(game.players[pid].civId).name
 const KIND = { normal: '선전포고', retake: '탈환', city: '도시 공격' } as const
 
-/** 이번 라운드 차례 순서: 끝남 · 지금 · 남음 */
-export function TurnOrder({ game, seats, actor }: { game: GameState; seats: { ai: boolean }[]; actor: number }) {
+/** 이번 라운드 차례 순서: 끝남 · 지금 · 남음. onView를 주면 문명을 눌러 메인 칸을 그 문명 시점으로 바꾼다 */
+export function TurnOrder({ game, seats, actor, onView, viewing }: { game: GameState; seats: { ai: boolean }[]; actor: number; onView?: (id: number) => void; viewing?: number | null }) {
   const live = game.order.filter((id) => !game.players[id].eliminated)
   const inTurns = game.phase !== 'battle' && game.phase !== 'over'
   return (
@@ -19,10 +19,19 @@ export function TurnOrder({ game, seats, actor }: { game: GameState; seats: { ai
           const p = game.players[id]
           const state = p.eliminated ? 'out' : !inTurns ? 'done' : idx < game.turnIdx ? 'done' : id === actor ? 'now' : 'next'
           return (
-            <li key={id} className={state}>
+            <li
+              key={id}
+              className={`${state}${onView ? ' clickable' : ''}${viewing === id ? ' viewing' : ''}`}
+              onClick={onView && (() => onView(id))}
+              onKeyDown={onView && ((e) => (e.key === 'Enter' || e.key === ' ') && onView(id))}
+              tabIndex={onView ? 0 : undefined}
+              role={onView ? 'button' : undefined}
+              title={onView ? `${civName(game, id)} 시점으로 보기 (영토·직전 차례 산출)` : undefined}
+            >
               <span className="who">
                 {state === 'now' ? '▶ ' : state === 'done' ? '✓ ' : ''}
                 {civName(game, id)} {seats[id]?.ai ? '🤖' : '👤'}
+                {viewing === id && <small className="tag">보는 중</small>}
               </span>
               <span className="muted nums">
                 {ICON.culture} 문화 {culture(p)} · 관광 {tourism(p)} · <Icon name="worker" size={14} />
@@ -119,10 +128,10 @@ export function RecentLog({ game, lines = 12 }: { game: GameState; lines?: numbe
   )
 }
 
-export function SidePanel({ game, seats, actor, viewer }: { game: GameState; seats: { ai: boolean }[]; actor: number; viewer: number }) {
+export function SidePanel({ game, seats, actor, viewer, onView, viewing }: { game: GameState; seats: { ai: boolean }[]; actor: number; viewer: number; onView?: (id: number) => void; viewing?: number | null }) {
   return (
     <aside className="side">
-      <TurnOrder game={game} seats={seats} actor={actor} />
+      <TurnOrder game={game} seats={seats} actor={actor} onView={onView} viewing={viewing} />
       <Threats game={game} viewer={viewer} />
       <WonderRace game={game} viewer={viewer} />
       <RecentLog game={game} />

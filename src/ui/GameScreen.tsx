@@ -5,7 +5,7 @@ import { RuleError, actorOf, aiStep, apply, civById, culture, happiness, totalWo
 import { Board } from './Board'
 import { CivEmblem } from './CivEmblem'
 import { TechTreeButton } from './TechTreeButton'
-import { CivInspector } from './CivInspector'
+import { CivInspector, CivPeek } from './CivInspector'
 import { InfoTabs, LogPanel } from './InfoTabs'
 import { SidePanel } from './SidePanel'
 import { usePrefs } from './prefsStore'
@@ -53,6 +53,8 @@ export function GameScreen({ initial, seats, onExit }: Props) {
   const [game, setGame] = useState(initial)
   const [history, setHistory] = useState<GameState[]>([])
   // 되돌릴 수 없는 지점: 무작위 결과를 보여 준 행동 직전 상태들 (이 상태와 그 이전으로는 차례 안 되돌리기 불가)
+  // 차례 순서에서 고른 문명의 시점 (지금 사람이 바뀌면 풀린다)
+  const [peek, setPeek] = useState<{ id: number; self: number } | null>(null)
   const [locked, setLocked] = useState<ReadonlySet<GameState>>(() => new Set())
   const [error, setError] = useState('')
   const [revealed, setRevealed] = useState('')
@@ -168,6 +170,7 @@ export function GameScreen({ initial, seats, onExit }: Props) {
   const jumpInTurn = (i: number) => restore(turnStart + i, false)
 
   const yields = player.turn?.yields
+  const peekId = peek && peek.self === player.id ? peek.id : null
   const skipsFood = !!player.turn?.skipFoodSettle
 
   let main: React.ReactNode
@@ -316,6 +319,10 @@ export function GameScreen({ initial, seats, onExit }: Props) {
       {skipsFood && !actorSeat.ai && <div className="notice">📜 이번 차례는 식량 정산을 하지 않습니다 (전통/체제). 일꾼 수는 그대로입니다.</div>}
       <div className="game-body">
         <div className="main">
+          {peekId !== null ? (
+            <CivPeek game={game} id={peekId} actor={actor} onBack={() => setPeek(null)} />
+          ) : (
+            <>
           <div className="stats">
             {player.cities.length > 0 && (
               <span>
@@ -336,8 +343,10 @@ export function GameScreen({ initial, seats, onExit }: Props) {
           {main}
           {showBoard && <Board game={game} player={player} />}
           {actorSeat.ai && !over && <Board game={game} player={player} />}
+            </>
+          )}
         </div>
-        <SidePanel game={game} seats={seats} actor={actor} viewer={viewer} />
+        <SidePanel game={game} seats={seats} actor={actor} viewer={viewer} onView={(id) => setPeek(id === player.id || id === peekId ? null : { id, self: player.id })} viewing={peekId} />
       </div>
       <CivInspector game={game} seats={seats} actor={actor} />
       <LogPanel game={game} />

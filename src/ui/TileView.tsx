@@ -31,6 +31,9 @@ interface Props {
  * 그림 카드는 산출 아이콘이 카드에 그려져 있으므로 이모티콘을 겹쳐 쓰지 않는다. 기술·문명 효과로 산출이 달라진 타일만
  * 카드 그림에서 딴 아이콘으로 하단 줄을 다시 그린다 (YieldRow).
  */
+/** 타일 왼쪽 위 도시·일꾼 토큰 크기 (px) */
+const TOKEN = 38
+
 export function TileView({ card, player, badge, selected, disabled, onClick, hint, selectableMark }: Props) {
   const mark = selectableMark === undefined ? '' : selectableMark ? ' pickable' : ' unpickable'
   const y = tileYield(card, ctxOf(player))
@@ -43,7 +46,6 @@ export function TileView({ card, player, badge, selected, disabled, onClick, hin
   const cls = `${selected ? ' selected' : ''}${badge?.city ? ' city' : ''}${onClick ? '' : ' ro'}${badge?.target ? ' targeted' : ''}${mark}`
   const badges = (
     <div className="tile-badges">
-      {badge?.worker && <Icon name="worker" size={24} title="일꾼" />}
       {badge?.general && <Icon name="general" size={24} title="위대한 장군(스웨덴)" />}
       {badge?.occupiedBy && (
         <span className="occupier" title={`${badge.occupiedBy}의 위대한 장군이 점령 중`}>
@@ -51,6 +53,13 @@ export function TileView({ card, player, badge, selected, disabled, onClick, hin
           <small>{badge.occupiedBy}</small>
         </span>
       )}
+    </div>
+  )
+  // 도시·일꾼 토큰은 타일 왼쪽 위에 같은 크기로 놓는다 (장군·점령 표시는 오른쪽 위)
+  const token = (badge?.city || badge?.worker) && (
+    <div className="tile-city-token">
+      {badge?.city && <Icon name="city" size={TOKEN} title="도시" />}
+      {badge?.worker && <Icon name="worker" size={TOKEN} title="일꾼" />}
     </div>
   )
   const target = badge?.target && (
@@ -63,11 +72,7 @@ export function TileView({ card, player, badge, selected, disabled, onClick, hin
       <button type="button" className={`tile has-img${cls}`} disabled={disabled || !onClick} onClick={onClick} title={hint ?? `${tileTitle(card)} — 산출 ${yieldText(y)}`}>
         <img src={img} alt={tileTitle(card)} draggable={false} />
         {printed && <YieldRow printed={printed} actual={y} />}
-        {badge?.city && (
-          <div className="tile-city-token">
-            <Icon name="city" size={30} title="도시" />
-          </div>
-        )}
+        {token}
         {badges}
         {target}
       </button>
@@ -91,6 +96,7 @@ export function TileView({ card, player, badge, selected, disabled, onClick, hin
       {wonder && card.terrains.length > 0 && <div className="tile-res">✨ {wonder.name}</div>}
       {card.historic && <div className="tile-res">🏺 사적지</div>}
       <div className="tile-yield">{yieldText(y)}</div>
+      {badge?.worker && token}
       {badges}
       {target}
     </button>
