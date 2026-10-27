@@ -172,6 +172,7 @@ function TabContent({ game, viewer, tab }: { game: GameState; viewer: number; ta
                   wonder={w}
                   width={300}
                   owned={owner !== undefined}
+                  ownerEmblem={owner !== undefined ? { url: civEmblem(game.players[owner].civId), name: civById(game.players[owner].civId).name } : undefined}
                   note={`${w.name} — ${TECHS.find((t) => t.id === w.tech)?.name} 필요`}
                   caption={
                     owner !== undefined ? (

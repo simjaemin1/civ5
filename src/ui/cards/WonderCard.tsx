@@ -14,10 +14,12 @@ interface Props {
   /** 흐리게 (지금 지을 수 없음 등) */
   dim?: boolean
   note?: string
+  /** 지은 문명의 기호 그림: 카드 한가운데에 올린다 */
+  ownerEmblem?: { url?: string; name: string }
 }
 
 /** 불가사의 카드 (가로형). 등록된 그림이 있으면 그 그림을, 없으면 데이터로 그린 얼굴을 보여 준다. 누르면 크게 본다. */
-export function WonderCard({ wonder, caption, width = 260, owned, dim, note }: Props) {
+export function WonderCard({ wonder, caption, width = 260, owned, dim, note, ownerEmblem }: Props) {
   const [zoom, setZoom] = useState(false)
   const img = cardImage('wonder', wonder.id)
   const face = (w: number, clickable: boolean) => (
@@ -43,6 +45,11 @@ export function WonderCard({ wonder, caption, width = 260, owned, dim, note }: P
         </div>
       )}
       {owned && <span className="badge">🏛 완성</span>}
+      {ownerEmblem && (
+        <span className="wonder-owner" title={`${ownerEmblem.name}이(가) 지음`}>
+          {ownerEmblem.url ? <img src={ownerEmblem.url} alt={ownerEmblem.name} draggable={false} /> : <b>{ownerEmblem.name.slice(0, 1)}</b>}
+        </span>
+      )}
     </button>
   )
   return (
