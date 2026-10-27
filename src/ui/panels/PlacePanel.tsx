@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 import type { Placement } from '../../engine'
 import { apply, civById, declarationTargets, totalWorkers, RuleError } from '../../engine'
 import { Board } from '../Board'
+import { TileView } from '../TileView'
 import { ScoutBox } from './ScoutBox'
 import { deckSize } from '../gameInfo'
 import { ICON } from '../format'
@@ -64,6 +65,8 @@ export function PlacePanel({ game, player, dispatch }: PanelProps) {
   const [generals, setGenerals] = useState<Set<number>>(initial.generals)
   const [enemy, setEnemy] = useState<Placement[]>(initial.enemy)
   const [mode, setMode] = useState<'worker' | 'general'>('worker')
+  // 몽골: 끌고 있는 점령 타일 (도시 칸에 놓으면 그 도시의 일꾼을 올린다)
+  const [dragEnemy, setDragEnemy] = useState<{ playerId: number; cityId: number; tileId: number } | null>(null)
   const civ = civById(player.civId)
 
   const cityOf = (tileId: number) => player.cities.find((c) => c.tiles.some((t) => t.card.id === tileId))!
@@ -154,6 +157,21 @@ export function PlacePanel({ game, player, dispatch }: PanelProps) {
         )
       : []
 
+  // 몽골: 점령 타일에 일꾼을 올린다. cityId를 주면 그 도시의 일꾼, 없으면 일꾼이 남은 첫 도시. 이미 올라가 있으면 내린다
+  const freeIn = (cityId: number) => {
+    const c = player.cities.find((x) => x.id === cityId)!
+    return c.workers - [...placed].filter((id) => cityOf(id).id === cityId).length - enemy.filter((e) => e.cityId === cityId).length
+  }
+  const putEnemy = (src: { playerId: number; cityId: number; tileId: number }, cityId?: number) => {
+    const rest = enemy.filter((e) => e.tileId !== src.tileId)
+    const on = enemy.find((e) => e.tileId === src.tileId)
+    if (on && cityId === undefined) return setEnemy(rest) // 다시 누르면 내린다 (장군이 다시 보인다)
+    const room = (id: number) => freeIn(id) + (on?.cityId === id ? 1 : 0) > 0
+    const target = cityId ?? player.cities.find((c) => room(c.id))?.id
+    if (target === undefined || !room(target) || (!on && used + reserved >= total)) return
+    setEnemy([...rest, { cityId: target, tileId: src.tileId, enemy: { playerId: src.playerId, cityId: src.cityId } }])
+  }
+
   return (
     <div>
       <div className="panel">
@@ -203,26 +221,6 @@ export function PlacePanel({ game, player, dispatch }: PanelProps) {
             </label>
           </p>
         )}
-        {enemyTiles.length > 0 && (
-          <div className="muted">
-            몽골: 내 장군이 올라간 상대 타일에 일꾼 올리기
-            {enemyTiles.map(({ o, c, t }) => {
-              const on = enemy.some((e) => e.tileId === t.card.id)
-              return (
-                <label key={t.card.id} style={{ marginLeft: 8 }}>
-                  <input
-                    type="checkbox"
-                    checked={on}
-                    onChange={() =>
-                      setEnemy(on ? enemy.filter((e) => e.tileId !== t.card.id) : [...enemy, { cityId: player.cities[0].id, tileId: t.card.id, enemy: { playerId: o.id, cityId: c.id } }])
-                    }
-                  />{' '}
-                  {civById(o.civId).name} {t.card.terrains.join('·')}
-                </label>
-              )
-            })}
-          </div>
-        )}
         <ScoutBox game={game} player={player} dispatch={dispatch} canScout={canScout} />
         {warHint && <p className="war-hint">⚔ {warHint}</p>}
         <div className="row place-confirm">
@@ -254,11 +252,42 @@ export function PlacePanel({ game, player, dispatch }: PanelProps) {
         placed={placed}
         generalPlaced={generals}
         onTileClick={toggle}
+        onCityDrop={dragEnemy ? (cityId) => { putEnemy(dragEnemy, cityId); setDragEnemy(null) } : undefined}
         isDisabled={(_, tileId) => {
           const t = player.cities.flatMap((c) => c.tiles).find((x) => x.card.id === tileId)
           return !!t && t.occupiedBy !== undefined && t.occupiedBy !== player.id
         }}
       />
+      {enemyTiles.length > 0 && (
+        <section className="panel enemy-tiles">
+          <h3>점령 중인 상대 타일</h3>
+          <Help>내 장군이 올라간 상대 타일입니다. 누르면 일꾼이 남은 도시의 일꾼이 올라가고, 위 도시 칸으로 끌어다 놓으면 그 도시의 일꾼을 씁니다. 다시 누르면 내립니다.</Help>
+          <div className="row">
+            {enemyTiles.map(({ o, c, t }) => {
+              const on = enemy.find((e) => e.tileId === t.card.id)
+              const src = { playerId: o.id, cityId: c.id, tileId: t.card.id }
+              return (
+                <div
+                  key={t.card.id}
+                  className="enemy-tile"
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData('text/plain', `enemy:${t.card.id}`)
+                    setDragEnemy(src)
+                  }}
+                  onDragEnd={() => setDragEnemy(null)}
+                >
+                  <TileView card={t.card} player={player} badge={{ worker: !!on, occupiedBy: civ.name }} selected={!!on} onClick={() => putEnemy(src)} hint={`${civById(o.civId).name}의 ${t.card.terrains.join('·')} 타일`} />
+                  <small className="cell-label">
+                    {civById(o.civId).name}
+                    {on ? <> · <CityTag id={on.cityId} /> 일꾼</> : ''}
+                  </small>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      )}
     </div>
   )
 }

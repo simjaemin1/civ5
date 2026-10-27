@@ -56,7 +56,7 @@ function CityBoard({ game, player, city, placed, generalPlaced, onTileClick, isD
         card={t.card}
         player={player}
         badge={badgeOf(t)}
-        selected={selectable ? selectedTile?.cityId === city.id && selectedTile.tileId === t.card.id : badgeOf(t).worker || badgeOf(t).general}
+        selected={selectable ? selectedTile?.cityId === city.id && selectedTile.tileId === t.card.id : badgeOf(t).worker}
         disabled={selectable ? !selectable(city.id, t.card.id) : t.role === 'city' || (isDisabled?.(city.id, t.card.id) ?? false)}
         selectableMark={selectable ? selectable(city.id, t.card.id) : undefined}
         onClick={onTileClick && (selectable ? selectable(city.id, t.card.id) : t.role !== 'city') ? () => onTileClick(city.id, t.card.id) : undefined}

@@ -43,25 +43,26 @@ export function TileView({ card, player, badge, selected, disabled, onClick, hin
   const img = cardImage('tile', String(card.id))
   // 카드에 인쇄된 산출 (실제 카드 덱일 때만): 기술 효과 등으로 달라지면 아이콘 줄을 다시 그린다
   const printed = img ? REAL_TILES[card.id]?.printed : undefined
-  const cls = `${selected ? ' selected' : ''}${badge?.city ? ' city' : ''}${onClick ? '' : ' ro'}${badge?.target ? ' targeted' : ''}${mark}`
-  const badges = (
-    <div className="tile-badges">
-      {badge?.general && <Icon name="general" size={24} title="위대한 장군(스웨덴)" />}
-      {badge?.occupiedBy && (
+  // 장군(스웨덴이 올린 장군, 점령한 문명의 장군)이 있으면 빨간 테두리. 그 위에 일꾼이 올라가면 일꾼(주황)이 가린다
+  const gen = !!(badge?.general || badge?.occupiedBy)
+  const cls = `${selected ? ' selected' : ''}${gen && !badge?.worker ? ' gen' : ''}${badge?.city ? ' city' : ''}${onClick ? '' : ' ro'}${badge?.target ? ' targeted' : ''}${mark}`
+  // 도시·일꾼·장군 토큰은 타일 왼쪽 위에 같은 크기로 놓는다. 일꾼이 장군 위에 올라가면 장군 토큰은 가려진다
+  const token = (badge?.city || badge?.worker || gen) && (
+    <div className="tile-city-token">
+      {badge?.city && <Icon name="city" size={TOKEN} title="도시" />}
+      {badge?.worker ? (
+        <Icon name="worker" size={TOKEN} title={gen ? '일꾼 (장군 위)' : '일꾼'} />
+      ) : badge?.occupiedBy ? (
         <span className="occupier" title={`${badge.occupiedBy}의 위대한 장군이 점령 중`}>
-          <Icon name="general" size={24} />
+          <Icon name="general" size={TOKEN} />
           <small>{badge.occupiedBy}</small>
         </span>
+      ) : (
+        badge?.general && <Icon name="general" size={TOKEN} title="위대한 장군 (스웨덴)" />
       )}
     </div>
   )
-  // 도시·일꾼 토큰은 타일 왼쪽 위에 같은 크기로 놓는다 (장군·점령 표시는 오른쪽 위)
-  const token = (badge?.city || badge?.worker) && (
-    <div className="tile-city-token">
-      {badge?.city && <Icon name="city" size={TOKEN} title="도시" />}
-      {badge?.worker && <Icon name="worker" size={TOKEN} title="일꾼" />}
-    </div>
-  )
+
   const target = badge?.target && (
     <div className="tile-target" title="이번 라운드 선전포고 목표: 정산 때 이 타일을 두고 전투합니다">
       ⚔ {badge.target} 선전포고
@@ -73,7 +74,6 @@ export function TileView({ card, player, badge, selected, disabled, onClick, hin
         <img src={img} alt={tileTitle(card)} draggable={false} />
         {printed && <YieldRow printed={printed} actual={y} />}
         {token}
-        {badges}
         {target}
       </button>
     )
@@ -96,8 +96,7 @@ export function TileView({ card, player, badge, selected, disabled, onClick, hin
       {wonder && card.terrains.length > 0 && <div className="tile-res">✨ {wonder.name}</div>}
       {card.historic && <div className="tile-res">🏺 사적지</div>}
       <div className="tile-yield">{yieldText(y)}</div>
-      {badge?.worker && token}
-      {badges}
+      {(badge?.worker || gen) && token}
       {target}
     </button>
   )

@@ -547,3 +547,8 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
   .wasteland-area .wasteland-cell { width: min(118px, calc((100vw - 96px) / 3)); }
   .wasteland-cell .confirm { width: min(300px, calc(100vw - 72px)); }
 }
+/* 장군(점령·스웨덴)이 올라간 타일은 빨간 테두리 (일꾼이 올라가면 주황이 가린다) */
+.tile.has-img.gen img, .tile.gen:not(.has-img) { outline: 3px solid #d32f2f; }
+.tile-city-token .occupier small { margin-top: -4px; }
+/* 몽골: 점령 중인 상대 타일 (도시 칸으로 끌어다 놓는다) */
+.enemy-tile { width: 118px; display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: grab; }
