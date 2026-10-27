@@ -80,7 +80,6 @@ export interface TurnData {
   /** 전통·체제를 고른 차례에는 식량 정산을 하지 않는다 */
   skipFoodSettle: boolean
   /** 이번 차례에 장군을 점령지에서 불러들였는가 (차례당 1개) */
-  recalled: boolean
 }
 
 export interface PlayerChoices {

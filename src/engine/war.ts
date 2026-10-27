@@ -75,14 +75,12 @@ export function occupiedTiles(s: GameState, p: Player): { defenderId: number; ci
   return out
 }
 
-/** 장군 불러들이기: 점령 중인 타일 하나를 풀고 장군을 돌려받는다 (차례에 1개까지). */
+/** 장군 불러들이기: 점령 중인 타일 하나를 풀고 장군을 돌려받는다. 원하는 만큼 몇 개든 풀 수 있다. */
 export function recallGeneral(s: GameState, p: Player, a: { defenderId: number; cityId: number; tileId: number }): void {
-  if (p.turn!.recalled) throw new RuleError('장군은 한 차례에 1개까지만 불러들일 수 있습니다')
   const found = findTile(s.players[a.defenderId], a.cityId, a.tileId)
   if (!found || found.tile.occupiedBy !== p.id) throw new RuleError('내 장군이 점령 중인 타일이 아닙니다')
   found.tile.occupiedBy = undefined
   p.returningGenerals += 1 // 다음 차례부터 쓸 수 있다
-  p.turn!.recalled = true
   say(s, `${civById(p.civId).name} 장군을 불러들임 (점령 해제, 다음 차례부터 사용)`)
 }
 

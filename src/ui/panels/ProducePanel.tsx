@@ -250,14 +250,14 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
 
       {occupiedTiles(game, player).length > 0 && (
         <details>
-          <summary>점령 중인 장군 불러들이기 (차례에 1개{turn.recalled ? ' — 이번 차례 사용함' : ''})</summary>
+          <summary>점령 중인 장군 불러들이기 (원하는 만큼)</summary>
           <div className="list">
             {occupiedTiles(game, player).map((o) => (
               <div key={`${o.defenderId}:${o.cityId}:${o.tileId}`} className="row">
                 <span>
                   {civById(game.players[o.defenderId].civId).name} 도시 {o.cityId + 1} 타일 #{o.tileId}
                 </span>
-                <button disabled={turn.recalled} onClick={() => dispatch({ type: 'recallGeneral', ...o })}>
+                <button onClick={() => dispatch({ type: 'recallGeneral', ...o })}>
                   불러들이기 (점령 해제, 장군은 다음 차례에 돌아옴)
                 </button>
               </div>

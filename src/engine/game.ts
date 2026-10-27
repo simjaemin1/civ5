@@ -490,7 +490,6 @@ function placeWorkers(s: GameState, p: Player, placements: Placement[]): GameSta
     upgraded: false,
     extraFood: 0,
     skipFoodSettle: false,
-    recalled: false,
   }
   s.phase = 'research'
   return s

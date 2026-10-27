@@ -524,9 +524,9 @@ function produceCandidates(s: GameState, p: Player): Action[] {
     }
     for (const c of p.military) for (const t of upgradeTargets(p, c).filter((x) => heldCount(p, x.id) < MAX_HOLD)) out.push({ type: 'upgrade', uid: c.uid, toDefId: t.id })
   }
-  // 4) 장군이 없고 군대가 있으면 점령 중인 장군 1개를 불러들여 다시 전쟁에 쓴다.
+  // 4) 장군이 없고(돌아오는 중인 것도 없고) 군대가 있으면 점령 중인 장군 1개를 불러들여 다시 전쟁에 쓴다.
   //    다만 상대에게 중요한 타일(좋은 산출·자원·자연경관)을 점령 중이면 그대로 들고 있는다. 상대의 성장을 누르는 편이 낫다.
-  if (p.generals < 1 && !turn.recalled && army >= 2) {
+  if (p.generals + p.returningGenerals < 1 && army >= 2) {
     const cheap = occupiedTiles(s, p)
       .map((t) => ({ t, v: tileImportance(s, t.defenderId, t.cityId, t.tileId) }))
       .filter((x) => x.v < KEEP_OCCUPIED)
