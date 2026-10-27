@@ -131,7 +131,8 @@ summary { cursor: pointer; font-weight: 600; }
   .grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
 }
 
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+/* 움직임 줄이기: 전투 장면(.scene)만은 항상 움직인다 (사용자 결정) */
+@media (prefers-reduced-motion: reduce) { *:not(.scene, .scene *) { transition: none !important; animation: none !important; } }
 button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px solid var(--accent-2); outline-offset: 2px; }
 
 .summary { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 8px 0; font-size: 0.9rem; }
@@ -250,7 +251,6 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 @keyframes unit-shake { 0%, 100% { translate: 0 0; } 20% { translate: -6px 0; } 40% { translate: 6px 0; } 60% { translate: -4px 0; } 80% { translate: 3px 0; } }
 @keyframes unit-flash { from { opacity: 1; } to { opacity: 0; } }
 @keyframes unit-pop { from { opacity: 1; margin-top: 0; } to { opacity: 0; margin-top: -40px; } }
-@media (prefers-reduced-motion: reduce) { .unit, .unit * { animation: none !important; transition: none !important; } }
 
 /* 두 칸 배치: 왼쪽은 지금 할 일, 오른쪽은 늘 보이는 판 상황 */
 .game-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0 16px; align-items: start; }
