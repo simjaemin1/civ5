@@ -6,7 +6,7 @@ import { ICON, josa } from '../format'
 import type { PanelProps } from './types'
 import { ConfirmButton } from '../ConfirmButton'
 import { Help } from '../prefs'
-import { maxSciencePool, sciencePlan } from '../autoSkip'
+import { maxSciencePool } from '../autoSkip'
 
 export function ResearchPanel({ game, player, dispatch }: PanelProps) {
   const turn = player.turn!
@@ -18,8 +18,12 @@ export function ResearchPanel({ game, player, dispatch }: PanelProps) {
   const [hammerBy, setHammerBy] = useState<Record<number, number>>({})
   const foodConv = cities.reduce((n, c) => n + (foodBy[c.cityId] ?? 0), 0)
   const hammerConv = cities.reduce((n, c) => n + (hammerBy[c.cityId] ?? 0), 0)
-  const setFood = (cityId: number, v: number) => setFoodBy((m) => ({ ...m, [cityId]: v }))
+  const setFood = (cityId: number, v: number) => {
+    setPending(null)
+    setFoodBy((m) => ({ ...m, [cityId]: v }))
+  }
   const setHammer = (cityId: number, v: number) => {
+    setPending(null)
     // 망치는 모두 합쳐 2개까지
     const others = hammerConv - (hammerBy[cityId] ?? 0)
     setHammerBy((m) => ({ ...m, [cityId]: Math.max(0, Math.min(v, 2 - others)) }))
@@ -37,36 +41,28 @@ export function ResearchPanel({ game, player, dispatch }: PanelProps) {
   const techs = researchableTechs(game).sort((a, b) => a.cost - b.cost || a.column - b.column)
   const pool = turn.yields.science + foodConv + hammerConv
   const maxPool = maxSciencePool(player)
-  const [pending, setPending] = useState<{ techId: string; food: Record<number, number>; hammer: Record<number, number>; text: string; okLabel: string; alt?: string } | null>(null)
+  // 카드를 눌렀을 때의 안내: 과학이 모자라거나 남을 때. 식량·망치는 사용자가 위에서 직접 고른다 (자동으로 바꾸지 않는다)
+  const [pending, setPending] = useState<{ techId: string; text: string; canRun: boolean } | null>(null)
   const taken = game.roundTechPicks.filter((id) => !player.techs.includes(id) && !player.techs.includes('education')).map((id) => TECHS.find((t) => t.id === id)?.name ?? id)
-  const run = (techId: string, food: Record<number, number>, hammer: Record<number, number>) => {
+  const run = (techId: string) => {
     setPending(null)
-    dispatch({ type: 'research', techId, foodByCity: canFood ? food : undefined, hammerByCity: canHammer ? hammer : undefined })
+    dispatch({ type: 'research', techId, foodByCity: canFood ? foodBy : undefined, hammerByCity: canHammer ? hammerBy : undefined })
   }
-  const fill = (need: number) => sciencePlan(player, need) ?? { food: {}, hammer: {} }
-  const sum = (m: Record<number, number>) => Object.values(m).reduce((a, b) => a + b, 0)
+  const conv = canHammer ? '식량·망치' : '식량'
   const pick = (techId: string, cost: number) => {
     const name = TECHS.find((t) => t.id === techId)?.name ?? techId
-    const need = Math.max(0, cost - turn.yields.science)
     if (pool < cost) {
-      // 모자라면 필요한 만큼 바꾸는 안을 보여 준다
-      const plan = fill(need)
-      setPending({ techId, ...plan, text: `${name}: 식량 ${sum(plan.food)}${canHammer ? ` · 망치 ${sum(plan.hammer)}` : ''}만큼 과학으로 바꿔 연구합니다.`, okLabel: '이대로 바꿔서 연구' })
+      const lack = String(cost - pool)
+      setPending({ techId, canRun: false, text: `${name}: 과학 ${josa(lack, '이', '가')} 부족합니다. 위에서 ${josa(conv, '을', '를')} 과학으로 바꾼 뒤 다시 누르세요.` })
       return
     }
-    if (foodConv + hammerConv > need) {
-      // 필요 이상 바꾸면 남은 과학과 함께 그 식량·망치도 사라진다
-      const plan = fill(need)
-      setPending({
-        techId,
-        ...plan,
-        text: `${name}에는 식량·망치를 ${need}만 바꾸면 됩니다 (지금 ${foodConv + hammerConv}). 더 바꾼 만큼은 과학으로 남았다가 사라집니다.`,
-        okLabel: `필요한 만큼만 바꿔 연구 (식량 ${sum(plan.food)}${canHammer ? `·망치 ${sum(plan.hammer)}` : ''})`,
-        alt: '그대로 연구',
-      })
+    // 필요 이상 바꾸면 남은 과학과 함께 그 식량·망치도 사라진다
+    const extra = Math.min(pool - cost, foodConv + hammerConv)
+    if (extra > 0) {
+      setPending({ techId, canRun: true, text: `${name}: 바꾼 ${conv} 중 과학 ${josa(String(extra), '이', '가')} 필요하지 않습니다 (남는 과학은 사라집니다).` })
       return
     }
-    run(techId, foodBy, hammerBy)
+    run(techId)
   }
   const best = techs.filter((t) => t.cost <= maxPool).sort((a, b) => b.cost - a.cost)[0]
   const skipWarn = best
@@ -121,13 +117,8 @@ export function ResearchPanel({ game, player, dispatch }: PanelProps) {
       {pending && (
         <div className="confirm-bar">
           <span>{pending.text}</span>
-          <button className="primary" data-hotkey="" autoFocus onClick={() => run(pending.techId, pending.food, pending.hammer)}>
-            {pending.okLabel}
-          </button>
-          {pending.alt && (
-            <button onClick={() => run(pending.techId, foodBy, hammerBy)}>{pending.alt}</button>
-          )}
-          <button onClick={() => setPending(null)}>취소</button>
+          {pending.canRun && <button onClick={() => run(pending.techId)}>그대로 연구</button>}
+          <button onClick={() => setPending(null)}>닫기</button>
         </div>
       )}
       <div className="cardgrid">
@@ -159,7 +150,7 @@ export function ResearchPanel({ game, player, dispatch }: PanelProps) {
           {' '}(교육학을 연구하면 이 제한이 사라집니다)
         </p>
       )}
-      <Help>카드를 누르면 바로 연구합니다. 흐린 카드는 식량·망치를 모두 바꿔도 과학이 모자랍니다. 바꿔야 하는 카드를 누르면 필요한 만큼 바꾸는 안을 보여 줍니다.</Help>
+      <Help>카드를 누르면 바로 연구합니다. 흐린 카드는 식량·망치를 모두 바꿔도 과학이 모자랍니다. 과학이 모자라거나 남으면 얼마인지 알려 줍니다. 식량·망치는 위에서 직접 골라 바꿉니다.</Help>
       <ConfirmButton className="" hotkey warn={skipWarn} onClick={() => dispatch({ type: 'skipResearch' })}>
         이번 차례는 연구하지 않음
       </ConfirmButton>
