@@ -4,15 +4,13 @@
 
 ## 사용자와 일하는 방식
 - 사용자는 한국어를 쓴다. 답변도 한국어로 한다.
-- **작업이 끝날 때마다 Windows PowerShell 명령어를 함께 준다** (사용자의 상시 요청):
+- **작업이 끝날 때마다 실행 명령을 함께 준다** (사용자의 상시 요청). `npm test`는 넣지 않는다. 저장소의 `civ5.bat`(→ `scripts/run.ps1`)가 최신 코드 받기 → 패키지가 바뀐 때만 `npm install` → 실행을 한 번에 한다:
   ```powershell
   cd ~/civ5
-  git fetch origin
-  git checkout <지금 브랜치>
-  git pull
-  npm install
-  npm test
-  npm run dev     # http://localhost:5173
+  .\civ5.bat                 # 핫시트 (http://localhost:5173, 브라우저가 열림)
+  .\civ5.bat online          # 온라인 서버 (http://localhost:8787)
+  .\civ5.bat share           # 온라인 + 인터넷 공개 주소 (cloudflared 터널)
+  .\civ5.bat dev <브랜치>     # main이 아닌 브랜치로 받아서 실행
   ```
 - 게임 데이터(카드·기술·불가사의)는 사용자가 이미지나 표로 준다. 이미지는 직접 읽고, 데이터 파일에 옮기고, 테스트로 검증한다. **사용자가 정한 숫자와 규칙은 임의로 바꾸지 않는다.** 애매하면 `docs/open-questions.md`에 적고 물어본다.
 - 밸런스를 바꾸자는 얘기가 나오면 AI 시뮬레이션으로 근거 수치를 먼저 보여 준다. 표본이 작으면(예: 30판) 그렇다고 말한다.

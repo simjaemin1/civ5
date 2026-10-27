@@ -77,10 +77,10 @@ export function BattleReportModal({ game, report, viewerId, onClose }: { game: G
   const kind = { normal: '일반 선전포고', retake: '탈환 선전포고', city: '도시 공격' }[report.kind]
   const hits = [...report.hits].sort((a, b) => a.from.pid - b.from.pid || a.from.slot - b.from.slot)
   const steps = stepsOf(report)
-  const reduce = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-  // step: 0 = 시작, i = i번째 공격까지 재생, steps.length = 끝
-  const [step, setStep] = useState(reduce ? steps.length : 0)
-  const [run, setRun] = useState(!reduce)
+  // step: 0 = 시작, i = i번째 공격까지 재생, steps.length = 끝.
+  // 운영체제의 "애니메이션 효과 끄기(움직임 줄이기)"와 상관없이 항상 재생한다 (사용자 결정). 보기 싫으면 건너뛰기를 누른다.
+  const [step, setStep] = useState(0)
+  const [run, setRun] = useState(true)
   useEffect(() => {
     if (!run || step >= steps.length) return
     const t = setTimeout(() => setStep((n) => n + 1), step === 0 ? 700 : 1000)
