@@ -30,6 +30,8 @@ export interface RoomMeta {
   status: RoomStatus
   seed: number
   seats: Seat[]
+  /** 무승부로 끝나는 라운드 (시험용). 없으면 사람이 하는 게임이므로 끝없이 계속 */
+  roundLimit?: number
 }
 
 /** AI가 한 번에 너무 오래 돌지 않게 하는 안전장치 */
@@ -157,7 +159,7 @@ export class Room {
     }
     this.meta.status = 'playing'
     this.log = []
-    this.state = createGame({ seed: this.meta.seed, civIds: this.seats.map((s) => s.civId!) })
+    this.state = createGame({ seed: this.meta.seed, civIds: this.seats.map((s) => s.civId!), roundLimit: this.meta.roundLimit ?? null })
     this.runAI()
     this.refreshStatus()
   }
@@ -253,7 +255,7 @@ export class Room {
   }
 
   private replay(log: LogEntry[]): void {
-    let s = createGame({ seed: this.meta.seed, civIds: this.seats.map((x) => x.civId!) })
+    let s = createGame({ seed: this.meta.seed, civIds: this.seats.map((x) => x.civId!), roundLimit: this.meta.roundLimit ?? null })
     for (const e of log) s = apply(s, e.action)
     this.state = s
     this.log = log.slice()

@@ -17,7 +17,7 @@
 ## 구조
 - `src/engine/` — 순수 규칙 엔진. `createGame`, `apply(state, action)`(새 상태 반환, 규칙 위반은 `RuleError`), `actorOf`, `aiStep`. 상태는 순수 JSON, 난수는 상태 안의 시드(결정적).
 - `src/engine/data/*.json` — 문명·기술·군사 카드·불가사의·정책·타일 160장. 나중에 Java 등으로 옮길 때 그대로 쓴다.
-- `src/engine/ai.ts` — 규칙 검증용 휴리스틱 AI. 튜닝값은 `AI_TUNE`. 한 판 최대 180라운드(`MAX_ROUNDS`).
+- `src/engine/ai.ts` — 규칙 검증용 휴리스틱 AI. 튜닝값은 `AI_TUNE`. AI끼리 돌리는 게임만 최대 180라운드(`MAX_ROUNDS`, 시뮬레이션용)에서 무승부로 끝난다. 사람이 하는 게임(핫시트에 사람 자리가 있거나 온라인)은 `roundLimit: null`로 끝없이 계속되며, 화면·도감에서 180라운드를 언급하지 않는다.
 - `src/ui/` — React 핫시트 화면.
 - `src/engine/__tests__/` — 엔진 테스트(Vitest). 비용·수치를 하드코딩한 테스트가 있으니 데이터를 바꾸면 같이 고친다.
 

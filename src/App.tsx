@@ -33,7 +33,7 @@ export default function App() {
     <GameScreen key={run.id} initial={run.game} seats={run.seats} onExit={() => setRun(null)} />
   ) : (
     <SetupScreen
-      onStart={(seats, seed) => setRun({ game: createGame({ seed, civIds: seats.map((s) => s.civId) }), seats, id: Date.now() })}
+      onStart={(seats, seed) => setRun({ game: createGame({ seed, civIds: seats.map((s) => s.civId), roundLimit: seats.some((s) => !s.ai) ? null : undefined }), seats, id: Date.now() })}
       onResume={saved ? () => setRun({ ...saved, id: Date.now() }) : undefined}
       onOnline={() => setOnline('')}
       onLab={() => setLab(true)}

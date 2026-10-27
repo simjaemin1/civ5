@@ -58,8 +58,9 @@ function lobby<S extends Store = MemoryStore>(n: number, given?: S) {
   return { hub, store, id: created.room, players }
 }
 
-function startedGame<S extends Store = MemoryStore>(humans: number, ais: number, store?: S) {
+function startedGame<S extends Store = MemoryStore>(humans: number, ais: number, store?: S, roundLimit?: number) {
   const g = lobby<S>(humans, store)
+  if (roundLimit) g.hub.rooms.get(g.id)!.meta.roundLimit = roundLimit // 끝까지 진행하는 시험만: 사람이 하는 게임은 라운드 제한이 없다
   g.players.forEach((p, i) => expect(send(g.hub, p, { type: 'setCiv', civId: CIVS[i] })).toBeUndefined())
   for (let i = 0; i < ais; i++) expect(send(g.hub, g.players[0], { type: 'addAI' })).toBeUndefined()
   expect(send(g.hub, g.players[0], { type: 'start' })).toBeUndefined()
@@ -359,7 +360,7 @@ describe('진행', () => {
   })
 
   it('한 판을 끝까지 진행하면 방이 over가 된다', () => {
-    const g = startedGame(2, 1)
+    const g = startedGame(2, 1, undefined, 60)
     let n = 0
     while (playOne(g)) n++
     expect(n).toBeGreaterThan(100)

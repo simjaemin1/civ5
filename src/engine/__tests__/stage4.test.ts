@@ -129,6 +129,17 @@ describe('승부 없음', () => {
     expect(() => apply(s, { type: 'placeWorkers', placements: [] })).toThrow(RuleError)
   })
 
+  it('사람이 하는 게임(roundLimit null)은 180라운드가 지나도 계속된다', () => {
+    let s = mod(solo(), (c) => {
+      c.round = 180
+      c.roundLimit = null
+    })
+    s = play(s, { type: 'placeWorkers', placements: [] }, { type: 'skipResearch' }, { type: 'endProduction' })
+    if (s.phase === 'declare') s = apply(s, { type: 'endTurn' })
+    expect(s.phase).toBe('place')
+    expect(s.round).toBe(181)
+  })
+
   it('179라운드까지는 계속된다', () => {
     let s = mod(solo(), (c) => (c.round = 179))
     s = play(s, { type: 'placeWorkers', placements: [] }, { type: 'skipResearch' }, { type: 'endProduction' })

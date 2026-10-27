@@ -233,6 +233,8 @@ export interface GameState {
   /** 최근 전투 결과 (최대 30개) */
   battleReports: BattleReport[]
   winner: { playerId: number; type: 'science' | 'culture' | 'conquest' } | null
+  /** 무승부로 끝나는 라운드 (AI끼리의 게임만). null이면 끝없이 계속, 없으면(옛 저장) MAX_ROUNDS */
+  roundLimit?: number | null
   log: string[]
 }
 

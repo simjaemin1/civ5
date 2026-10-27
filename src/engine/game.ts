@@ -23,11 +23,14 @@ export interface CreateOptions {
   seed: number
   civIds: string[]
   deck?: TileCard[]
+  /** 이 라운드까지 승부가 안 나면 무승부로 끝낸다 (AI끼리의 시뮬레이션·테스트용, 기본 MAX_ROUNDS). 사람이 하는 게임은 null: 끝없이 계속 */
+  roundLimit?: number | null
 }
 
 export function createGame(opts: CreateOptions): GameState {
   const state: GameState = {
     rng: opts.seed >>> 0,
+    roundLimit: opts.roundLimit === undefined ? MAX_ROUNDS : opts.roundLimit,
     round: 1,
     deck: (opts.deck ?? makeTileDeck(opts.seed)).map((c) => ({ ...c })),
     players: opts.civIds.map((civId, id) => ({
@@ -154,7 +157,7 @@ function endTurn(s: GameState): void {
   beginTurn(s)
 }
 
-/** 이 라운드까지 승부가 안 나면 무승부로 끝난다 */
+/** AI끼리 돌리는 게임은 이 라운드까지 승부가 안 나면 무승부로 끝난다 (사람이 하는 게임에는 없음: roundLimit null) */
 export const MAX_ROUNDS = 180
 
 /** 라운드 정산 중: 선전포고가 남아 있으면 다음 전투를 시작하고, 없으면 라운드를 끝낸다. */
@@ -172,9 +175,10 @@ function continueRound(s: GameState): void {
     s.phase = 'over'
     return
   }
-  if (s.round >= MAX_ROUNDS) {
-    // 승부 없음: 정해진 라운드 안에 승리 조건을 이룬 문명이 없으면 무승부로 끝난다 (winner는 null)
-    say(s, `${MAX_ROUNDS}라운드가 지나 승부 없이 끝났습니다`)
+  const limit = s.roundLimit === undefined ? MAX_ROUNDS : s.roundLimit
+  if (limit !== null && s.round >= limit) {
+    // 승부 없음 (AI 시뮬레이션용): 정해진 라운드 안에 승리 조건을 이룬 문명이 없으면 무승부로 끝난다 (winner는 null)
+    say(s, `${limit}라운드가 지나 승부 없이 끝났습니다`)
     s.phase = 'over'
     return
   }
