@@ -5,7 +5,7 @@ import { RuleError, actorOf, aiStep, apply, civById, culture, happiness, totalWo
 import { Board } from './Board'
 import { CivEmblem } from './CivEmblem'
 import { TechTreeButton } from './TechTreeButton'
-import { CivInspector, CivPeek } from './CivInspector'
+import { CivPeek } from './CivInspector'
 import { InfoTabs, LogPanel } from './InfoTabs'
 import { SidePanel } from './SidePanel'
 import { usePrefs } from './prefsStore'
@@ -348,7 +348,6 @@ export function GameScreen({ initial, seats, onExit }: Props) {
         </div>
         <SidePanel game={game} seats={seats} actor={actor} viewer={viewer} onView={(id) => setPeek(id === player.id || id === peekId ? null : { id, self: player.id })} viewing={peekId} />
       </div>
-      <CivInspector game={game} seats={seats} actor={actor} />
       <LogPanel game={game} />
     </div>
   )

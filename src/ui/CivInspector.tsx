@@ -8,12 +8,6 @@ import { CivCard } from './cards/CivCard'
 import { PolicyCard } from './cards/PolicyCard'
 import { ICON, policyName } from './format'
 
-interface Props {
-  game: GameState
-  seats: { ai: boolean }[]
-  actor: number
-}
-
 /** 한 문명의 공개 정보: 요약, 직전 차례 산출, 문명 카드·정책, 점령, 영토·기술 */
 export function CivDetail({ game, id, actor }: { game: GameState; id: number; actor: number }) {
   const [tab, setTab] = useState<'land' | 'tech'>('land')
@@ -84,32 +78,6 @@ export function CivPeek({ game, id, actor, onBack }: { game: GameState; id: numb
       <div className="peek-bar">
         <h3>👁 {civById(p.civId).name} 시점 <small className="muted">(공개 정보)</small></h3>
         <button className="primary" onClick={onBack}>← 내 화면으로</button>
-      </div>
-      <CivDetail key={id} game={game} id={id} actor={actor} />
-    </div>
-  )
-}
-
-/** 문명별 현황: 다른 문명의 타일·기술·정책·불가사의를 언제든 확인한다 (공개 정보). 군사 카드는 장수만 보이고 공격 방향은 비공개다. */
-export function CivInspector({ game, seats, actor }: Props) {
-  const defaultId = game.order.find((id) => id !== actor && !game.players[id].eliminated) ?? actor
-  const [sel, setSel] = useState<number | null>(null)
-  const id = sel ?? defaultId
-
-  return (
-    <div className="panel">
-      <h3>문명별 현황 <small className="muted">(공개 정보)</small></h3>
-      <div className="tabs">
-        {game.order.map((pid) => {
-          const o = game.players[pid]
-          return (
-            <button key={pid} className={pid === id ? 'active' : ''} onClick={() => setSel(pid)}>
-              {civById(o.civId).name} {seats[pid]?.ai ? '🤖' : '👤'}
-              {pid === actor ? ' ◀' : ''}
-              {o.eliminated ? ' ✕' : ''}
-            </button>
-          )
-        })}
       </div>
       <CivDetail key={id} game={game} id={id} actor={actor} />
     </div>

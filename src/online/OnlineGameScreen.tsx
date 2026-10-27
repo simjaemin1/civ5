@@ -5,7 +5,7 @@ import { Board } from '../ui/Board'
 import { BattleReportModal } from '../ui/BattleReportModal'
 import { CivEmblem } from '../ui/CivEmblem'
 import { TechTreeButton } from '../ui/TechTreeButton'
-import { CivInspector, CivPeek } from '../ui/CivInspector'
+import { CivPeek } from '../ui/CivInspector'
 import { InfoTabs, LogPanel } from '../ui/InfoTabs'
 import { SidePanel } from '../ui/SidePanel'
 import { TurnSteps } from '../ui/TurnSteps'
@@ -272,7 +272,6 @@ export function OnlineGameScreen({ online, onExit }: Props) {
         </div>
         <SidePanel game={game} seats={seats} actor={actor} viewer={me.id} onView={(id) => setPeek(id === me.id || id === peekId ? null : { id, self: me.id })} viewing={peekId} />
       </div>
-      <CivInspector game={game} seats={seats} actor={actor} />
       <LogPanel game={game} />
     </div>
   )

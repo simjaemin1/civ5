@@ -506,3 +506,8 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
 .peek-bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
 .peek-bar h3 { margin: 0; }
 .last-yields { margin: 6px 0; }
+/* 첫 도시 세우기: 불모지 탈출 칸 (바꿀 타일을 끌어다 놓는다) */
+.wasteland-cell { display: flex; flex-direction: column; gap: 6px; width: 140px; align-self: flex-start; }
+.wasteland-cell button.tile.empty.build-cell { border-style: dashed; border-color: var(--err); color: var(--err); }
+.build-cell.drop-over, button.tile.empty.build-cell.drop-over { outline: 3px solid var(--accent); border-radius: 8px; }
+[draggable="true"].build-cell { cursor: grab; }
