@@ -1,7 +1,7 @@
 import type { City, GameState, Player, TileCard } from './types'
 import { RuleError } from './types'
 import { WONDERS, civById } from './data'
-import { nextRandom, shuffle } from './rng'
+import { shuffle } from './rng'
 
 export const currentPlayer = (s: GameState): Player => s.players[s.order[s.turnIdx]]
 
@@ -14,17 +14,10 @@ export function say(s: GameState, msg: string): void {
   if (s.log.length > MAX_LOG) s.log.splice(0, s.log.length - MAX_LOG)
 }
 
-/**
- * 카드를 덱에 돌려넣고 섞는다. 방금 넣은 카드가 맨 위에 오면 다른 자리와 바꿔서,
- * 곧바로 다시 정찰하거나 뽑아도 같은 타일이 나오지 않게 한다.
- */
+/** 카드를 덱에 돌려넣고 덱 전체를 새로 섞는다 (규칙서: 덱에서 뽑거나 정찰한 카드를 돌려놓을 때마다 섞는다). 같은 타일이 또 나올 수도 있다. */
 export function returnToDeck(s: GameState, card: TileCard): void {
   s.deck.push(card)
   shuffle(s, s.deck)
-  if (s.deck.length > 1 && s.deck[0].id === card.id) {
-    const j = 1 + Math.floor(nextRandom(s) * (s.deck.length - 1))
-    ;[s.deck[0], s.deck[j]] = [s.deck[j], s.deck[0]]
-  }
 }
 
 /** 덱에서 n장 뽑고, 뽑을 때마다(한 번의 뽑기마다) 덱을 섞는다. */

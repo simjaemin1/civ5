@@ -908,9 +908,11 @@ describe('정찰과 나침반', () => {
     expect(s.deck.some((c) => c.id === 888)).toBe(true)
   })
 
-  it('정찰한 타일을 돌려넣을 때는 반드시 섞고, 곧바로 다시 정찰해도 같은 타일이 나오지 않는다', () => {
+  it('정찰한 타일을 돌려넣을 때는 덱 전체를 새로 섞는다 (카드는 그대로 다 있다)', () => {
+    let reordered = 0
     let sameOnTop = 0
-    for (let seed = 1; seed <= 400; seed++) {
+    const trials = 400
+    for (let seed = 1; seed <= trials; seed++) {
       let s = mod(start(), (c) => {
         c.rng = seed
         c.deck.unshift({ id: 888, terrains: ['설원'] })
@@ -918,27 +920,25 @@ describe('정찰과 나침반', () => {
       s = apply(s, { type: 'scout' })
       const order = s.deck.map((c) => c.id)
       s = play(s, { type: 'placeWorkers', placements: [] }, { type: 'skipResearch' }, { type: 'endProduction' })
-      expect(s.deck).toHaveLength(order.length + 1)
-      expect(s.deck.some((c) => c.id === 888)).toBe(true)
-      expect(s.deck.map((c) => c.id).sort()).toEqual([...order, 888].sort()) // 카드는 그대로 다 있다
-      expect(s.deck.map((c) => c.id).filter((id) => id !== 888)).not.toEqual(order) // 섞였다 (덱 순서가 그대로가 아니다)
-      if (s.deck[0].id === 888) sameOnTop++
+      const after = s.deck.map((c) => c.id)
+      expect(after.slice().sort()).toEqual([...order, 888].sort())
+      if (after.filter((id) => id !== 888).join() !== order.join()) reordered++
+      if (after[0] === 888) sameOnTop++
     }
-    expect(sameOnTop).toBe(0)
+    expect(reordered).toBe(trials) // 돌려넣을 때마다 순서가 새로 섞인다
+    expect(sameOnTop).toBeLessThan(trials / 10) // 완전히 새로 섞는 것이므로 가끔 같은 타일이 맨 위에 올 수는 있지만 드물다
   })
 
-  it('나침반으로 맡아둔 타일을 돌려보낼 때도 섞이고 맨 위에 오지 않는다', () => {
-    for (let seed = 1; seed <= 200; seed++) {
-      let s = mod(start(), (c) => {
-        c.rng = seed
-        c.players[0].techs.push('compass')
-        c.deck.unshift({ id: 999, terrains: ['오아시스'] })
-      })
-      s = apply(apply(s, { type: 'scout' }), { type: 'holdScouted' })
-      s = apply(s, { type: 'releaseHeld' })
-      expect(s.deck.some((c) => c.id === 999)).toBe(true)
-      expect(s.deck[0].id).not.toBe(999)
-    }
+  it('나침반으로 맡아둔 타일을 돌려보낼 때도 덱을 섞는다', () => {
+    let s = mod(start(), (c) => {
+      c.players[0].techs.push('compass')
+      c.deck.unshift({ id: 999, terrains: ['오아시스'] })
+    })
+    s = apply(apply(s, { type: 'scout' }), { type: 'holdScouted' })
+    const before = s.deck.map((c) => c.id)
+    s = apply(s, { type: 'releaseHeld' })
+    expect(s.deck.map((c) => c.id).sort()).toEqual([...before, 999].sort())
+    expect(s.deck.map((c) => c.id).filter((id) => id !== 999).join()).not.toBe(before.join())
   })
 
   it('엘도라도를 처음 발견한 사람은 문화 1 (한 번만)', () => {
