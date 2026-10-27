@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { MAX_HOLD, AI_TUNE, actorOf, aiCandidates, aiStep, apply, bestSlots, createGame, cardById, cardStats, MILITARY_CARDS, civById, CIVS, happiness, rankTop, totalWorkers, usableInBattle, WONDER_CARDS } from '..'
+import { MAX_HOLD, AI_TUNE, actorOf, aiCandidates, aiStep, apply, bestSlots, createGame, cardById, cardStats, MILITARY_CARDS, civById, CIVS, happiness, rankTop, totalWorkers, usableInBattle, WONDER_CARDS, declarationTargets, threat } from '..'
 import type { GameState } from '..'
 
 /** AI끼리 게임을 끝까지(또는 maxSteps까지) 돌린다. */
@@ -357,5 +357,94 @@ describe('AI 차례 계획기 (문턱 기준 일꾼 배치)', () => {
     p.techs = ['agriculture']
     const usual = aiCandidates(s).find((a) => a.type === 'research')
     expect(usual && usual.type === 'research' && usual.techId).toBe('sailing')
+  })
+})
+
+describe('AI 전쟁 판단 (승률 추정·쏠림 방지·수비·실질 위협도)', () => {
+  /** 0번 문명의 선전포고 단계까지 돌린 상태 */
+  const atPhase = (phase: GameState['phase'], civs: string[]): GameState => {
+    let s = createGame({ seed: 6, civIds: civs })
+    for (let i = 0; i < 4000 && !(s.phase === phase && actorOf(s) === 0 && s.round >= 4 && !s.players[0].pendingDiscard && !s.players[0].pendingCardDiscard?.length); i++) s = aiStep(s).state
+    s = structuredClone(s)
+    s.declarations = []
+    for (const p of s.players) {
+      p.military = []
+      p.busyWorkers = 0
+      for (const c of p.cities) for (const t of c.tiles) delete t.occupiedBy // 점령·탈환 없이 시작
+    }
+    for (const c of s.players[0].cities) c.placed = [] // 선전포고에 걸 일꾼(타일에 올리지 않은 일꾼)이 있게
+    return s
+  }
+  const give = (s: GameState, pid: number, defId: string, n: number) => {
+    for (let i = 0; i < n; i++) s.players[pid].military.push({ uid: s.nextUid++, defId, dirs: cardById(defId).variantDirs ? ['C'] : undefined })
+  }
+  /** 0번이 낼 일반·도시 선전포고의 대상 (탈환 제외) */
+  const declaresOn = (s: GameState): number[] => {
+    const kinds = new Map(declarationTargets(s, s.players[0]).map((t) => [t.tileId, t.kind]))
+    return aiCandidates(s).flatMap((a) => (a.type === 'declareWar' && kinds.get(a.tileId) !== 'retake' ? [a.defenderId] : []))
+  }
+  /** pid의 도시 타일이 아닌 땅 한 장을 노리는 선전포고 */
+  const declOn = (s: GameState, attackerId: number, pid: number) => {
+    const city = s.players[pid].cities[0]
+    const tile = city.tiles.find((x) => x.role !== 'city' && x.occupiedBy === undefined)!
+    return { attackerId, defenderId: pid, cityId: city.id, tileId: tile.card.id, kind: 'normal' as const }
+  }
+
+  it('이길 가망이 없으면 선전포고하지 않고, 힘이 앞서면 선전포고한다', () => {
+    const s = atPhase('declare', ['korea', 'egypt'])
+    s.players[0].generals = 1
+    expect(declarationTargets(s, s.players[0]).some((t) => t.kind === 'normal')).toBe(true)
+    give(s, 0, 'warrior', 2)
+    give(s, 1, 'rifleman', 4)
+    expect(declaresOn(s)).not.toContain(1)
+    s.players[0].military = []
+    s.players[1].military = []
+    give(s, 0, 'rifleman', 4)
+    give(s, 1, 'warrior', 1)
+    expect(declaresOn(s)).toContain(1)
+  })
+
+  it('1등에게 이미 충분한 공격이 걸렸으면 1등 대신 다른 문명을 노린다 (사면 점령이 3칸 미만일 때)', () => {
+    const s = atPhase('declare', ['korea', 'egypt', 'china'])
+    // 1번이 확실한 1등
+    s.players[1].techs.push('agriculture', 'writing', 'sailing', 'mining', 'archery', 'calendar', 'masonry', 'bronze_working')
+    s.players[1].wonders.push('pyramids', 'petra')
+    s.players[0].generals = 1
+    give(s, 0, 'rifleman', 4)
+    give(s, 1, 'warrior', 1)
+    give(s, 2, 'warrior', 1)
+    expect(rankTop(s)!.leader.id).toBe(1)
+    expect(declaresOn(s)[0]).toBe(1) // 쏠림이 없으면 1등을 노린다
+    // 2번이 이미 1등에게 선전포고했고, 그 힘이 1등 수비를 넉넉히 넘는다
+    give(s, 2, 'rifleman', 3)
+    s.declarations = [declOn(s, 2, 1)]
+    expect(declaresOn(s)).not.toContain(1)
+  })
+
+  it('나를 노린 선전포고가 있으면 불가사의보다 군사 카드를 먼저 만든다', () => {
+    const s = atPhase('produce', ['korea', 'egypt'])
+    const p = s.players[0]
+    for (const w of WONDER_CARDS) if (!p.techs.includes(w.tech)) p.techs.push(w.tech)
+    if (!p.techs.includes('agriculture')) p.techs.push('agriculture')
+    give(s, 0, 'rifleman', 4) // 군대는 이미 넉넉하다
+    give(s, 1, 'warrior', 1)
+    p.turn!.produced = []
+    for (const y of p.turn!.yields.cities) y.hammer = 12
+    const firstProduction = () => aiCandidates(s).find((a) => a.type === 'produce' || a.type === 'invest')!.type
+    expect(firstProduction()).toBe('invest')
+    s.declarations = [declOn(s, 1, 0)]
+    expect(firstProduction()).toBe('produce')
+  })
+
+  it('실질 위협도: 점령당한 타일의 산출과 이번 라운드에 걸린 선전포고만큼 내려간다 (문화는 그대로)', () => {
+    const s = atPhase('declare', ['korea', 'egypt', 'china'])
+    const o = s.players[1]
+    const before = threat(s, o)
+    const tile = o.cities[0].tiles.find((x) => x.role !== 'city')!
+    tile.occupiedBy = 2
+    const occupied = threat(s, o)
+    expect(occupied).toBeLessThan(before)
+    s.declarations = [{ attackerId: 2, defenderId: 1, cityId: o.cities[0].id, tileId: o.cities[0].tiles.find((x) => x.role !== 'city' && x !== tile)!.card.id, kind: 'normal' }]
+    expect(threat(s, o)).toBeCloseTo(occupied - 3)
   })
 })
