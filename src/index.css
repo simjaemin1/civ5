@@ -537,3 +537,5 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
 /* 도시 판의 빈 면도 타일 카드와 같은 크기 (타일 그림 비율 255:364) */
 .city-grid .tile.empty { aspect-ratio: 255 / 364; min-height: 0; height: auto; align-self: start; text-align: center; }
 .held-note { min-height: 1.5em; margin: 4px 0; }
+/* 기록의 라운드 표시: 라운드가 바뀌는 줄에만 [R4], 이어지면 - (글 시작을 맞춘다) */
+.log-r { display: inline-block; min-width: 2.6em; color: var(--muted); }

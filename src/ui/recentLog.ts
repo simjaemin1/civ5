@@ -34,3 +34,15 @@ export function recentSummary(log: readonly string[]): string[] {
   }
   return out
 }
+
+/** 보이는 순서대로 라운드 표시를 정리한다: 라운드가 바뀌는 줄에만 "[R4]"를 쓰고, 같은 라운드가 이어지면 "-" */
+export function markRounds(lines: readonly string[]): { mark: string; text: string }[] {
+  let prev = ''
+  return lines.map((line) => {
+    const m = line.match(/^(\[R\d+\]) (.*)$/)
+    if (!m) return { mark: '', text: line }
+    const mark = m[1] === prev ? '-' : m[1]
+    prev = m[1]
+    return { mark, text: m[2] }
+  })
+}

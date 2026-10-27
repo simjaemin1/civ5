@@ -10,6 +10,7 @@ import { catalogCard } from './cards/unitImage'
 import { WonderCard } from './cards/WonderCard'
 import { ICON, josa } from './format'
 import { civEmblem } from './civEmblems'
+import { markRounds } from './recentLog'
 
 /** 도표의 줄 배치: 줄이 시작되는 기술(선행 기술 없음)이 어느 줄에 놓이는지. 이어지는 기술은 선행 기술과 같은 줄에 놓인다. */
 const ROOT_ROW: Record<string, number> = {
@@ -223,8 +224,10 @@ export function LogPanel({ game }: { game: GameState }) {
     <div className="panel">
       <h3>로그</h3>
       <div className="log">
-        {[...game.log].reverse().map((l, i) => (
-          <div key={i}>{l}</div>
+        {markRounds([...game.log].reverse()).map((l, i) => (
+          <div key={i}>
+            <span className="log-r">{l.mark}</span> {l.text}
+          </div>
         ))}
       </div>
     </div>

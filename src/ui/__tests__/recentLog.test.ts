@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { recentSummary } from '../recentLog'
+import { markRounds, recentSummary } from '../recentLog'
 
 describe('오른쪽 최근 기록 요약', () => {
   it('생산·투자는 그대로, 인구·행복·문화는 바뀐 것만 앞→뒤로', () => {
@@ -22,5 +22,9 @@ describe('오른쪽 최근 기록 요약', () => {
       '[R2] 한국 인구 2→3',
       '[R2] 독일 행복 4→5',
     ])
+  })
+
+  it('같은 라운드가 이어지면 라운드 표시 대신 -', () => {
+    expect(markRounds(['[R5] a', '[R4] b', '[R4] c', '[R4] d', '[R3] e']).map((l) => `${l.mark} ${l.text}`)).toEqual(['[R5] a', '[R4] b', '- c', '- d', '[R3] e'])
   })
 })

@@ -1,7 +1,7 @@
 import type { GameState } from '../engine'
 import { WONDER_CARDS, civById, culture, happiness, totalWorkers, tourism } from '../engine'
 import { declTileName, roundBids } from './gameInfo'
-import { recentSummary } from './recentLog'
+import { markRounds, recentSummary } from './recentLog'
 import { Icon } from './icons'
 import { CivCard } from './cards/CivCard'
 import { ICON, policyName } from './format'
@@ -125,8 +125,10 @@ export function RecentLog({ game, lines = 12 }: { game: GameState; lines?: numbe
       <h4>최근 기록</h4>
       <div className="log small">
         {rows.length === 0 && <span className="muted">아직 없습니다.</span>}
-        {rows.map((l, i) => (
-          <div key={i}>{l}</div>
+        {markRounds(rows).map((l, i) => (
+          <div key={i}>
+            <span className="log-r">{l.mark}</span> {l.text}
+          </div>
         ))}
       </div>
     </section>
