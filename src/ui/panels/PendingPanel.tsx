@@ -1,7 +1,7 @@
 import { CityTag } from '../icons'
 import { useState } from 'react'
 import type { PolicyId } from '../../engine'
-import { MILITARY_CARDS, civById, happiness, producible, totalWorkers } from '../../engine'
+import { MILITARY_CARDS, REGIME_WORKERS, civById, happiness, producible, totalWorkers } from '../../engine'
 import { PolicyCard } from '../cards/PolicyCard'
 import { CityBuilder } from './CityBuilder'
 import type { PanelProps } from './types'
@@ -25,14 +25,14 @@ export function PendingPanel({ game, player, dispatch }: PanelProps) {
   const workers = totalWorkers(player)
   const cap = player.cities.length ? happiness(player) : 0
   // 전통: 일꾼이 3개 이상이면 자동으로 "일꾼 3개 버리고 문화 2"로 처리한다. 버릴 도시는 도시를 눌러 한 명씩 고른다.
-  // 체제: 행복 한도 안에서 일꾼을 최대 3개 얻는다. 일꾼 1개마다 붙일 도시를 눌러 고른다 (도시가 하나면 바로 처리).
+  // 체제: 행복 한도 안에서 일꾼을 최대 4개 얻는다. 일꾼 1개마다 붙일 도시를 눌러 고른다 (도시가 하나면 바로 처리).
   const [alloc, setAlloc] = useState<{ policy: 'tradition' | 'regime'; need: number; counts: Record<number, number> } | null>(null)
   const taken = alloc ? Object.values(alloc.counts).reduce((n, v) => n + v, 0) : 0
   const choose = (id: PolicyId, extra?: { discard?: { cityId: number; count: number }[]; addWorkers?: { cityId: number; count: number }[] }) => {
     const [cityId, tileId] = dismiss ? dismiss.split(':').map(Number) : []
     dispatch({ type: 'choosePolicy', policy: id, ...extra, dismiss: id === 'diplomacy' && dismiss ? { cityId, tileId } : undefined })
   }
-  const regimeGain = Math.min(3, Math.max(0, cap - workers))
+  const regimeGain = Math.min(REGIME_WORKERS, Math.max(0, cap - workers))
   const pick = (id: PolicyId) => {
     if (id === 'tradition' && workers >= 3) setAlloc({ policy: 'tradition', need: 3, counts: {} })
     else if (id === 'regime' && regimeGain > 0 && player.cities.length > 1) setAlloc({ policy: 'regime', need: regimeGain, counts: {} })
