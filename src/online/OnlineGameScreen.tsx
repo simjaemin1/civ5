@@ -6,7 +6,7 @@ import { BattleReportModal } from '../ui/BattleReportModal'
 import { CivEmblem } from '../ui/CivEmblem'
 import { TechTreeButton } from '../ui/TechTreeButton'
 import { CivInspector } from '../ui/CivInspector'
-import { InfoTabs } from '../ui/InfoTabs'
+import { InfoTabs, LogPanel } from '../ui/InfoTabs'
 import { SidePanel } from '../ui/SidePanel'
 import { TurnSteps } from '../ui/TurnSteps'
 import { autoSkipAction } from '../ui/autoSkip'
@@ -264,6 +264,7 @@ export function OnlineGameScreen({ online, onExit }: Props) {
         <SidePanel game={game} seats={seats} actor={actor} viewer={me.id} />
       </div>
       <CivInspector game={game} seats={seats} actor={actor} />
+      <LogPanel game={game} />
     </div>
   )
 }

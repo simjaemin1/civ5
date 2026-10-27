@@ -9,7 +9,6 @@ import { UnitCard } from './cards/UnitCard'
 import { catalogCard } from './cards/unitImage'
 import { WonderCard } from './cards/WonderCard'
 import { ICON, josa } from './format'
-import { treeFitBox } from './treeFit'
 
 /** 도표의 줄 배치: 줄이 시작되는 기술(선행 기술 없음)이 어느 줄에 놓이는지. 이어지는 기술은 선행 기술과 같은 줄에 놓인다. */
 const ROOT_ROW: Record<string, number> = {
@@ -100,34 +99,27 @@ export function TechTree({ player, fit }: { player: Player; fit?: { width: numbe
   )
 }
 
-type Tab = 'tech' | 'wonder' | 'policy' | 'card' | 'unique' | 'log'
+type Tab = 'wonder' | 'policy' | 'card' | 'unique'
 
+// 기술 트리는 플라스크 버튼과 겹쳐서 빼고, 로그는 화면 아래 칸(LogPanel)에 둔다 (사용자 결정)
 const TABS: [Tab, string][] = [
-  ['tech', '기술 트리'],
   ['wonder', '불가사의'],
   ['policy', '정책'],
   ['card', '군사 카드'],
   ['unique', '고유 유닛'],
-  ['log', '로그'],
 ]
 
 /**
- * 맨 위 줄의 정보 탭(기술 트리·불가사의·정책·군사 카드·고유 유닛·로그).
+ * 맨 위 줄의 정보 탭(불가사의·정책·군사 카드·고유 유닛).
  * 탭을 누르면 그 내용이 화면 위에 겹쳐 뜬다 (아래 내용이 밀리지 않는다). 같은 탭을 다시 누르거나 닫기, Esc로 닫는다.
  */
 export function InfoTabs({ game, viewer }: { game: GameState; viewer: number }) {
   const [tab, setTab] = useState<Tab | null>(null)
-  const [box, setBox] = useState(treeFitBox)
   useEffect(() => {
     if (!tab) return
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setTab(null)
-    const onResize = () => setBox(treeFitBox())
     window.addEventListener('keydown', onKey)
-    window.addEventListener('resize', onResize)
-    return () => {
-      window.removeEventListener('keydown', onKey)
-      window.removeEventListener('resize', onResize)
-    }
+    return () => window.removeEventListener('keydown', onKey)
   }, [tab])
   return (
     <>
@@ -139,23 +131,22 @@ export function InfoTabs({ game, viewer }: { game: GameState; viewer: number }) 
         ))}
       </div>
       {tab && (
-        <div className={`tree-float${tab === 'tech' ? '' : ' info-float'}`} role="dialog" aria-label={TABS.find(([k]) => k === tab)![1]}>
+        <div className="tree-float info-float" role="dialog" aria-label={TABS.find(([k]) => k === tab)![1]}>
           <div className="tree-overlay-head">
             <b>{TABS.find(([k]) => k === tab)![1]}</b>
             <button onClick={() => setTab(null)}>닫기 ✕</button>
           </div>
-          <TabContent game={game} viewer={viewer} tab={tab} box={box} />
+          <TabContent game={game} viewer={viewer} tab={tab} />
         </div>
       )}
     </>
   )
 }
 
-function TabContent({ game, viewer, tab, box }: { game: GameState; viewer: number; tab: Tab; box: { width: number; height: number } }) {
+function TabContent({ game, viewer, tab }: { game: GameState; viewer: number; tab: Tab }) {
   const me = game.players[viewer]
   return (
     <>
-      {tab === 'tech' && <TechTree player={me} fit={box} />}
       {tab === 'wonder' && (
         <div>
           <div className="wonder-grid">
@@ -245,13 +236,20 @@ function TabContent({ game, viewer, tab, box }: { game: GameState; viewer: numbe
           </div>
         </div>
       )}
-      {tab === 'log' && (
-        <div className="log">
-          {[...game.log].reverse().map((l, i) => (
-            <div key={i}>{l}</div>
-          ))}
-        </div>
-      )}
     </>
+  )
+}
+
+/** 화면 아래 칸의 전체 기록 (최근 것이 위) */
+export function LogPanel({ game }: { game: GameState }) {
+  return (
+    <div className="panel">
+      <h3>로그</h3>
+      <div className="log">
+        {[...game.log].reverse().map((l, i) => (
+          <div key={i}>{l}</div>
+        ))}
+      </div>
+    </div>
   )
 }

@@ -6,7 +6,7 @@ import { Board } from './Board'
 import { CivEmblem } from './CivEmblem'
 import { TechTreeButton } from './TechTreeButton'
 import { CivInspector } from './CivInspector'
-import { InfoTabs } from './InfoTabs'
+import { InfoTabs, LogPanel } from './InfoTabs'
 import { SidePanel } from './SidePanel'
 import { usePrefs } from './prefsStore'
 import { useGameSounds } from './sounds'
@@ -340,6 +340,7 @@ export function GameScreen({ initial, seats, onExit }: Props) {
         <SidePanel game={game} seats={seats} actor={actor} viewer={viewer} />
       </div>
       <CivInspector game={game} seats={seats} actor={actor} />
+      <LogPanel game={game} />
     </div>
   )
 }
