@@ -184,7 +184,7 @@ function Arrange({ game, me, enemy, dispatch }: { game: GameState; me: Player; e
 }
 
 /** 4칸 배치. mirror: 상대 쪽 줄 — 마주 보도록 칸 순서를 거꾸로 놓고 카드도 180도 뒤집어 보여 준다. */
-function Board4({ game, pid, mirror }: { game: GameState; pid: number; mirror?: boolean }) {
+export function Board4({ game, pid, mirror }: { game: GameState; pid: number; mirror?: boolean }) {
   const b = game.battle!
   const p = game.players[pid]
   const slots = b.slots[pid] ?? []

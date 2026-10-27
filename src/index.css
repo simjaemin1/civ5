@@ -442,3 +442,11 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
 /* 점령당한 타일: 일꾼 토큰처럼 위대한 장군 토큰을 올려 두고, 점령한 문명 이름을 작게 붙인다 */
 .occupier { display: inline-flex; flex-direction: column; align-items: center; line-height: 1; }
 .occupier small { white-space: nowrap; font-size: 0.6rem; font-weight: 700; color: #fff; text-shadow: 0 0 3px #000, 0 0 3px #000; }
+
+/* 다른 문명의 차례를 지켜보는 화면 */
+.watch-steps { display: flex; flex-wrap: wrap; gap: 4px 6px; list-style: none; margin: 4px 0 8px; padding: 0; font-size: 0.85rem; }
+.watch-steps li { padding: 2px 10px; border: 1px dashed var(--line); border-radius: 999px; color: var(--muted); }
+.watch-steps li.done { color: var(--ok); border-style: solid; }
+.watch-steps li.now { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 700; }
+.watch-grid { display: flex; flex-wrap: wrap; gap: 8px 24px; }
+.turn-watch h4 { margin: 10px 0 4px; }
