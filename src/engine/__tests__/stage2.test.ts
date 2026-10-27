@@ -596,11 +596,17 @@ describe('AI 정책 고르기 (타일·불가사의·성장에 따라)', () => {
     expect(aiDebug.policyReason).toBe('후반 타일')
   })
 
-  const warlord = (rivalTradition: boolean) => {
+  const warlord = (rivalTradition: boolean, foundation = true) => {
     let s = toResearch(solo('mongolia'))
     return mod(s, (c) => {
       c.players[0].pendingPolicies = 1
       c.players[0].policyPicks = 1
+      if (foundation) {
+        // 기반: 영토 7타일 이상, 일꾼 4명 이상
+        const city = c.players[0].cities[0]
+        city.workers = 5
+        for (let i = 0; i < 3; i++) city.tiles.push({ card: tile(['설원']), role: 'extra' })
+      }
       const rival = structuredClone(c.players[0])
       rival.id = 1
       rival.policy = rivalTradition ? 'tradition' : 'liberty'
@@ -611,6 +617,10 @@ describe('AI 정책 고르기 (타일·불가사의·성장에 따라)', () => {
   it('전쟁광(몽골)은 산업시대 전에 상대가 전통으로 약해졌으면 전제정치를 고른다', () => {
     expect(firstPolicy(warlord(true))).toBe('despotism')
     expect(aiDebug.policyReason).toBe('전쟁광')
+  })
+
+  it('전쟁광도 기반(영토·일꾼)이 없으면 전제정치 대신 성장 정책을 따른다', () => {
+    expect(firstPolicy(warlord(true, false))).not.toBe('despotism')
   })
 
   it('전쟁광은 타일이 모자라고 약한 상대도 없으면 미학으로 타협한다', () => {

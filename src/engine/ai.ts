@@ -145,7 +145,7 @@ function buildPriority(p: Player, t: TechDef): number {
   // 고유 유닛이 초반에 열리는 문명은 그 길이 최우선, 고유 유닛 시대에는 장군(기마술)을 일찍 얻어 상대 좋은 타일을 압박한다
   if (uniqueRoute(p)?.has(t.id)) v += 400
   // 전쟁광은 도시를 칠 공성 카드(대포)를 서둘러 연다 (훈족은 고유 유닛 공성추)
-  if (isWarlord(p) && !hasSiege(p) && siegeRoute(p).has(t.id)) v += 350
+  if (isWarlord(p) && warFoundation(p) && !hasSiege(p) && siegeRoute(p).has(t.id)) v += 200
   if (t.id === 'horseback' && (inUniqueEra(p) || !!uniqueRoute(p))) v += 150
   return v
 }
@@ -158,10 +158,10 @@ function techPriority(t: TechDef, rush?: Set<string>, p?: Player): number {
     else if (e.kind === 'secondCity') v += 8
     else if (e.kind === 'culture') v += 4
     else if (e.kind === 'tourismPerCulture') v += rush ? 0 : 60 // 관광이 상대 문화를 넘으면 문화 승리
-    else if (e.kind === 'policy') v += p && isWarlord(p) ? 45 : 3 // 전쟁광: 전제정치를 고를 때마다 장군 +1
+    else if (e.kind === 'policy') v += p && isWarlord(p) && warFoundation(p) ? 20 : 3 // 전쟁광: 전제정치를 고를 때마다 장군 +1
     else if (e.kind === 'hammerToScience') v += 3
     else if (e.kind === 'sciencePerTurn') v += e.amount * 10
-    else if (e.kind === 'general') v += p && isWarlord(p) ? 70 : 2
+    else if (e.kind === 'general') v += p && isWarlord(p) && warFoundation(p) ? 40 : 2
     else if (e.kind === 'scienceVictory') v += 1000
   }
   // 전쟁광은 새 군사 카드를 열어 주는 기술을 서두른다
@@ -189,7 +189,7 @@ function researchCandidates(s: GameState, p: Player): Action[] {
     if (need > 0 && p.techs.includes('writing')) {
 // 자유 정책에서는 일꾼을 굶겨도 잃지 않으므로 식량을 전부 과학으로 돌릴 수 있다
       // 전쟁광이 공성 카드(대포)를 여는 화학은 일꾼 몇 명을 잃더라도 식량을 모두 과학으로 돌려 연구한다
-      const spare = p.policy === 'liberty' || (isWarlord(p) && t.id === 'chemistry' && !hasSiege(p) && siegeRoute(p).has(t.id)) ? food : food - totalWorkers(p)
+      const spare = p.policy === 'liberty' || (isWarlord(p) && warFoundation(p) && t.id === 'chemistry' && !hasSiege(p) && siegeRoute(p).has(t.id)) ? food : food - totalWorkers(p)
       foodConv = Math.min(need, Math.max(0, spare))
       need -= foodConv
     }
@@ -206,6 +206,8 @@ function researchCandidates(s: GameState, p: Player): Action[] {
 /** 전쟁광 문명(훈족·줄루·그리스·몽골): 전제정치로 장군을 모으고 군대를 많이 뽑아, 한 상대를 골라 좋은 타일을 선점령한 뒤 도시를 공격해 탈락시킨다 */
 const WARLORDS = new Set(['huns', 'zulu', 'greece', 'mongolia'])
 const isWarlord = (p: Player): boolean => AI_TUNE.warlord && WARLORDS.has(p.civId)
+/** 전쟁광도 기반(영토 7타일 이상, 일꾼 4명 이상)이 없으면 미학 등 성장 정책으로 먼저 키운다 */
+const warFoundation = (p: Player): boolean => p.cities.reduce((n, c) => n + c.tiles.length, 0) >= 7 && totalWorkers(p) >= 4
 /** 산업시대(비용 6열 이상 기술)가 열리기 전: 이때까지 군대로 몰아붙인다 */
 const preIndustrial = (s: GameState): boolean => !s.players.some((o) => !o.eliminated && o.techs.some((id) => (TECHS.find((t) => t.id === id)?.column ?? 0) >= 6))
 /** 연합: 1등이 아닌 문명은 모두 1등을 견제한다 (1등 자신은 해당 없음) */
@@ -333,14 +335,6 @@ function policyOrder(s: GameState, p: Player): Policy[] {
   const withNone = base + (writing ? Math.max(0, food - totalWorkers(p)) : 0)
   // 앞으로 만날 비용 10대 기술을 감당할 수 있는지 (번성 뒤에도 막히지 않도록 여유 있게)
   const need = Math.max(cheapest, AI_TUNE.policyNeed)
-  // 전쟁광: 타일이 괜찮으면 전제정치(장군 +1, 선전포고에 일꾼 불필요), 상대가 전통으로 약해졌을 때도 전제정치, 타일이 모자라면 미학으로 타협한다 (산업시대 전)
-  if (isWarlord(p) && preIndustrial(s)) {
-    const terr = p.cities.flatMap((c) => c.tiles).filter((t) => t.role !== 'city')
-    const avg = terr.length ? terr.reduce((n, t) => n + weight(tileYield(t.card, ctxOf(p))), 0) / terr.length : 0
-    const weakRival = s.players.some((o) => o.id !== p.id && !o.eliminated && o.policy === 'tradition')
-    aiDebug.policyReason = '전쟁광'
-    return avg >= POOR_TILES || weakRival ? ['despotism', 'aesthetics', ...POLICY_PREFERENCE] : ['aesthetics', 'despotism', ...POLICY_PREFERENCE]
-  }
   // 맨 처음 고르는 정책은 전통 아니면 미학으로 고정한다: 당장 남는 식량(식량 − 일꾼)이 없으면 미학, 있으면 전통.
   if ((p.policyPicks ?? 0) === 0) {
     aiDebug.policyReason = '첫 정책'
@@ -361,6 +355,15 @@ function policyOrder(s: GameState, p: Player): Policy[] {
     return withNone >= Math.max(0, ...costs) ? ['equality', ...POLICY_PREFERENCE] : ['liberty', 'rationalism', ...POLICY_PREFERENCE]
   }
   if (rushingApollo(p)) return ['liberty', 'rationalism', ...POLICY_PREFERENCE]
+  // 전쟁광: 기반이 갖춰졌으면(영토·일꾼) 타일이 괜찮거나 상대가 전통으로 약해졌을 때 전제정치(장군 +1, 선전포고에 일꾼 불필요), 타일이 모자라면 미학으로 타협한다.
+  // 기반이 없으면 아래 성장 정책 규칙을 따르고, 과학·문화 질주 중에도 그쪽을 우선한다 (산업시대 전까지)
+  if (isWarlord(p) && preIndustrial(s) && warFoundation(p)) {
+    const terr = p.cities.flatMap((c) => c.tiles).filter((t) => t.role !== 'city')
+    const avg = terr.length ? terr.reduce((n, t) => n + weight(tileYield(t.card, ctxOf(p))), 0) / terr.length : 0
+    const weakRival = s.players.some((o) => o.id !== p.id && !o.eliminated && o.policy === 'tradition')
+    aiDebug.policyReason = '전쟁광'
+    return avg >= POOR_TILES || weakRival ? ['despotism', 'aesthetics', ...POLICY_PREFERENCE] : ['aesthetics', 'despotism', ...POLICY_PREFERENCE]
+  }
   const surplus = food - totalWorkers(p)
   const tiles = p.cities.reduce((n, c) => n + c.tiles.length, 0)
   const recovers = surplus >= 3 && totalWorkers(p) >= 6
@@ -496,7 +499,7 @@ function produceCandidates(s: GameState, p: Player): Action[] {
     }
     // 군대가 3장 미만이거나 이웃의 군사에 비해 수비가 모자라면 군사 카드를 먼저, 그 뒤에는 불가사의에 망치를 모두 건다
     const needDefense = army < defenseTarget(s, p)
-    const warRush = isWarlord(p) && preIndustrial(s)
+    const warRush = isWarlord(p) && warFoundation(p) && preIndustrial(s)
     // 공성 카드가 없으면 그것부터 만든다 (도시를 치려면 공성 카드가 살아남아야 한다)
     const joinSiege = !isWarlord(p) && !hasSiege(p) && (() => { const l = coalitionLeader(s, p); return !!l && l.cities.length > 0 && sidesOccupied(l) >= 2 })()
     const rush = (warRush && army < AI_TUNE.warlordArmy) || ((warRush || joinSiege) && !hasSiege(p) && cardActions.some(isSiegeAction))
