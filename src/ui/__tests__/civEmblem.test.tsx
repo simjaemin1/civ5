@@ -10,7 +10,7 @@ describe('문명 기호', () => {
   })
   it('기호 버튼은 문명 이름을 안내하고, 눌러야 "자세히" 창이 뜬다 (처음에는 닫혀 있다)', () => {
     const game = createGame({ seed: 1, civIds: ['germany', 'korea'] })
-    const html = renderToStaticMarkup(<CivEmblem game={game} player={game.players[0]} seats={[{ ai: false }, { ai: true }]} actor={0} />)
+    const html = renderToStaticMarkup(<CivEmblem player={game.players[0]} />)
     expect(html).toContain('독일')
     expect(html).toContain('civ-emblem')
     expect(html).not.toContain('civ-float')

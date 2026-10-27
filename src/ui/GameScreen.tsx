@@ -306,7 +306,7 @@ export function GameScreen({ initial, seats, onExit }: Props) {
           </details>
           <button onClick={onExit}>나가기</button>
           <TechTreeButton player={player} />
-          <CivEmblem game={game} player={player} seats={seats} actor={actor} />
+          <CivEmblem player={player} />
         </div>
       </header>
       {error && <div className="error banner-error">⚠ {error}</div>}
