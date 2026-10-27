@@ -26,10 +26,15 @@ describe('검색·도감', () => {
 
   it('기술 ↔ 카드·자원·불가사의가 서로 이어진다', () => {
     const iron = text('tech', 'iron_working')
+    expect(iron).not.toContain('선행 기술')
+    expect(iron).not.toContain('다음 기술')
+    expect(text('tech', 'electricity')).toContain('기술 줄: 교육학 → 음향학 → 과학이론 → 전기 (과학 10)')
+    expect(text('strategic', 'aluminum')).toContain('교육학 → 음향학 → 과학이론 → 전기 (과학 10)')
+    expect(text('strategic', 'aluminum')).not.toContain('타일 산출')
     expect(iron).toContain('해금 군사 카드: 장검사 (철 필요)')
     expect(text('tech', 'trapping')).toContain('행복 +1 (타일 보유 시): 상아, 모피')
-    expect(text('luxury', 'furs')).toContain('행복 +1을 얻으려면: 수렵')
-    expect(text('card', 'longswordsman')).toContain('필요 기술: 철제기술')
+    expect(text('luxury', 'furs')).toContain('목축업 → 기마술 → 수렵 (과학 1)')
+    expect(text('card', 'longswordsman')).toContain('필요 기술: 청동기술 → 철제기술 (과학 1)')
     expect(text('strategic', 'iron')).toContain('필요로 하는 카드: 장검사')
   })
 

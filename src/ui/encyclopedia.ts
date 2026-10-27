@@ -43,42 +43,40 @@ const yieldStr = (y: Partial<Record<keyof typeof YIELD, number>>) =>
     .map((k) => `${YIELD[k]} ${y[k]! > 0 ? '+' : ''}${y[k]}`)
     .join(' ')
 
-/** 기술 줄: 맨 앞 기술부터 이 기술까지 (선행 기술이 여럿이면 첫째를 따라간다) */
-function techLine(t: TechDef): Item[] {
+/**
+ * 기술 줄: 맨 앞 기술부터 이 기술까지 연구 순서와 과학 비용 (예: 교육학 → 음향학 → 과학이론 → 전기 (과학 10)).
+ * 선행 기술이 여럿이면 첫째를 따라가고 나머지는 뒤에 적는다. self: 이 기술의 도감이면 마지막 이름은 누르지 않는 글자.
+ */
+function techLine(t: TechDef, self = false): Item[] {
   const chain: TechDef[] = [t]
   let cur = t
   while (cur.prereqs?.length) {
     cur = techById(cur.prereqs[0])
     chain.unshift(cur)
   }
-  return chain.flatMap((x, i) => (i ? [' → ', techRef(x.id)] : [techRef(x.id)]))
+  const out: Item[] = chain.flatMap((x, i) => [...(i ? [' → '] : []), self && x.id === t.id ? x.name : techRef(x.id)])
+  out.push(` (과학 ${t.cost})`)
+  const more = (t.prereqs ?? []).slice(1)
+  if (more.length) out.push(' — 함께 필요: ', ...more.flatMap((id, i) => (i ? [', ', techRef(id)] : [techRef(id)])))
+  if (!t.prereqs?.length && t.cost > 0) out.push(' — 같은 비용의 다른 기술 1개를 먼저 연구해야 함')
+  return out
 }
-/** 그 기술을 얻으려면: 기술 이름 + 과학 비용 + 기술 줄 */
-const needTech = (id: string): Row[] => {
-  const t = techById(id)
-  return [
-    { label: '필요 기술', items: [techRef(id), ` (과학 ${t.cost})`] },
-    { label: '기술 줄', items: techLine(t) },
-  ]
-}
+/** 그 기술이 필요한 항목: 기술 줄 한 줄로 */
+const needTech = (id: string): Row[] => [{ label: '필요 기술', items: techLine(techById(id)) }]
 
 function techEntry(t: TechDef): Entry {
-  const rows: Row[] = [{ label: '과학 비용', items: [String(t.cost)] }]
-  if (t.prereqs?.length) rows.push({ label: '선행 기술', items: t.prereqs.flatMap((p, i) => (i ? [', ', techRef(p)] : [techRef(p)])) })
-  else rows.push({ label: '선행 기술', items: ['없음 (같은 비용의 다른 기술이 있어야 연구할 수 있음)'] })
-  rows.push({ label: '기술 줄', items: techLine(t) })
-  const next = TECHS.filter((x) => x.prereqs?.includes(t.id))
-  if (next.length) rows.push({ label: '다음 기술', items: next.flatMap((x, i) => (i ? [', ', techRef(x.id)] : [techRef(x.id)])) })
+  const rows: Row[] = [{ label: '기술 줄', items: techLine(t, true) }]
   const cards = MILITARY_CARDS.filter((c) => c.tech === t.id && !c.uniqueOnly)
-  rows.push({
-    label: '해금 군사 카드',
-    items: cards.length ? cards.flatMap((c, i) => [...(i ? [', '] : []), cardRef(c.id), ...(c.requires ? [' (', resRef(c.requires), ' 필요)'] : [])]) : ['-'],
-  })
+  if (cards.length)
+    rows.push({
+      label: '해금 군사 카드',
+      items: cards.flatMap((c, i) => [...(i ? [', '] : []), cardRef(c.id), ...(c.requires ? [' (', resRef(c.requires), ' 필요)'] : [])]),
+    })
   const obsolete = new Set<string>()
   for (const c of cards) if (c.line && c.tier) MILITARY_CARDS.filter((o) => o.line === c.line && o.tier! < c.tier! && !o.uniqueOnly).forEach((o) => obsolete.add(o.id))
   if (obsolete.size) rows.push({ label: '더 못 만드는 카드', items: [...obsolete].flatMap((id, i) => (i ? [', ', cardRef(id)] : [cardRef(id)])) })
   const wonders = WONDER_CARDS.filter((w) => w.tech === t.id)
-  rows.push({ label: '해금 불가사의', items: wonders.length ? wonders.flatMap((w, i) => (i ? [', ', { kind: 'wonder' as const, id: w.id, label: w.name }] : [{ kind: 'wonder' as const, id: w.id, label: w.name }])) : ['-'] })
+  if (wonders.length) rows.push({ label: '해금 불가사의', items: wonders.flatMap((w, i) => [...(i ? [', '] : []), { kind: 'wonder' as const, id: w.id, label: w.name }]) })
   const lux = Object.entries(RESOURCES).filter(([, r]) => r.luxuryTech === t.id)
   if (lux.length) rows.push({ label: '행복 +1 (타일 보유 시)', items: lux.flatMap(([id], i) => (i ? [', ', resRef(id)] : [resRef(id)])) })
   const boosts = Object.entries(RESOURCES).flatMap(([id, r]) => (r.boosts ?? []).filter((b) => b.tech === t.id).map((b) => ({ id, b })))
@@ -121,14 +119,14 @@ function policyEntry(id: PolicyId): Entry {
 function resourceEntry(id: string): Entry {
   const r = RESOURCES[id]
   const kind = resKind(id)!
-  const rows: Row[] = [{ label: '타일 산출', items: [yieldStr(r.printed) || '-'] }]
+  const rows: Row[] = yieldStr(r.printed) ? [{ label: '타일 산출', items: [yieldStr(r.printed)] }] : []
   if (r.luxuryTech) {
     const t = techById(r.luxuryTech)
-    rows.push({ label: '행복 +1을 얻으려면', items: [techRef(t.id), ` 연구 (과학 ${t.cost}) — 이 자원 타일을 가지고 있으면 행복 +1`] }, { label: '기술 줄', items: techLine(t) })
+    rows.push({ label: '행복 +1', items: ['이 자원 타일을 가지고 다음 기술을 연구하면 행복 +1', '\n', ...techLine(t)] })
   }
   const cards = MILITARY_CARDS.filter((c) => c.requires === id)
   if (cards.length) rows.push({ label: '필요로 하는 카드', items: cards.flatMap((c, i) => (i ? [', ', cardRef(c.id)] : [cardRef(c.id)])) })
-  for (const b of r.boosts ?? []) rows.push({ label: '산출 증가 기술', items: [techRef(b.tech), ` → ${yieldStr(b.yield)}${b.nextTurn ? ' (다음 차례부터)' : ''}`] })
+  for (const b of r.boosts ?? []) rows.push({ label: '산출 증가', items: [`${yieldStr(b.yield)}${b.nextTurn ? ' (연구한 다음 차례부터)' : ''} — 이 기술을 연구하면`, '\n', ...techLine(techById(b.tech))] })
   return { kind, id, title: r.name, rows }
 }
 
