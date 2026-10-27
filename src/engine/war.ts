@@ -1,5 +1,5 @@
 import type { BattleHit, BattleState, CardInst, City, Declaration, GameState, Player, PlacedTile } from './types'
-import { RuleError } from './types'
+import { RuleError, SIDES } from './types'
 import { cardById, civById } from './data'
 import { gainCulture, say } from './core'
 import { freeWorkers } from './scouting'
@@ -538,7 +538,7 @@ export function checkCultureDefeats(s: GameState): void {
   }
 }
 
-/** 원자폭탄: 내 차례에 사용해, 내 장군이 올라간 상대 타일을 파괴하고 장군을 돌려받는다. 첫 5타일은 파괴할 수 없다. */
+/** 원자폭탄: 내 차례에 사용해, 내 장군이 올라간 상대 타일을 파괴하고 장군을 돌려받는다. 첫 5타일도 파괴할 수 있다. */
 export function detonateAtomicBomb(s: GameState, p: Player, a: { defenderId: number; cityId: number; tileId: number }): void {
   const bomb = p.military.find((c) => c.defId === 'atomic_bomb')
   if (!bomb) throw new RuleError('원자폭탄 카드가 없습니다')
@@ -546,9 +546,21 @@ export function detonateAtomicBomb(s: GameState, p: Player, a: { defenderId: num
   const found = def && findTile(def, a.cityId, a.tileId)
   if (!def || def.eliminated || !found) throw new RuleError('대상 타일이 없습니다')
   if (found.tile.occupiedBy !== p.id) throw new RuleError('내 장군이 올라간 타일만 파괴할 수 있습니다')
-  if (found.tile.role !== 'extra') throw new RuleError('도시와 첫 5타일은 파괴할 수 없습니다')
-  found.city.tiles = found.city.tiles.filter((t) => t !== found.tile)
-  found.city.placed = found.city.placed.filter((id) => id !== a.tileId)
+  const { tile, city } = found
+  if (tile.role === 'city') {
+    // 도시 타일을 파괴하면 도시가 사라진다 (첫 도시면 탈락). 도시 공격과 같이, 두 번째 도시가 있으면 첫 도시의 도시 타일은 파괴할 수 없다
+    if (city.id === 0 && def.cities.length > 1) throw new RuleError('두 번째 도시가 있으면 첫 도시의 도시 타일은 파괴할 수 없습니다')
+    p.military = p.military.filter((c) => c.uid !== bomb.uid)
+    say(s, `${civById(p.civId).name} 원자폭탄 → ${civById(def.civId).name} 도시 타일 파괴`)
+    destroyCity(s, def, city) // 점령 중이던 내 장군은 여기서 돌아온다
+    return
+  }
+  city.tiles = city.tiles.filter((t) => t !== tile)
+  city.placed = city.placed.filter((id) => id !== a.tileId)
+  if (tile.role === 'side' && tile.side) {
+    // 십자의 빈 면이 되살아난다: 다음에 얻는 문화 타일은 반드시 그 면에 붙는다
+    city.openSides = SIDES.filter((x) => x === tile.side || city.openSides.includes(x))
+  }
   p.generals += 1
   p.military = p.military.filter((c) => c.uid !== bomb.uid)
   say(s, `${civById(p.civId).name} 원자폭탄 → ${civById(def.civId).name} 타일 파괴`)
