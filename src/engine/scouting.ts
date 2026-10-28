@@ -6,7 +6,9 @@ import { totalWorkers } from './yields'
 
 /** 선전포고·정찰 등에 쓸 수 있는, 타일에 올리지 않은 일꾼 수 */
 export function freeWorkers(p: Player): number {
-  const placed = p.cities.reduce((n, c) => n + c.placed.length + (c.enemyPlaced?.length ?? 0), 0)
+  // 전통으로 버린, 이미 일한 일꾼은 타일에 남아 있지만(이번 차례 산출) 일꾼 수에서 이미 빠졌으므로 다시 빼지 않는다
+  const retired = p.turn?.retiredWorked ?? {}
+  const placed = p.cities.reduce((n, c) => n + c.placed.length + (c.enemyPlaced?.length ?? 0) - (retired[c.id] ?? 0), 0)
   const scouting = p.held ? 1 : p.scouting ? 1 : 0
   return totalWorkers(p) - placed - scouting - p.busyWorkers
 }

@@ -34,7 +34,14 @@ export function choosePolicy(
           const city = p.cities.find((c) => c.id === d.cityId)
           if (!city || d.count > city.workers) throw new RuleError('버릴 일꾼이 모자랍니다')
         }
-        for (const d of discard) p.cities.find((c) => c.id === d.cityId)!.workers -= d.count
+        // 이미 타일에서 일한 일꾼부터 버린다. 쉬고 있는 일꾼(선전포고에 남겨 둔 일꾼)은 맨 나중에 버린다
+        for (const d of discard) {
+          const city = p.cities.find((c) => c.id === d.cityId)!
+          const retired = (turn.retiredWorked ??= {})
+          const working = city.placed.length + (city.enemyPlaced?.length ?? 0) - (retired[city.id] ?? 0)
+          retired[city.id] = (retired[city.id] ?? 0) + Math.min(d.count, Math.max(0, working))
+          city.workers -= d.count
+        }
         gainCulture(s, p, 2)
       }
       break

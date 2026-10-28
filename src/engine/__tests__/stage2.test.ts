@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { aiCandidates, aiDebug, aiStep, apply, createGame, culture, happiness, tourism, computeYields, totalWorkers, RuleError, WONDER_CARDS, TECHS } from '..'
+import { aiCandidates, aiDebug, aiStep, apply, createGame, culture, happiness, tourism, computeYields, totalWorkers, freeWorkers, RuleError, WONDER_CARDS, TECHS } from '..'
 import type { GameState, TileCard } from '..'
 import { found, me, play, startGame, tile } from './helpers'
 
@@ -65,6 +65,31 @@ describe('정책', () => {
     s = mod(s, (c) => (c.players[0].turn!.yields.cities[0].food = 0))
     s = apply(s, { type: 'endProduction' })
     expect(me(s).cities[0].workers).toBe(1)
+  })
+
+  it('전통: 이미 타일에서 일한 일꾼부터 버리고, 선전포고용으로 남긴 쉬는 일꾼은 맨 나중', () => {
+    let s = mod(solo(), (c) => (c.players[0].cities[0].workers = 4))
+    const tiles = me(s).cities[0].tiles.filter((t) => t.role !== 'city').slice(0, 3)
+    s = apply(s, { type: 'placeWorkers', placements: tiles.map((t) => ({ cityId: 0, tileId: t.card.id })) })
+    s = apply(s, { type: 'skipResearch' })
+    const food = me(s).turn!.yields.cities[0].food
+    expect(freeWorkers(me(s))).toBe(1)
+    s = mod(s, (c) => (c.players[0].pendingPolicies = 1))
+    s = apply(s, { type: 'choosePolicy', policy: 'tradition', discard: [{ cityId: 0, count: 3 }] })
+    expect(me(s).cities[0].workers).toBe(1)
+    // 일한 3명이 버려지고 쉬던 1명이 남아 선전포고할 수 있다. 이번 차례 산출은 그대로
+    expect(freeWorkers(me(s))).toBe(1)
+    expect(me(s).turn!.yields.cities[0].food).toBe(food)
+  })
+
+  it('전통: 일한 일꾼이 모자라면 그다음에 쉬는 일꾼을 버린다', () => {
+    let s = mod(solo(), (c) => (c.players[0].cities[0].workers = 4))
+    const t = me(s).cities[0].tiles.find((x) => x.role !== 'city')!
+    s = apply(s, { type: 'placeWorkers', placements: [{ cityId: 0, tileId: t.card.id }] })
+    s = apply(s, { type: 'skipResearch' })
+    s = mod(s, (c) => (c.players[0].pendingPolicies = 1))
+    s = apply(s, { type: 'choosePolicy', policy: 'tradition', discard: [{ cityId: 0, count: 3 }] })
+    expect(freeWorkers(me(s))).toBe(1)
   })
 
   it('전통: 버릴 일꾼이 3개가 아니면 오류', () => {

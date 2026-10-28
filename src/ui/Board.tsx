@@ -64,7 +64,8 @@ function CityBoard({ game, player, city, placed, generalPlaced, onTileClick, isD
     )
   }
   // 이 도시에서 아직 타일에 올리지 않은 일꾼 (배치 중이면 지금 올린 것 기준)
-  const onTiles = placed ? city.tiles.filter((t) => placed.has(t.card.id)).length : city.placed.length + (city.enemyPlaced?.length ?? 0)
+  // 전통으로 버린, 이미 일한 일꾼은 타일에 남아 있어도 일꾼 수에서 빠졌으므로 세지 않는다
+  const onTiles = placed ? city.tiles.filter((t) => placed.has(t.card.id)).length : city.placed.length + (city.enemyPlaced?.length ?? 0) - (player.turn?.retiredWorked?.[city.id] ?? 0)
   const unplaced = Math.max(0, city.workers - onTiles)
   const side = (s: Side) => city.tiles.find((t) => t.role === 'side' && t.side === s)
   const grid = cityGrid(city, side)

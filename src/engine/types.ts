@@ -79,6 +79,11 @@ export interface TurnData {
 
   /** 전통·체제를 고른 차례에는 식량 정산을 하지 않는다 */
   skipFoodSettle: boolean
+  /**
+   * 전통으로 버린 일꾼 중 이번 차례에 이미 타일에서 일한 일꾼 수 (도시 id → 수).
+   * 그 타일의 이번 차례 산출은 그대로 두고, 남은(쉬는) 일꾼 수에서는 빼지 않는다 (선전포고에 쓸 일꾼을 지킨다)
+   */
+  retiredWorked?: Record<number, number>
   /** 이번 차례에 장군을 점령지에서 불러들였는가 (차례당 1개) */
 }
 
