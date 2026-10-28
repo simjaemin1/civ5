@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { DeclTarget, GameState, Player, TileCard } from '../../engine'
-import { CITY_ATTACK_GENERALS, RESOURCES, WONDERS, cardStats, civById, declarationTargets, findTile, freeWorkers } from '../../engine'
+import { RESOURCES, WONDERS, cardStats, cityAttackLeaders, civById, declarationTargets, findTile, freeWorkers } from '../../engine'
 import { Board } from '../Board'
 import { josa } from '../format'
 import { TileView } from '../TileView'
@@ -102,7 +102,8 @@ export function DeclarePanel({ game, player, dispatch }: PanelProps) {
                     const s = sidesHeld(city, player.id)
                     const blocked = city.id === 0 && boardOwner.cities.length > 1
                     const full = s.total > 0 && s.any === s.total
-                    const ready = full && s.held >= CITY_ATTACK_GENERALS && !blocked
+                    const leaders = cityAttackLeaders(city)
+                    const ready = full && leaders.includes(player.id) && !blocked
                     return (
                       <span className={ready ? 'ok' : 'muted'}>
                         · 주변 점령 {s.any}/{s.total} (내 장군 {s.held}){s.open > 0 ? ` (빈 면 ${s.open})` : ''}
@@ -111,14 +112,14 @@ export function DeclarePanel({ game, player, dispatch }: PanelProps) {
                           : ready
                             ? ' · 도시 공격 가능'
                             : full
-                              ? ` · 모든 칸이 점령됐지만 내 장군이 ${CITY_ATTACK_GENERALS}개 이상이어야 도시 공격 가능`
+                              ? ` · 모든 칸이 점령됐지만 장군이 가장 많은 문명(${leaders.map((id) => civById(game.players[id].civId).name).join('·')})만 도시 공격 가능`
                               : ''}
                       </span>
                     )
                   }
             }
           />
-          <small className="muted">밝은 테두리 타일만 고를 수 있습니다. 이미 점령된 타일은 고를 수 없고, 도시 타일은 둘러싼 칸이 모두 점령되고 그중 내 장군이 2개 이상일 때만 고를 수 있습니다.</small>
+          <small className="muted">밝은 테두리 타일만 고를 수 있습니다. 이미 점령된 타일은 고를 수 없고, 도시 타일은 둘러싼 칸이 모두 점령되고 그 칸에 내 장군이 가장 많을 때(공동 포함)만 고를 수 있습니다.</small>
         </div>
         {sel && inGroup(sel) && <TargetCard game={game} me={player} t={sel} onCancel={() => setSel(null)} onDeclare={() => dispatch({ type: 'declareWar', defenderId: sel.defenderId, cityId: sel.cityId, tileId: sel.tileId })} />}
       </div>
@@ -177,7 +178,9 @@ function TargetCard({ game, me, t, onCancel, onDeclare }: { game: GameState; me:
   for (const n of notes) lines.push(<>{n}</>)
   if (t.kind === 'normal') lines.push(<>이기면 장군이 이 타일을 점령해 {josa(defName, '은', '는')} 일꾼을 올릴 수 없습니다. 지면 장군과 일꾼이 그대로 돌아옵니다.</>)
   if (side) {
-    const ready = side.any + 1 === side.total && side.held + 1 >= CITY_ATTACK_GENERALS
+    // 이기면 내 장군이 하나 늘어난다: 그때 모든 칸이 차고 내가 가장 많으면(공동 포함) 도시 공격 가능
+    const after = city.tiles.map((x) => (x.card.id === tile.card.id ? { ...x, occupiedBy: me.id } : x))
+    const ready = side.any + 1 === side.total && cityAttackLeaders({ ...city, tiles: after }).includes(me.id)
     lines.push(
       <>
         이 도시 주변 점령 {side.any}/{side.total} (내 장군 {side.held}) → 이기면 {side.any + 1}/{side.total} (내 장군 {side.held + 1})

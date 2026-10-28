@@ -24,20 +24,28 @@ export function findTile(p: Player, cityId: number, tileId: number): { city: Cit
   return city && tile ? { city, tile } : null
 }
 
-/**
- * 도시 타일은 위·아래·왼쪽·오른쪽 칸이 모두 (어느 문명이든) 장군에게 점령당해 있으면 누구나 공격할 수 있다.
- * 아직 3칸뿐인 도시라면 3칸만 점령되어도 된다.
- */
-/** 도시 타일에 선전포고하려면 그 도시를 둘러싼 칸에 내 장군이 이만큼 이상 올라가 있어야 한다 (사용자 결정: 무분별한 막타 방지) */
-export const CITY_ATTACK_GENERALS = 2
 /** 정복으로 이만큼 문명을 탈락시키면 정복 승리 (사용자 결정) */
 export const CONQUEST_WIN = 2
 
-/** 도시 공격 조건: 둘러싼 칸(사면)이 모두 점령되어 있고(누구의 장군이든), 그중 내 장군이 2개 이상 */
+/**
+ * 도시를 둘러싼 칸(사면)에 올라간 위대한 장군이 가장 많은 문명들 (공동이면 모두).
+ * 이 문명들만 도시 타일에 선전포고할 수 있다 (사용자 결정: 무분별한 막타 방지).
+ */
+export function cityAttackLeaders(city: City): number[] {
+  const count = new Map<number, number>()
+  for (const t of city.tiles) if (t.role === 'side' && t.occupiedBy !== undefined) count.set(t.occupiedBy, (count.get(t.occupiedBy) ?? 0) + 1)
+  const most = Math.max(0, ...count.values())
+  return [...count.entries()].filter(([, n]) => n === most).map(([pid]) => pid)
+}
+
+/**
+ * 도시 공격 조건: 둘러싼 칸(사면)이 모두 점령되어 있고(누구의 장군이든), 그중 내 장군이 가장 많다 (공동 포함).
+ * 아직 3칸뿐인 도시라면 3칸만 점령되어도 된다.
+ */
 function cityAttackable(defender: Player, city: City, attackerId: number): boolean {
   const sides = city.tiles.filter((t) => t.role === 'side')
   if (sides.length === 0 || !sides.every((t) => t.occupiedBy !== undefined)) return false
-  if (sides.filter((t) => t.occupiedBy === attackerId).length < CITY_ATTACK_GENERALS) return false
+  if (!cityAttackLeaders(city).includes(attackerId)) return false
   // 두 번째 도시가 있으면 첫 도시의 도시 타일은 공격할 수 없다
   if (city.id === 0 && defender.cities.length > 1) return false
   return true
