@@ -2,8 +2,8 @@ import { CityTag, Icon } from './icons'
 import type { GameState } from '../engine'
 import { TURN_PHASES, WONDER_CARDS, civById, culture, happiness, totalWorkers, tourism } from '../engine'
 import type { ReactNode } from 'react'
-import { ActorNotice } from './ActorNotice'
-import { useActorNotice } from './actorChange'
+import { ActorNotice, ActorWaiting } from './ActorNotice'
+import { useActorNotice, waitingText } from './actorChange'
 import { Board } from './Board'
 import { ICON, policyName } from './format'
 
@@ -69,16 +69,24 @@ export function CivDetail({ game, id, actor, notice }: { game: GameState; id: nu
  * 다른 문명으로 바꾸면 내용만 부드럽게 바뀐다. 기술 상태는 맨 위 플라스크 기술표에서 문명 표시를 눌러 본다.
  * 맨 아래 한 줄에 지금 내정 중인 문명이 무엇을 하는지 보여 주고, 오른쪽 아래 버튼(HomeButton)으로 내 내정 화면에 돌아간다.
  */
-export function CivPeek({ game, id, actor, me }: { game: GameState; id: number; actor: number; me: number }) {
+export function CivPeek({ game, id, actor, me, onNext }: { game: GameState; id: number; actor: number; me: number; onNext?: () => void }) {
   const p = game.players[id]
-  const msg = useActorNotice(game, id, actor)
+  const [msg, closeMsg] = useActorNotice(game, id, actor)
+  // 이 문명의 차례에 이 문명을 보고 있으면: 결정을 기다리는 동안 "기술 선택 중…", 결정하면 잠깐 결과 (생산 결과는 닫을 때까지)
+  const waiting = id === actor ? waitingText(game.phase) : undefined
+  // 생산 결과의 닫기: 차례가 이미 다음 문명으로 넘어갔으면 그 문명(내 차례면 내정 화면)으로 따라간다
+  const close = () => {
+    closeMsg()
+    if (id !== actor) onNext?.()
+  }
+  const notice = msg ? <ActorNotice msg={msg} onClose={close} /> : waiting ? <ActorWaiting text={waiting} /> : null
   return (
     <div className="panel peek">
       <div className="peek-bar">
         <h3>👁 {civById(p.civId).name} 시점 <small className="muted">(공개 정보)</small></h3>
       </div>
       <div key={id} className="peek-body">
-        <CivDetail game={game} id={id} actor={actor} notice={msg && <ActorNotice msg={msg} />} />
+        <CivDetail game={game} id={id} actor={actor} notice={notice} />
       </div>
       <ActorStrip game={game} actor={actor} me={me} />
     </div>

@@ -334,7 +334,7 @@ export function GameScreen({ initial, seats, onExit }: Props) {
             !over && !curtain && TURN_PHASES.includes(game.phase) && <TurnSteps game={game} phases={[]} who={civById(player.civId).name} />
           )}
           {peekId !== null ? (
-            <CivPeek game={game} id={peekId} actor={actor} me={player.id} />
+            <CivPeek game={game} id={peekId} actor={actor} me={player.id} onNext={() => (actor === player.id || !TURN_PHASES.includes(game.phase) ? setPeek(null) : setPeek({ id: actor, self: player.id }))} />
           ) : (
             <>
           {!over && !curtain && !actorSeat.ai && game.phase !== 'setup' && game.phase !== 'battle' && player.wonders.includes('great_wall') && !player.greatWallUsed && (

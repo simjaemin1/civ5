@@ -253,7 +253,7 @@ export function OnlineGameScreen({ online, onExit }: Props) {
             !over && TURN_PHASES.includes(game.phase) && <TurnSteps game={game} phases={[]} who={actorName} />
           )}
           {peekId !== null ? (
-            <CivPeek game={game} id={peekId} actor={actor} me={me.id} />
+            <CivPeek game={game} id={peekId} actor={actor} me={me.id} onNext={() => (actor === me.id || !TURN_PHASES.includes(game.phase) ? setPeek(null) : setPeek({ id: actor, self: me.id }))} />
           ) : (
             <>
           {mine && !over && game.phase !== 'setup' && game.phase !== 'battle' && me.wonders.includes('great_wall') && !me.greatWallUsed && (
