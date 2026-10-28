@@ -1001,6 +1001,25 @@ describe('정찰과 나침반', () => {
     expect(s.deck.some((c) => c.id === 888)).toBe(true)
   })
 
+  it('도시가 둘이면 어느 도시의 일꾼으로 정찰할지 고르고, 그 도시에는 일꾼을 하나 덜 올린다', () => {
+    const two = () =>
+      mod(start(), (c) => {
+        const p = c.players[0]
+        p.cities[0].workers = 2
+        p.cities.push({ ...structuredClone(p.cities[0]), id: 1, workers: 1, placed: [] })
+      })
+    expect(() => apply(mod(two(), (c) => (c.players[0].cities[1].workers = 0)), { type: 'scout', cityId: 1 })).toThrow(RuleError)
+    let s = apply(two(), { type: 'scout', cityId: 1 })
+    expect(me(s).scoutCity).toBe(1)
+    const side = (cityIdx: number) => me(s).cities[cityIdx].tiles.filter((t) => t.role !== 'city')
+    // 도시2의 하나뿐인 일꾼은 정찰 중이라 타일에 못 올린다
+    expect(() => apply(s, { type: 'placeWorkers', placements: [{ cityId: 1, tileId: side(1)[0].card.id }] })).toThrow(RuleError)
+    s = apply(s, { type: 'placeWorkers', placements: side(0).slice(0, 2).map((t) => ({ cityId: 0, tileId: t.card.id })) })
+    expect(s.phase).toBe('research')
+    s = play(s, { type: 'skipResearch' }, { type: 'endProduction' })
+    expect(me(s).scoutCity).toBeUndefined()
+  })
+
   it('정찰한 타일을 돌려넣을 때는 덱 전체를 새로 섞는다 (카드는 그대로 다 있다)', () => {
     let reordered = 0
     let sameOnTop = 0

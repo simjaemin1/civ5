@@ -138,6 +138,8 @@ export interface Player {
   scoutedRound?: number
   /** 나침반으로 맡아둔 타일 (일꾼 1개가 그 위에 있음) */
   held: TileCard | null
+  /** 정찰(맡아둔 타일 포함)에 쓴 일꾼의 도시. 없으면 도시를 가리지 않는다 (도시가 하나이거나 AI) */
+  scoutCity?: number
   eliminated: boolean
   greatWallUsed: boolean
   /** 선택 사항: 문화로 얻는 타일을 맡아둔 타일로 받을지(기본), 붙일 도시, 일꾼을 버릴 도시 */
@@ -268,7 +270,7 @@ export type Action =
   | { type: 'produce'; cityId: number; defId: string; unique?: string }
   | { type: 'upgrade'; uid: number; unique?: string; toDefId?: string }
   | { type: 'recallGeneral'; defenderId: number; cityId: number; tileId: number }
-  | { type: 'scout' }
+  | { type: 'scout'; cityId?: number }
   | { type: 'holdScouted' }
   | { type: 'releaseHeld' }
   | { type: 'declareWar'; defenderId: number; cityId: number; tileId: number }

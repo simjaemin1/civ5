@@ -14,9 +14,16 @@ export function freeWorkers(p: Player): number {
 }
 
 /** 정찰: 일꾼 1개로 타일 덱 맨 위 카드 1장을 본다. 엘도라도를 처음 발견하면 문화 1. */
-export function scout(s: GameState, p: Player): void {
+export function scout(s: GameState, p: Player, cityId?: number): void {
   if (p.scouting || p.held) throw new RuleError('이미 정찰 중이거나 타일을 맡아두고 있습니다')
   if (freeWorkers(p) < 1) throw new RuleError('정찰에 쓸 일꾼이 없습니다')
+  // 도시가 둘이면 어느 도시의 일꾼을 쓸지 고를 수 있다 (그 도시에 남는 일꾼이 있어야 한다)
+  if (cityId !== undefined) {
+    const city = p.cities.find((c) => c.id === cityId)
+    if (!city) throw new RuleError('내 도시가 아닙니다')
+    if (city.workers - city.placed.length - (city.enemyPlaced?.length ?? 0) < 1) throw new RuleError(`도시 ${city.id + 1}에는 정찰에 쓸 일꾼이 없습니다`)
+  }
+  p.scoutCity = cityId
   if (s.deck.length === 0) throw new RuleError('타일 덱이 비었습니다')
   // 규칙서 9장: 한 차례에 1장만 볼 수 있다. 나침반으로 맡아둔 뒤 돌려보내고 다시 정찰하는 것도 막는다
   if (p.scoutedRound === s.round) throw new RuleError('정찰은 한 차례에 1장만 볼 수 있습니다 (이번 차례에 이미 봤습니다)')
@@ -45,6 +52,7 @@ export function releaseHeld(s: GameState, p: Player): void {
   returnToDeck(s, p.held)
   p.held = null
   p.scouting = false // 일꾼이 돌아온다
+  p.scoutCity = undefined
 }
 
 /** 차례가 끝날 때 본 카드를 덱에 돌려넣고 섞는다 */
@@ -54,4 +62,5 @@ export function endScouting(s: GameState, p: Player): void {
     p.scouted = null
   }
   p.scouting = false
+  if (!p.held) p.scoutCity = undefined
 }

@@ -25,7 +25,7 @@ function rememberedPlacement(game: PanelProps['game'], player: PanelProps['playe
   let free = Math.max(0, totalWorkers(player) - player.busyWorkers - (player.held || player.scouting ? 1 : 0))
   let generalsLeft = player.civId === 'sweden' ? player.generals : 0
   for (const c of player.cities) {
-    let room = c.workers
+    let room = c.workers - ((player.scouting || player.held) && player.scoutCity === c.id ? 1 : 0) // 정찰에 쓴 이 도시의 일꾼
     // 몽골: 내 장군이 올라간 상대 타일
     for (const e of c.lastEnemyPlaced ?? []) {
       want++
@@ -73,6 +73,9 @@ export function PlacePanel({ game, player, dispatch }: PanelProps) {
   const reserved = player.busyWorkers + (player.held ? 1 : player.scouting ? 1 : 0)
   const used = placed.size + enemy.length
   const total = totalWorkers(player)
+  // 도시별로 타일에 올릴 수 있는 일꾼: 정찰(맡아둔 타일)에 그 도시 일꾼을 썼으면 1 적다
+  const cap = (c: { id: number; workers: number }) => c.workers - ((player.scouting || player.held) && player.scoutCity === c.id ? 1 : 0)
+  const onCityOf = (cityId: number) => [...placed].filter((id) => cityOf(id).id === cityId).length + enemy.filter((e) => e.cityId === cityId).length
 
   const placements: Placement[] = useMemo(
     () => [
@@ -105,8 +108,7 @@ export function PlacePanel({ game, player, dispatch }: PanelProps) {
     const next = new Set(placed)
     if (next.has(tileId)) next.delete(tileId)
     else {
-      const inCity = [...placed].filter((id) => cityOf(id).id === cityId).length + enemy.filter((e) => e.cityId === cityId).length
-      if (inCity < city.workers && used + reserved < total && !generals.has(tileId)) next.add(tileId)
+      if (onCityOf(cityId) < cap(city) && used + reserved < total && !generals.has(tileId)) next.add(tileId)
     }
     setPlaced(next)
   }
@@ -116,7 +118,7 @@ export function PlacePanel({ game, player, dispatch }: PanelProps) {
     (n, c) =>
       n +
       Math.min(
-        c.workers - [...placed].filter((id) => cityOf(id).id === c.id).length - enemy.filter((e) => e.cityId === c.id).length,
+        cap(c) - onCityOf(c.id),
         c.tiles.filter((t) => t.role !== 'city' && !placed.has(t.card.id) && !generals.has(t.card.id) && (t.occupiedBy === undefined || t.occupiedBy === player.id)).length,
       ),
     0,
@@ -147,7 +149,7 @@ export function PlacePanel({ game, player, dispatch }: PanelProps) {
         ? { ok: false, why: '정찰은 한 차례에 1장만 볼 수 있습니다 (이번 차례에 이미 봤습니다)' }
       : left < 1
         ? { ok: false, why: '정찰하려면 올린 일꾼을 1개 내리세요' }
-        : { ok: true }
+        : { ok: true, cities: player.cities.length > 1 ? player.cities.map((c) => ({ id: c.id, free: Math.min(left, cap(c) - onCityOf(c.id)) })) : undefined }
 
   // 몽골: 내 장군이 올라간 상대 타일
   const enemyTiles =
@@ -160,7 +162,7 @@ export function PlacePanel({ game, player, dispatch }: PanelProps) {
   // 몽골: 점령 타일을 누르면 어느 도시의 일꾼을 쓸지 묻고, 이미 일꾼이 있으면 내린다 (장군이 다시 보인다)
   const freeIn = (cityId: number) => {
     const c = player.cities.find((x) => x.id === cityId)!
-    return Math.min(c.workers - [...placed].filter((id) => cityOf(id).id === cityId).length - enemy.filter((e) => e.cityId === cityId).length, total - reserved - used)
+    return Math.min(cap(c) - onCityOf(cityId), total - reserved - used)
   }
   const clickEnemy = (src: { playerId: number; cityId: number; tileId: number }) => {
     if (enemy.some((e) => e.tileId === src.tileId)) setEnemy(enemy.filter((e) => e.tileId !== src.tileId))
@@ -181,10 +183,10 @@ export function PlacePanel({ game, player, dispatch }: PanelProps) {
             전체 일꾼 <b>{total}</b> · 미배치 <b>{Math.max(0, total - reserved - used)}</b>
           </span>
           {player.cities.length > 1 && player.cities.map((c) => {
-            const onCity = [...placed].filter((id) => cityOf(id).id === c.id).length + enemy.filter((e) => e.cityId === c.id).length
             return (
               <span key={c.id} className="chip">
-                <CityTag id={c.id} /> 일꾼 {c.workers} · 미배치 {Math.max(0, c.workers - onCity)}
+                <CityTag id={c.id} /> 일꾼 {c.workers} · 미배치 {Math.max(0, cap(c) - onCityOf(c.id))}
+                {(player.scouting || player.held) && player.scoutCity === c.id ? ' · 정찰 1' : ''}
               </span>
             )
           })}

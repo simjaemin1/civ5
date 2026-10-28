@@ -213,7 +213,7 @@ export function apply(prev: GameState, action: Action): GameState {
     case 'buildCity': return buildCity(s, p, action)
     case 'scout':
       expectPhase(s, 'place')
-      scout(s, p)
+      scout(s, p, action.cityId)
       return s
     case 'holdScouted':
       expectPhase(s, 'place', 'research', 'produce')
@@ -474,7 +474,12 @@ function placeWorkers(s: GameState, p: Player, placements: Placement[]): GameSta
     }
   }
   for (const city of p.cities) {
-    if (city.placed.length + (city.enemyPlaced?.length ?? 0) > city.workers) throw new RuleError('일꾼이 모자랍니다')
+    // 정찰·맡아둔 타일에 쓴 일꾼은 그 도시의 일꾼이다
+    if (p.scoutCity === city.id && city.workers < 1) p.scoutCity = undefined // 그 도시 일꾼이 다 줄었으면 도시를 가리지 않는다
+    const scoutHere = (p.scouting || p.held) && p.scoutCity === city.id ? 1 : 0
+    if (city.placed.length + (city.enemyPlaced?.length ?? 0) + scoutHere > city.workers) {
+      throw new RuleError(scoutHere ? `도시 ${city.id + 1}의 일꾼 1개는 정찰에 쓰고 있습니다` : '일꾼이 모자랍니다')
+    }
   }
   if (freeWorkers(p) < 0 && placements.length === 0) {
     // 일꾼이 굶어 줄어서 정찰·맡아둔 타일·선전포고에 묶인 일꾼조차 없다: 묶인 순서의 반대로 풀어 준다 (맡아둔 타일은 덱으로 돌아간다)
