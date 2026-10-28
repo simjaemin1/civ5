@@ -6,8 +6,8 @@ const STEPS: { phase: GameState['phase'] | 'end'; label: string; note?: string }
   { phase: 'place', label: '① 일꾼 배치' },
   { phase: 'research', label: '② 기술 연구' },
   { phase: 'produce', label: '③ 생산' },
-  { phase: 'declare', label: '④ 선전포고', note: '할 수 있을 때만' },
-  { phase: 'end', label: '⑤ 식량 정산 → 차례 끝', note: '되돌릴 수 없음' },
+  { phase: 'declare', label: '④ 선전포고', note: '할 수 있을 때만 합니다' },
+  { phase: 'end', label: '⑤ 식량 정산 → 차례 끝', note: '되돌릴 수 없습니다' },
 ]
 
 interface Props {
@@ -16,42 +16,51 @@ interface Props {
   phases: GameState['phase'][]
   /** 이번 차례에 무작위 결과를 보여 준 행동이 있어 그 전으로는 되돌릴 수 없는지 */
   locked?: boolean
-  onJump: (index: number) => void
-  onUndo: () => void
+  /** 둘 다 없으면 보기 전용 (다른 문명 차례): 지난 단계를 누를 수 없고 되돌리기 버튼도 없다 */
+  onJump?: (index: number) => void
+  onUndo?: () => void
+  /** 보기 전용일 때 맨 앞에 붙이는 지금 차례 문명 이름 */
+  who?: string
 }
 
 /**
  * 이번 차례의 단계 막대: 지난 단계 · 지금 단계 · 남은 단계.
  * 지난 단계를 누르면 그 단계를 시작할 때로 되돌아간다. 되돌리기는 이번 차례 안에서만 되고,
  * 무작위 결과나 덱의 카드를 보여 준 행동(생산·승급·정찰·타일 뽑기) 뒤로는 되돌릴 수 없다 (gameInfo.revealsInfo).
+ * 내정 화면과 시점 화면 맨 위에 같은 자리·같은 모양으로 늘 붙어 있다 (다른 문명 차례에는 보기 전용).
  */
-export function TurnSteps({ game, phases, locked, onJump, onUndo }: Props) {
+export function TurnSteps({ game, phases, locked, onJump, onUndo, who }: Props) {
   const steps = STEPS.filter((s) => s.phase !== 'setup' || game.phase === 'setup' || phases.includes('setup'))
   const cur = steps.findIndex((s) => s.phase === game.phase)
   return (
     <nav className="turn-steps" aria-label="이번 차례 단계">
       <ol>
+        {who && (
+          <li className="who">
+            <b>{who} 차례</b>
+          </li>
+        )}
         {steps.map((s, i) => {
           const state = i < cur ? 'done' : i === cur ? 'now' : 'next'
-          const start = state === 'done' ? phases.indexOf(s.phase as GameState['phase']) : -1
+          const start = state === 'done' && onJump ? phases.indexOf(s.phase as GameState['phase']) : -1
           return (
             <li key={s.phase} className={state} aria-current={state === 'now' ? 'step' : undefined}>
               {start >= 0 ? (
-                <button className="step-btn" onClick={() => onJump(start)} title={`${s.label} 단계를 시작할 때로 되돌립니다`}>
+                <button className="step-btn" onClick={() => onJump?.(start)} title={`${s.label} 단계를 시작할 때로 되돌립니다`}>
                   ✓ {s.label} <span className="back">↶</span>
                 </button>
               ) : (
-                <span className="step-btn" title={state === 'done' && locked ? '무작위 결과(카드 방향·뽑은 타일)를 본 뒤라 이 단계로 되돌릴 수 없습니다' : undefined}>
+                <span className="step-btn" title={state === 'done' && locked ? '무작위 결과(카드 방향·뽑은 타일)를 본 뒤라 이 단계로 되돌릴 수 없습니다' : s.note}>
                   {state === 'done' ? '✓ ' : state === 'now' ? '▶ ' : ''}
                   {s.label}
                   {state === 'done' && locked ? ' 🔒' : ''}
-                  {s.note && state !== 'done' && <small> ({s.note})</small>}
                 </span>
               )}
             </li>
           )
         })}
       </ol>
+      {onUndo && (
       <span className="row undo-box">
         {locked && (
           <small className="muted" title="생산·승급(카드 방향), 정찰, 문화 타일 뽑기처럼 무작위 결과나 덱의 카드를 보여 준 행동 뒤로는 되돌릴 수 없습니다">
@@ -62,6 +71,7 @@ export function TurnSteps({ game, phases, locked, onJump, onUndo }: Props) {
           ↶ 한 단계 되돌리기{phases.length > 0 ? ` (${phases.length})` : ''}
         </button>
       </span>
+      )}
     </nav>
   )
 }

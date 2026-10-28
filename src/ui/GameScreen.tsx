@@ -1,7 +1,7 @@
-import { CityTag, Icon } from './icons'
+import { CityTag } from './icons'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Action, GameState } from '../engine'
-import { RuleError, TURN_PHASES, actorOf, aiStep, apply, civById, culture, happiness, totalWorkers, tourism } from '../engine'
+import { RuleError, TURN_PHASES, actorOf, aiStep, apply, civById } from '../engine'
 import { Board } from './Board'
 import { CivEmblem } from './CivEmblem'
 import { TechTreeButton } from './TechTreeButton'
@@ -328,18 +328,15 @@ export function GameScreen({ initial, seats, onExit }: Props) {
       {skipsFood && !actorSeat.ai && <div className="notice">📜 이번 차례는 식량 정산을 하지 않습니다 (전통/체제). 일꾼 수는 그대로입니다.</div>}
       <div className="game-body">
         <div className="main">
+          {key && !over ? (
+            <TurnSteps game={game} phases={turnHistory.map((h) => h.phase)} locked={lockedInTurn} onJump={jumpInTurn} onUndo={undoInTurn} />
+          ) : (
+            !over && !curtain && TURN_PHASES.includes(game.phase) && <TurnSteps game={game} phases={[]} who={civById(player.civId).name} />
+          )}
           {peekId !== null ? (
             <CivPeek game={game} id={peekId} actor={actor} me={player.id} />
           ) : (
             <>
-          <div className="stats">
-            {player.cities.length > 0 && (
-              <span>
-                {ICON.culture} 문화 {culture(player)} · 관광 {tourism(player)} · <Icon name="worker" size={16} /> {totalWorkers(player)}/{happiness(player)} · <Icon name="general" size={16} /> {player.generals}
-                {!actorSeat.ai && !over && game.phase !== 'setup' && <span className="muted"> · Enter: 이 단계 확정</span>}
-              </span>
-            )}
-          </div>
           {!over && !curtain && !actorSeat.ai && game.phase !== 'setup' && game.phase !== 'battle' && player.wonders.includes('great_wall') && !player.greatWallUsed && (
             <div className="panel row">
               <ConfirmButton className="" warn="만리장성은 게임 중 한 번만 쓸 수 있습니다." onClick={() => dispatch({ type: 'useGreatWall' })} title="내 영토 위의 상대 장군을 모두 돌려보냅니다 (게임 중 1회)">
@@ -348,7 +345,6 @@ export function GameScreen({ initial, seats, onExit }: Props) {
             </div>
           )}
           {!over && !curtain && !actorSeat.ai && game.phase !== 'setup' && game.phase !== 'battle' && <AtomicBombPanel game={game} player={player} dispatch={dispatch} />}
-          {key && !over && <TurnSteps game={game} phases={turnHistory.map((h) => h.phase)} locked={lockedInTurn} onJump={jumpInTurn} onUndo={undoInTurn} />}
           {main}
           {showBoard && <Board game={game} player={player} />}
           {actorSeat.ai && !over && <Board game={game} player={player} />}

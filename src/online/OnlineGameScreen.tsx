@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Action, GameView } from '../engine'
-import { TURN_PHASES, actorOf, civById, culture, happiness, totalWorkers, tourism, turnKey } from '../engine'
+import { TURN_PHASES, actorOf, civById, turnKey } from '../engine'
 import { Board } from '../ui/Board'
 import { BattleReportModal } from '../ui/BattleReportModal'
 import { CivEmblem } from '../ui/CivEmblem'
@@ -12,7 +12,7 @@ import { TurnSteps } from '../ui/TurnSteps'
 import { autoSkipAction } from '../ui/autoSkip'
 import { ICON } from '../ui/format'
 import { useEnterHotkey, useTurnTitle } from '../ui/hooks'
-import { CityTag, Icon } from '../ui/icons'
+import { CityTag } from '../ui/icons'
 import { usePrefs } from '../ui/prefsStore'
 import { useGameSounds } from '../ui/sounds'
 import { BattlePanel } from '../ui/panels/BattlePanel'
@@ -247,19 +247,15 @@ export function OnlineGameScreen({ online, onExit }: Props) {
       {me.turn?.skipFoodSettle && mine && <div className="notice">📜 이번 차례는 식량 정산을 하지 않습니다 (전통/체제). 일꾼 수는 그대로입니다.</div>}
       <div className="game-body">
         <div className="main">
+          {inTurn ? (
+            <TurnSteps game={game} phases={undo.phases} locked={undo.locked} onUndo={() => undoTurn(1)} onJump={(i) => undoTurn(undo.phases.length - i)} />
+          ) : (
+            !over && TURN_PHASES.includes(game.phase) && <TurnSteps game={game} phases={[]} who={actorName} />
+          )}
           {peekId !== null ? (
             <CivPeek game={game} id={peekId} actor={actor} me={me.id} />
           ) : (
             <>
-          <div className="stats">
-            {me.cities.length > 0 && (
-              <span>
-                나: {civById(me.civId).name} · {ICON.culture} 문화 {culture(me)} · 관광 {tourism(me)} · <Icon name="worker" size={16} /> {totalWorkers(me)}/{happiness(me)} ·{' '}
-                <Icon name="general" size={16} /> {me.generals}
-                {inTurn && <span className="muted"> · Enter: 이 단계 확정</span>}
-              </span>
-            )}
-          </div>
           {mine && !over && game.phase !== 'setup' && game.phase !== 'battle' && me.wonders.includes('great_wall') && !me.greatWallUsed && (
             <div className="panel row">
               <ConfirmButton className="" warn="만리장성은 게임 중 한 번만 쓸 수 있습니다." onClick={() => dispatch({ type: 'useGreatWall' })} title="내 영토 위의 상대 장군을 모두 돌려보냅니다 (게임 중 1회)">
@@ -268,7 +264,6 @@ export function OnlineGameScreen({ online, onExit }: Props) {
             </div>
           )}
           {mine && !over && game.phase !== 'setup' && game.phase !== 'battle' && <AtomicBombPanel game={game} player={me} dispatch={dispatch} />}
-          {inTurn && <TurnSteps game={game} phases={undo.phases} locked={undo.locked} onUndo={() => undoTurn(1)} onJump={(i) => undoTurn(undo.phases.length - i)} />}
           {main}
           {showBoard && <Board game={game} player={me} />}
           {!mine && !over && me.cities.length > 0 && <Board game={game} player={me} />}

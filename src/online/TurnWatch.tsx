@@ -37,17 +37,6 @@ export function TurnWatch({ game, actor, name }: Props) {
       <h3>
         👀 {civName}({name})의 차례를 지켜보는 중 — {STEPS[stepIdx]?.doing ?? '진행 중'}
       </h3>
-      <ol className="watch-steps" aria-label="진행 단계">
-        {STEPS.filter((s) => s.phase !== 'setup' || game.phase === 'setup').map((s, i, all) => {
-          const cur = all.findIndex((x) => x.phase === game.phase)
-          return (
-            <li key={s.phase} className={i < cur ? 'done' : i === cur ? 'now' : 'next'}>
-              {i < cur ? '✓ ' : ''}
-              {s.label}
-            </li>
-          )
-        })}
-      </ol>
       <div className="watch-grid">
         <section>
           <h4>이번 차례에 한 일</h4>
