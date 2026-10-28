@@ -211,7 +211,7 @@ function TabContent({ game, viewer, tab }: { game: GameState; viewer: number; ta
       )}
       {tab === 'card' && (
         <div className="scroll">
-        <p className="muted">한 종류는 5장까지 가질 수 있습니다 (고유 유닛은 따로 3장). 문명별 종류별 보유 수는 모두에게 공개됩니다. 방향이 있는 카드의 방향은 만들 때 무작위로 정해지고 가진 사람만 압니다. 카드를 누르면 크게 보입니다.</p>
+        <p className="muted">한 종류는 5장까지 가질 수 있습니다 (고유 유닛은 따로 3장, 고유 유닛이 있는 문명은 그 기초 카드를 2장까지: 예를 들어 몽골은 케식텐 3장·기사 2장). 문명별 종류별 보유 수는 모두에게 공개됩니다. 방향이 있는 카드의 방향은 만들 때 무작위로 정해지고 가진 사람만 압니다. 카드를 누르면 크게 보입니다.</p>
         <div className="unit-row">
           {MILITARY_CARDS.filter((c) => !c.uniqueOnly).map((c) => (
             <div key={c.id} className="policy-pick">

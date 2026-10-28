@@ -131,6 +131,8 @@ export interface Player {
   military: CardInst[]
   /** 이번 차례에 일꾼처럼 타일에 올린 장군 수 (스웨덴) */
   generalWorkers: number
+  /** 정복(첫 도시 파괴)으로 탈락시킨 문명 수: 2가 되면 정복 승리 (없으면 0) */
+  conquests?: number
   /** 불러들였지만 다음 차례에 도착하는 장군 */
   returningGenerals: number
   /** 선전포고에 걸려 아직 쓸 수 없는 일꾼 수 (정산 때 풀림) */

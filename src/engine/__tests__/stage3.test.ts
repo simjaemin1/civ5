@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { actorOf, apply, defaultTileCity, extraHoles, gainCulture, cardById, culture, ctxOf, RuleError, MILITARY_CARDS, declarationTargets, freeWorkers, tileYield, isCoastalCity, happiness } from '..'
+import { SIDES, actorOf, apply, defaultTileCity, extraHoles, gainCulture, cardById, culture, ctxOf, RuleError, MILITARY_CARDS, declarationTargets, freeWorkers, tileYield, isCoastalCity, happiness } from '..'
 import type { GameState, TileCard } from '..'
 import { found, me, play, startGame, tile } from './helpers'
 
@@ -370,32 +370,67 @@ describe('선전포고', () => {
     expect(declarationTargets(s, s.players[0]).some((t) => t.tileId === cityTile)).toBe(false)
   })
 
-  it('도시 4칸이 어느 문명의 장군에게든 점령되어 있으면 누구나 도시에 선전포고할 수 있다', () => {
-    const s = mod(round2(['korea', 'russia', 'china'], [hand4(), hand4(), hand4()]), (c) => {
-      const city = c.players[1].cities[0]
-      city.tiles.push({ card: tile(['평지']), role: 'side', side: 'W' })
-      city.openSides = []
-      // 4칸을 모두 제3의 문명(중국)이 점령: 0번 문명은 한 칸도 점령하지 않았다
-      for (const t of city.tiles) if (t.role === 'side') t.occupiedBy = 2
-      c.players[0].generals = 1
-    })
-    const cityTile = s.players[1].cities[0].tiles.find((t) => t.role === 'city')!.card.id
-    expect(declarationTargets(s, s.players[0]).some((t) => t.kind === 'city' && t.tileId === cityTile)).toBe(true)
+  it('도시 4칸이 모두 점령되어 있고(누구의 장군이든) 그 칸에 장군을 가장 많이 올린 문명만 도시에 선전포고할 수 있다 (공동이면 모두, 막타 방지)', () => {
+    /** 4칸을 차례로 owners의 장군이 점령 (0 한국, 2 중국, 3 일본) */
+    const at = (owners: number[]) =>
+      mod(round2(['korea', 'russia', 'china', 'japan'], [hand4(), hand4(), hand4(), hand4()]), (c) => {
+        const city = c.players[1].cities[0]
+        city.tiles.push({ card: tile(['평지']), role: 'side', side: 'W' })
+        city.openSides = []
+        city.tiles.filter((t) => t.role === 'side').forEach((t, i) => (t.occupiedBy = owners[i]))
+        for (const p of c.players) p.generals = 1
+      })
+    const canAttack = (s: GameState, pid: number) => declarationTargets(s, s.players[pid]).some((t) => t.kind === 'city')
+    expect(canAttack(at([2, 2, 2, 2]), 0)).toBe(false) // 4칸을 모두 남이 점령: 막타 불가
+    expect(canAttack(at([0, 2, 2, 2]), 0)).toBe(false) // 1 대 3
+    expect(canAttack(at([0, 0, 0, 2]), 0)).toBe(true) // 3 대 1
+    expect(canAttack(at([0, 0, 0, 2]), 2)).toBe(false)
+    // 공동 1위면 모두 선전포고할 수 있다
+    const tie = at([0, 0, 2, 2])
+    expect(canAttack(tie, 0)).toBe(true)
+    expect(canAttack(tie, 2)).toBe(true)
+    const spread = at([0, 0, 2, 3]) // 2 대 1 대 1
+    expect(canAttack(spread, 0)).toBe(true)
+    expect(canAttack(spread, 3)).toBe(false)
     // 한 칸이라도 비어 있으면 안 된다
-    const gap = mod(s, (c) => (c.players[1].cities[0].tiles.find((t) => t.role === 'side')!.occupiedBy = undefined))
-    expect(declarationTargets(gap, gap.players[0]).some((t) => t.kind === 'city')).toBe(false)
+    const gap = mod(at([0, 0, 0, 2]), (c) => (c.players[1].cities[0].tiles.filter((t) => t.role === 'side').at(-1)!.occupiedBy = undefined))
+    expect(canAttack(gap, 0)).toBe(false)
   })
 
-  it('아직 3칸뿐인 도시는 3칸만 점령되어도 도시에 선전포고할 수 있다', () => {
-    const s = mod(round2(['korea', 'russia', 'china'], [hand4(), hand4(), hand4()]), (c) => {
-      const city = c.players[1].cities[0]
-      // 시작 손패 4장이면 도시 + 3칸 (4번째 칸은 아직 없다)
-      for (const t of city.tiles) if (t.role === 'side') t.occupiedBy = 2
-      c.players[0].generals = 1
-    })
+  it('아직 3칸뿐인 도시는 3칸만 점령되어도 (그 칸에 내 장군이 가장 많으면) 도시에 선전포고할 수 있다', () => {
+    const at = (mine: number) =>
+      mod(round2(['korea', 'russia', 'china'], [hand4(), hand4(), hand4()]), (c) => {
+        // 시작 손패 4장이면 도시 + 3칸 (4번째 칸은 아직 없다)
+        c.players[1].cities[0].tiles.filter((t) => t.role === 'side').forEach((t, i) => (t.occupiedBy = i < mine ? 0 : 2))
+        c.players[0].generals = 1
+      })
+    const s = at(2)
     const cityTile = s.players[1].cities[0].tiles.find((t) => t.role === 'city')!.card.id
     expect(s.players[1].cities[0].tiles.filter((t) => t.role === 'side')).toHaveLength(3)
     expect(declarationTargets(s, s.players[0]).some((t) => t.kind === 'city' && t.tileId === cityTile)).toBe(true)
+    expect(declarationTargets(at(1), at(1).players[0]).some((t) => t.kind === 'city')).toBe(false)
+  })
+
+  it('사면 중 타일이 없는 칸(원자폭탄으로 사라진 면)은 점령된 칸으로 친다', () => {
+    /** 러시아 첫 도시의 사면을 keep장만 남기고, 남은 칸은 owners의 장군이 점령 */
+    const at = (owners: (number | undefined)[]) =>
+      mod(round2(['korea', 'russia', 'china'], [hand4(), hand4(), hand4()]), (c) => {
+        const city = c.players[1].cities[0]
+        const sides = city.tiles.filter((t) => t.role === 'side')
+        const gone = sides.slice(owners.length)
+        city.tiles = city.tiles.filter((t) => !gone.includes(t))
+        city.openSides = SIDES.filter((x) => !city.tiles.some((t) => t.role === 'side' && t.side === x))
+        city.tiles.filter((t) => t.role === 'side').forEach((t, i) => (t.occupiedBy = owners[i]))
+        for (const p of c.players) p.generals = 1
+      })
+    const canAttack = (s: GameState, pid: number) => declarationTargets(s, s.players[pid]).some((t) => t.kind === 'city')
+    // 남은 1칸을 한국이 점령: 나머지 3칸은 타일이 없어 점령된 칸
+    expect(canAttack(at([0]), 0)).toBe(true)
+    expect(canAttack(at([0]), 2)).toBe(false) // 장군이 가장 많은 문명만
+    expect(canAttack(at([undefined]), 0)).toBe(false) // 남은 칸이 비어 있으면 불가
+    // 4칸 모두 타일이 없으면 모두가 공동(0개)이라 누구나 할 수 있다
+    expect(canAttack(at([]), 0)).toBe(true)
+    expect(canAttack(at([]), 2)).toBe(true)
   })
 
   it('한 차례에 한 번만 선전포고할 수 있다', () => {
@@ -757,6 +792,73 @@ describe('도시 공격·탈환·탈락', () => {
     expect(s.players[0].generals).toBe(5) // 선전포고에 건 장군 1 + 도시 4칸에 올려 둔 장군 4가 모두 돌아온다
   })
 
+  it('첫 도시를 파괴해 탈락시키면 탈락한 문명의 위대한 장군을 모두 얻는다 (점령 중이던 장군은 그 점령 그대로)', () => {
+    const civs = ['korea', 'russia', 'china']
+    let cannon = 0
+    let s = round2(civs, [hand4(), hand4(), hand4()])
+    expect(actorOf(s)).toBe(0)
+    s = mod(s, (c) => {
+      const city = c.players[1].cities[0]
+      city.tiles.push({ card: tile(['평지']), role: 'side', side: 'W' })
+      city.openSides = []
+      for (const t of city.tiles) if (t.role === 'side') t.occupiedBy = 0
+      c.players[0].generals = 1
+      cannon = give(c, 0, 'cannon', 'L')
+      const russia = c.players[1]
+      russia.military = []
+      russia.generals = 2 // 손에 든 장군
+      russia.returningGenerals = 1 // 돌아오는 중인 장군
+      c.players[2].cities[0].tiles[1].occupiedBy = 1 // 중국 타일을 점령 중
+      c.players[0].cities[0].tiles[1].occupiedBy = 1 // 한국(정복자) 타일을 점령 중
+    })
+    s = play(s, { type: 'placeWorkers', placements: [] }, { type: 'skipResearch' }, { type: 'endProduction' })
+    s = apply(s, { type: 'declareWar', defenderId: 1, cityId: 0, tileId: tileId(s, 1, 0) })
+    // 러시아가 이번 라운드에 중국에 건 선전포고 (장군 1개를 걸었다)
+    s = mod(s, (c) => c.declarations.push({ attackerId: 1, defenderId: 2, cityId: 0, tileId: tileId(c, 2, 2), kind: 'normal' }))
+    s = passTurn(passTurn(s))
+    expect(s.battle?.decl.kind).toBe('city')
+    s = arrange(s, 0, [cannon, null, null, null])
+    if (s.battle) s = arrange(s, 1, [null, null, null, null])
+    expect(s.players[1].eliminated).toBe(true)
+    expect(s.winner).toBeNull() // 중국이 남아 게임은 계속된다
+    // 선전포고 1 + 도시 사면 4가 돌아오고, 러시아 장군: 손 2 + 돌아오는 중 1 + 선전포고 1 + 한국 타일 점령 1(풀려서 손으로)
+    expect(s.players[0].generals).toBe(5 + 5)
+    expect(s.players[2].cities[0].tiles[1].occupiedBy).toBe(0) // 중국 타일 점령은 한국 것으로
+    expect(s.players[0].cities[0].tiles[1].occupiedBy).toBeUndefined()
+    expect(s.players[1].generals).toBe(0)
+    expect(s.log.some((l) => l.includes('위대한 장군 6개를 얻음 (점령 중이던 1개는 그 타일을 그대로 점령)'))).toBe(true)
+  })
+
+  it('정복으로 2개 문명을 탈락시키면 다른 문명이 남아 있어도 정복 승리 (1개뿐이면 게임은 계속된다)', () => {
+    const conquer = (already: number) => {
+      let cannon = 0
+      let s = mod(round2(['korea', 'russia', 'china'], [hand4(), hand4(), hand4()]), (c) => {
+        const city = c.players[1].cities[0]
+        city.tiles.push({ card: tile(['평지']), role: 'side', side: 'W' })
+        city.openSides = []
+        for (const t of city.tiles) if (t.role === 'side') t.occupiedBy = 0
+        c.players[0].generals = 1
+        c.players[0].conquests = already
+        c.players[1].military = []
+        cannon = give(c, 0, 'cannon', 'L')
+      })
+      s = play(s, { type: 'placeWorkers', placements: [] }, { type: 'skipResearch' }, { type: 'endProduction' })
+      s = apply(s, { type: 'declareWar', defenderId: 1, cityId: 0, tileId: tileId(s, 1, 0) })
+      s = passTurn(passTurn(s))
+      s = arrange(s, 0, [cannon, null, null, null])
+      if (s.battle) s = arrange(s, 1, [null, null, null, null])
+      expect(s.players[1].eliminated).toBe(true)
+      expect(s.players[2].eliminated).toBe(false)
+      return s
+    }
+    const first = conquer(0)
+    expect(first.players[0].conquests).toBe(1)
+    expect(first.winner).toBeNull()
+    const second = conquer(1)
+    expect(second.winner).toEqual({ playerId: 0, type: 'conquest' })
+    expect(second.phase).toBe('over')
+  })
+
   it('공성 카드가 없으면 이겨도 도시는 파괴되지 않는다', () => {
     let w = 0
     let s = toBattle(round2(), (c) => {
@@ -831,6 +933,50 @@ describe('도시 공격·탈환·탈락', () => {
     expect(s.players[0].military.some((c) => c.defId === 'atomic_bomb')).toBe(false)
   })
 
+  it('원자폭탄은 장군의 주인과 상관없이 장군이 점령 중인 타일을 파괴하고, 그 장군은 주인에게 돌아간다', () => {
+    let s = round2(['korea', 'russia', 'china'], [hand4(), hand4(), hand4()])
+    s = mod(s, (c) => {
+      const city = c.players[1].cities[0]
+      city.tiles.push({ card: tile(['평지']), role: 'extra' })
+      city.tiles.at(-1)!.occupiedBy = 2 // 중국 장군이 러시아 타일을 점령
+      c.players[0].cities[0].tiles.push({ card: tile(['평지']), role: 'extra', occupiedBy: 1 }) // 러시아 장군이 한국 타일을 점령
+      c.players[2].generals = 0
+      c.players[1].generals = 0
+      give(c, 0, 'atomic_bomb')
+      give(c, 0, 'atomic_bomb')
+    })
+    const russiaTile = s.players[1].cities[0].tiles.at(-1)!.card.id
+    s = apply(s, { type: 'useAtomicBomb', defenderId: 1, cityId: 0, tileId: russiaTile })
+    expect(s.players[1].cities[0].tiles.some((t) => t.card.id === russiaTile)).toBe(false)
+    expect(s.players[2].generals).toBe(1) // 중국 장군이 돌아간다
+    expect(s.players[0].generals).toBe(0)
+    // 내 영토를 점령 중인 상대 장군도 대상이 된다
+    const myTile = s.players[0].cities[0].tiles.at(-1)!.card.id
+    s = apply(s, { type: 'useAtomicBomb', defenderId: 0, cityId: 0, tileId: myTile })
+    expect(s.players[0].cities[0].tiles.some((t) => t.card.id === myTile)).toBe(false)
+    expect(s.players[1].generals).toBe(1)
+    expect(s.players[0].military.some((c) => c.defId === 'atomic_bomb')).toBe(false)
+  })
+
+  it('원자폭탄은 스웨덴이 일꾼처럼 장군을 올린 타일은 파괴할 수 없다 (점령이 아님)', () => {
+    let s = round2(['sweden', 'russia'], [hand4(), hand4()])
+    s = mod(s, (c) => {
+      c.players[0].generals = 1
+      give(c, 1, 'atomic_bomb')
+    })
+    const sweden = s.players.find((p) => p.civId === 'sweden')!
+    const tileIdOf = sweden.cities[0].tiles.find((t) => t.role !== 'city')!.card.id
+    s = mod(s, (c) => {
+      const sw = c.players[sweden.id]
+      sw.generalWorkers = 1
+      sw.cities[0].placed = [tileIdOf]
+    })
+    const russia = s.players.find((p) => p.civId === 'russia')!
+    expect(sweden.cities[0].tiles.every((t) => t.occupiedBy === undefined)).toBe(true)
+    s = mod(s, (c) => (c.turnIdx = c.order.indexOf(russia.id)))
+    expect(() => apply(s, { type: 'useAtomicBomb', defenderId: sweden.id, cityId: 0, tileId: tileIdOf })).toThrow(/위대한 장군이 점령 중인 타일만/)
+  })
+
   it('원자폭탄은 첫 5타일(사면)도 파괴할 수 있고, 그 면은 빈 면이 되어 다음 문화 타일이 붙는다', () => {
     let s = round2()
     s = mod(s, (c) => {
@@ -856,25 +1002,17 @@ describe('도시 공격·탈환·탈락', () => {
     expect(s.players[1].cities[0].openSides).toEqual([])
   })
 
-  it('원자폭탄으로 도시 타일을 파괴하면 도시가 사라진다 (첫 도시면 탈락, 두 번째 도시가 있으면 첫 도시는 불가)', () => {
-    const base = () => {
-      let s = round2()
-      s = mod(s, (c) => {
-        c.players[1].cities[0].tiles[0].occupiedBy = 0
-        give(c, 0, 'atomic_bomb')
-      })
-      return play(s, { type: 'placeWorkers', placements: [] }, { type: 'skipResearch' })
-    }
-    const cityTile = (s: GameState) => s.players[1].cities[0].tiles[0].card.id
-    let s = base()
-    s = apply(s, { type: 'useAtomicBomb', defenderId: 1, cityId: 0, tileId: cityTile(s) })
-    expect(s.players[1].eliminated).toBe(true) // 하나뿐인 첫 도시
-    expect(s.players[0].generals).toBe(1) // 점령 중이던 장군이 돌아온다 (한 번만)
-    expect(s.players[0].military.some((c) => c.defId === 'atomic_bomb')).toBe(false)
-    // 두 번째 도시가 있으면 첫 도시의 도시 타일은 불가
-    let t = base()
-    t = mod(t, (c) => c.players[1].cities.push({ ...structuredClone(c.players[1].cities[0]), id: 1 }))
-    expect(() => apply(t, { type: 'useAtomicBomb', defenderId: 1, cityId: 0, tileId: cityTile(t) })).toThrow(RuleError)
+  it('원자폭탄은 도시 타일을 파괴할 수 없다 (도시 타일에는 장군을 올려 점령할 수 없다)', () => {
+    let s = round2()
+    s = mod(s, (c) => {
+      c.players[1].cities[0].tiles[0].occupiedBy = 0 // 규칙상 생길 수 없는 상태를 억지로 만들어도
+      give(c, 0, 'atomic_bomb')
+    })
+    s = play(s, { type: 'placeWorkers', placements: [] }, { type: 'skipResearch' })
+    const cityTile = s.players[1].cities[0].tiles[0]
+    expect(cityTile.role).toBe('city')
+    expect(() => apply(s, { type: 'useAtomicBomb', defenderId: 1, cityId: 0, tileId: cityTile.card.id })).toThrow(RuleError)
+    expect(declarationTargets(s, s.players[0]).some((t) => t.tileId === cityTile.card.id && t.kind === 'normal')).toBe(false)
   })
 
   it('원자폭탄은 만리장성처럼 자신의 차례 어느 단계에서든 쓸 수 있다 (일꾼 배치 단계에서도)', () => {
@@ -942,11 +1080,16 @@ describe('도시 공격·탈환·탈락', () => {
 describe('승리와 탈락', () => {
   it('문화 패배: 상대의 관광이 내 문화(타일 수)보다 많아지면 탈락, 마지막 생존자는 문화 승리', () => {
     let s = round2()
-    s = mod(s, (c) => c.players[0].wonders.push('louvre', 'eiffel_tower')) // 관광 6 > 러시아 문화 4
+    s = mod(s, (c) => {
+      c.players[0].wonders.push('louvre', 'eiffel_tower') // 관광 6 > 러시아 문화 4
+      c.players[1].generals = 2
+    })
+    const generals = s.players[0].generals
     s = passTurn(s)
     s = passTurn(s) // 라운드 끝 → 문화 패배 판정
     expect(s.players[1].eliminated).toBe(true)
     expect(s.winner).toEqual({ playerId: 0, type: 'culture' })
+    expect(s.players[0].generals).toBe(generals) // 문화 탈락은 장군을 넘겨주지 않는다
   })
 
   it('인터넷 검열시스템이 있으면 문화 패배를 당하지 않는다', () => {

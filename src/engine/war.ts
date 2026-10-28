@@ -3,7 +3,7 @@ import { RuleError, SIDES } from './types'
 import { cardById, civById } from './data'
 import { gainCulture, say } from './core'
 import { freeWorkers } from './scouting'
-import { MAX_HOLD, releaseUnique } from './military'
+import { holdLimit, releaseUnique } from './military'
 import { cardStats, isCoastalOnly } from './cardstats'
 import type { CardStats } from './cardstats'
 import { culture, tourism } from './yields'
@@ -24,13 +24,30 @@ export function findTile(p: Player, cityId: number, tileId: number): { city: Cit
   return city && tile ? { city, tile } : null
 }
 
+/** 정복으로 이만큼 문명을 탈락시키면 정복 승리 (사용자 결정) */
+export const CONQUEST_WIN = 2
+
 /**
- * 도시 타일은 위·아래·왼쪽·오른쪽 칸이 모두 (어느 문명이든) 장군에게 점령당해 있으면 누구나 공격할 수 있다.
- * 아직 3칸뿐인 도시라면 3칸만 점령되어도 된다.
+ * 도시를 둘러싼 칸(사면)에 올라간 위대한 장군이 가장 많은 문명들 (공동이면 모두).
+ * 이 문명들만 도시 타일에 선전포고할 수 있다 (사용자 결정: 무분별한 막타 방지).
  */
-function cityAttackable(defender: Player, city: City): boolean {
+export function cityAttackLeaders(city: City): number[] {
+  const count = new Map<number, number>()
+  for (const t of city.tiles) if (t.role === 'side' && t.occupiedBy !== undefined) count.set(t.occupiedBy, (count.get(t.occupiedBy) ?? 0) + 1)
+  const most = Math.max(0, ...count.values())
+  return [...count.entries()].filter(([, n]) => n === most).map(([pid]) => pid)
+}
+
+/**
+ * 도시 공격 조건: 위·아래·왼쪽·오른쪽 4칸이 모두 위대한 장군에게 점령되어 있고(누구의 장군이든), 그중 내 장군이 가장 많다 (공동 포함).
+ * 타일이 없는 칸(아직 붙지 않은 면, 원자폭탄으로 사라진 면)은 점령된 칸으로 친다 (사용자 결정).
+ * 4칸 모두 타일이 없어 장군이 하나도 없으면 모두가 공동(0개)이라 누구나 선전포고할 수 있다.
+ */
+function cityAttackable(defender: Player, city: City, attackerId: number): boolean {
   const sides = city.tiles.filter((t) => t.role === 'side')
-  if (sides.length === 0 || !sides.every((t) => t.occupiedBy !== undefined)) return false
+  if (!sides.every((t) => t.occupiedBy !== undefined)) return false
+  const leaders = cityAttackLeaders(city)
+  if (leaders.length > 0 && !leaders.includes(attackerId)) return false
   // 두 번째 도시가 있으면 첫 도시의 도시 타일은 공격할 수 없다
   if (city.id === 0 && defender.cities.length > 1) return false
   return true
@@ -55,7 +72,7 @@ export function declarationTargets(s: GameState, p: Player): DeclTarget[] {
     for (const city of opp.cities) {
       for (const t of city.tiles) {
         if (t.role === 'city') {
-          if (cityAttackable(opp, city)) out.push({ defenderId: opp.id, cityId: city.id, tileId: t.card.id, kind: 'city' })
+          if (cityAttackable(opp, city, p.id)) out.push({ defenderId: opp.id, cityId: city.id, tileId: t.card.id, kind: 'city' })
         } else if (t.occupiedBy === undefined) {
           out.push({ defenderId: opp.id, cityId: city.id, tileId: t.card.id, kind: 'normal' })
         }
@@ -413,7 +430,7 @@ function resolveBattle(s: GameState): void {
     for (const u of units[pid]) {
       if (!destroyed.has(u.inst.uid)) continue
       p.military = p.military.filter((c) => c.uid !== u.inst.uid)
-      if (enemy.civId === 'ottoman' && isCoastalOnly(u.inst) && enemy.military.filter((c) => c.defId === u.inst.defId).length < MAX_HOLD) enemy.military.push(u.inst)
+      if (enemy.civId === 'ottoman' && isCoastalOnly(u.inst) && enemy.military.filter((c) => c.defId === u.inst.defId).length < holdLimit(enemy, u.inst.defId)) enemy.military.push(u.inst)
       else releaseUnique(s, u.inst) // 파괴된 고유 유닛은 3장 재고로 돌아간다
     }
   }
@@ -451,7 +468,7 @@ function resolveBattle(s: GameState): void {
     const siege = survivors(attackerId).some((u) => u.st.siege && eff(u))
     if (attackerWins && siege) {
       const city = defender.cities.find((c) => c.id === decl.cityId)
-      if (city) destroyCity(s, defender, city)
+      if (city) destroyCity(s, defender, city, attackerId)
     }
   }
   const winnerSide: 'attacker' | 'defender' = attackerWins ? 'attacker' : 'defender'
@@ -493,18 +510,24 @@ function resolveBattle(s: GameState): void {
   s.battle = null
 }
 
-/** 도시 파괴: 일꾼과 타일은 모두 사라진다. 첫 도시가 파괴되면 탈락한다. */
-export function destroyCity(s: GameState, owner: Player, city: City): void {
+/** 도시 파괴: 일꾼과 타일은 모두 사라진다. 첫 도시가 파괴되면 탈락하고, 파괴한 문명(conquerorId)이 탈락한 문명의 장군을 얻는다. */
+export function destroyCity(s: GameState, owner: Player, city: City, conquerorId?: number): void {
   for (const t of city.tiles) {
     if (t.occupiedBy !== undefined) s.players[t.occupiedBy].generals += 1
   }
   owner.cities = owner.cities.filter((c) => c.id !== city.id)
   say(s, `${civById(owner.civId).name}의 도시 파괴`)
-  if (city.id === 0) eliminate(s, owner.id, 'conquest')
+  if (city.id === 0) eliminate(s, owner.id, 'conquest', conquerorId)
 }
 
-/** 탈락: 도시와 타일이 사라지고, 이 문명의 장군은 판에서 사라진다. 한 명만 남으면 게임이 끝난다. */
-export function eliminate(s: GameState, pid: number, cause: 'conquest' | 'culture'): void {
+/**
+ * 탈락: 도시와 타일이 사라진다. 한 명만 남으면 게임이 끝난다.
+ * 정복 탈락이면 정복한 문명(conquerorId)이 탈락한 문명의 위대한 장군을 모두 얻는다 (사용자 결정):
+ * 손에 든 장군·돌아오는 중인 장군·이번 라운드 선전포고에 건 장군은 정복자의 손으로, 남의 타일을 점령 중이던 장군은
+ * 그 점령을 그대로 정복자 것으로 바꾼다 (정복자 자신의 타일을 점령 중이던 장군은 점령을 풀고 손으로).
+ * 문화 탈락이거나 정복자가 없으면 탈락한 문명의 장군은 판에서 사라진다.
+ */
+export function eliminate(s: GameState, pid: number, cause: 'conquest' | 'culture', conquerorId?: number): void {
   const p = s.players[pid]
   if (p.eliminated) return
   for (const city of p.cities) {
@@ -512,12 +535,50 @@ export function eliminate(s: GameState, pid: number, cause: 'conquest' | 'cultur
   }
   p.cities = []
   p.eliminated = true
+  const heir = cause === 'conquest' && conquerorId !== undefined && conquerorId !== pid && !s.players[conquerorId].eliminated ? s.players[conquerorId] : null
+  let inHand = 0
+  let kept = 0
+  if (heir) {
+    inHand = p.generals + p.returningGenerals + s.declarations.filter((d) => d.attackerId === pid && d.kind !== 'retake').length
+    heir.generals += inHand
+    p.generals = 0
+    p.returningGenerals = 0
+    p.generalWorkers = 0
+  }
   for (const other of s.players) {
-    for (const c of other.cities) for (const t of c.tiles) if (t.occupiedBy === pid) t.occupiedBy = undefined
+    for (const c of other.cities) {
+      for (const t of c.tiles) {
+        if (t.occupiedBy !== pid) continue
+        if (heir && other.id !== heir.id) {
+          t.occupiedBy = heir.id // 점령은 그대로, 장군의 주인만 바뀐다
+          kept++
+        } else {
+          t.occupiedBy = undefined
+          if (heir) {
+            heir.generals += 1
+            inHand++
+          }
+        }
+      }
+    }
     if (other.id !== pid) other.cities.forEach((c) => (c.enemyPlaced = c.enemyPlaced?.filter((e) => e.playerId !== pid)))
   }
   s.declarations = s.declarations.filter((d) => d.attackerId !== pid && d.defenderId !== pid)
+  if (heir && inHand + kept > 0) {
+    say(s, `${civById(heir.civId).name} ${civById(p.civId).name}의 위대한 장군 ${inHand + kept}개를 얻음${kept ? ` (점령 중이던 ${kept}개는 그 타일을 그대로 점령)` : ''}`)
+  }
   say(s, `${civById(p.civId).name} 탈락 (${cause === 'culture' ? '문화 패배' : '정복 패배'})`)
+  // 정복 승리: 정복으로 2개 문명을 탈락시키면 (다른 문명이 남아 있어도) 바로 이긴다
+  if (heir) {
+    heir.conquests = (heir.conquests ?? 0) + 1
+    if (heir.conquests >= CONQUEST_WIN && !s.winner) {
+      s.winner = { playerId: heir.id, type: 'conquest' }
+      s.phase = 'over'
+      say(s, `${civById(heir.civId).name} 정복 승리 (정복으로 ${heir.conquests}개 문명 탈락)`)
+      return
+    }
+  }
+  // 마지막 생존: 남은 문명이 하나면 이긴다 (마지막 상대를 정복으로 탈락시켰으면 정복 승리, 관광이면 문화 승리)
   const left = alive(s)
   if (left.length === 1 && !s.winner) {
     s.winner = { playerId: left[0].id, type: cause === 'culture' ? 'culture' : 'conquest' }
@@ -538,32 +599,32 @@ export function checkCultureDefeats(s: GameState): void {
   }
 }
 
-/** 원자폭탄: 내 차례에 사용해, 내 장군이 올라간 상대 타일을 파괴하고 장군을 돌려받는다. 첫 5타일도 파괴할 수 있다. */
+/**
+ * 원자폭탄: 내 차례에 사용해, 위대한 장군이 점령 중인 타일 1개를 파괴하고 그 장군을 주인에게 돌려보낸다.
+ * 장군의 주인은 상관없다 (사용자 결정, 카드 수정). 첫 5타일(사면)도 파괴할 수 있다. 도시 타일에는 장군을 올릴 수 없으므로 파괴할 수 없다.
+ */
 export function detonateAtomicBomb(s: GameState, p: Player, a: { defenderId: number; cityId: number; tileId: number }): void {
   const bomb = p.military.find((c) => c.defId === 'atomic_bomb')
   if (!bomb) throw new RuleError('원자폭탄 카드가 없습니다')
   const def = s.players[a.defenderId]
   const found = def && findTile(def, a.cityId, a.tileId)
   if (!def || def.eliminated || !found) throw new RuleError('대상 타일이 없습니다')
-  if (found.tile.occupiedBy !== p.id) throw new RuleError('내 장군이 올라간 타일만 파괴할 수 있습니다')
+  const occupier = found.tile.occupiedBy
+  // 어느 문명의 장군이든 점령 중인 타일이면 된다 (스웨덴이 일꾼처럼 올린 장군은 점령이 아니라 해당 없음)
+  if (occupier === undefined) throw new RuleError('위대한 장군이 점령 중인 타일만 파괴할 수 있습니다')
   const { tile, city } = found
-  if (tile.role === 'city') {
-    // 도시 타일을 파괴하면 도시가 사라진다 (첫 도시면 탈락). 도시 공격과 같이, 두 번째 도시가 있으면 첫 도시의 도시 타일은 파괴할 수 없다
-    if (city.id === 0 && def.cities.length > 1) throw new RuleError('두 번째 도시가 있으면 첫 도시의 도시 타일은 파괴할 수 없습니다')
-    p.military = p.military.filter((c) => c.uid !== bomb.uid)
-    say(s, `${civById(p.civId).name} 원자폭탄 → ${civById(def.civId).name} 도시 타일 파괴`)
-    destroyCity(s, def, city) // 점령 중이던 내 장군은 여기서 돌아온다
-    return
-  }
+  if (tile.role === 'city') throw new RuleError('도시 타일에는 장군을 올릴 수 없어 원자폭탄으로 파괴할 수 없습니다')
   city.tiles = city.tiles.filter((t) => t !== tile)
   city.placed = city.placed.filter((id) => id !== a.tileId)
+  // 몽골이 이 타일에 올린 일꾼도 내려온다
+  for (const o of s.players) for (const c of o.cities) c.enemyPlaced = c.enemyPlaced?.filter((e) => !(e.playerId === def.id && e.tileId === a.tileId))
   if (tile.role === 'side' && tile.side) {
     // 십자의 빈 면이 되살아난다: 다음에 얻는 문화 타일은 반드시 그 면에 붙는다
     city.openSides = SIDES.filter((x) => x === tile.side || city.openSides.includes(x))
   }
-  p.generals += 1
+  s.players[occupier].generals += 1 // 점령 중이던 장군은 주인에게 돌아간다
   p.military = p.military.filter((c) => c.uid !== bomb.uid)
-  say(s, `${civById(p.civId).name} 원자폭탄 → ${civById(def.civId).name} 타일 파괴`)
+  say(s, `${civById(p.civId).name} 원자폭탄 → ${civById(def.civId).name} 타일 파괴 (${civById(s.players[occupier].civId).name} 장군이 돌아감)`)
 }
 
 /** 만리장성: 게임 중 1번, 내 영토 위의 상대 장군을 모두 돌려보낸다. */

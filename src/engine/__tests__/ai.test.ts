@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { MAX_HOLD, AI_TUNE, actorOf, aiCandidates, aiStep, apply, bestSlots, createGame, cardById, cardStats, MILITARY_CARDS, civById, CIVS, happiness, rankTop, totalWorkers, usableInBattle, battleActions, choosePicks, simplePicks, mixedStrategy, arrangeBattle, WONDER_CARDS, declarationTargets, threat } from '..'
-import type { GameState } from '..'
+import { holdLimit, AI_TUNE, actorOf, aiCandidates, aiStep, apply, bestSlots, createGame, cardById, cardStats, MILITARY_CARDS, civById, CIVS, happiness, rankTop, totalWorkers, usableInBattle, battleActions, choosePicks, simplePicks, mixedStrategy, arrangeBattle, WONDER_CARDS, declarationTargets, threat } from '..'
+import type { GameState, TileCard } from '..'
 
 /** AI끼리 게임을 끝까지(또는 maxSteps까지) 돌린다. */
 function simulate(seed: number, civs: string[], maxSteps = 1500): { state: GameState; steps: number } {
@@ -19,7 +19,7 @@ function checkInvariants(s: GameState): void {
   for (const p of s.players) {
     for (const c of MILITARY_CARDS) {
       const over = (p.pendingCardDiscard ?? []).filter((d) => d === c.id).length
-      expect(p.military.filter((m) => m.defId === c.id && !m.unique).length, `${p.civId} ${c.id} 보유`).toBeLessThanOrEqual(MAX_HOLD + over)
+      expect(p.military.filter((m) => m.defId === c.id && !m.unique).length, `${p.civId} ${c.id} 보유`).toBeLessThanOrEqual(holdLimit(p, c.id) + over)
     }
     for (const m of p.military) {
       const st = cardStats(m)
@@ -449,6 +449,121 @@ describe('AI 전쟁 판단 (승률 추정·쏠림 방지·수비·실질 위협�
     expect(occupied).toBeLessThan(before)
     s.declarations = [{ attackerId: 2, defenderId: 1, cityId: o.cities[0].id, tileId: o.cities[0].tiles.find((x) => x.role !== 'city' && x !== tile)!.card.id, kind: 'normal' }]
     expect(threat(s, o)).toBeCloseTo(occupied - 3)
+  })
+
+  /** pid의 첫 도시에 추가 타일(사면이 아닌 땅)을 붙인다 */
+  const addExtra = (s: GameState, pid: number, card: Omit<TileCard, 'id'>, occupiedBy?: number) => {
+    const city = s.players[pid].cities[0]
+    const placed = { card: { ...card, id: 9000 + city.tiles.length + pid * 100 }, role: 'extra' as const, slot: city.tiles.filter((t) => t.role === 'extra').length, occupiedBy }
+    city.tiles.push(placed)
+    return placed
+  }
+  /** pid의 도시 타일이 아닌 땅을 모두 자원 없는 평지로 바꾼다 (중요도 비교를 단순하게) */
+  const flatten = (s: GameState, pid: number) => {
+    for (const c of s.players[pid].cities) for (const t of c.tiles) if (t.role !== 'city') t.card = { id: t.card.id, terrains: ['평지'] }
+  }
+  const recalls = (s: GameState) => aiCandidates(s).flatMap((a) => (a.type === 'recallGeneral' ? [a] : []))
+  const withTune = <T,>(patch: Partial<typeof AI_TUNE>, f: () => T): T => {
+    const saved = { ...AI_TUNE }
+    Object.assign(AI_TUNE, patch)
+    try {
+      return f()
+    } finally {
+      Object.assign(AI_TUNE, saved)
+    }
+  }
+
+  it('전쟁광은 탈락시킬 상대의 망치 타일을 도시 사면보다 먼저 노린다', () => {
+    const s = atPhase('declare', ['huns', 'korea'])
+    s.players[0].generals = 1
+    give(s, 0, 'rifleman', 4)
+    give(s, 1, 'warrior', 1)
+    flatten(s, 1)
+    const hill = addExtra(s, 1, { terrains: ['언덕'] })
+    const firstTarget = () => aiCandidates(s).find((a) => a.type === 'declareWar')
+    expect(firstTarget()).toMatchObject({ defenderId: 1, tileId: hill.card.id })
+    // 망치 가산점이 없으면 도시 사면(평지)을 먼저 노린다
+    expect(withTune({ warlordHammer: 0 }, firstTarget)).not.toMatchObject({ tileId: hill.card.id })
+  })
+
+  it('전쟁광은 장군이 모자라도 탈락시킬 상대의 망치 타일 점령은 풀지 않는다', () => {
+    const s = atPhase('produce', ['huns', 'korea'])
+    const p = s.players[0]
+    p.generals = 0
+    p.returningGenerals = 0
+    give(s, 0, 'rifleman', 4)
+    give(s, 1, 'warrior', 1)
+    flatten(s, 1)
+    const hill = addExtra(s, 1, { terrains: ['언덕'] }, 0)
+    const plain = addExtra(s, 1, { terrains: ['평지'] }, 0)
+    const ids = recalls(s).map((a) => a.tileId)
+    expect(ids).toContain(plain.card.id)
+    expect(ids).not.toContain(hill.card.id)
+  })
+
+  describe('견제형 점령 (정복 없이 장군 한두 개로 방해)', () => {
+    it('점령은 오래 들고 있는 것이 기본이다 (더 좋은 타일이 없으면 장군을 불러들이지 않는다)', () => {
+      const s = atPhase('produce', ['korea', 'egypt'])
+      s.players[0].generals = 0
+      s.players[0].returningGenerals = 0
+      give(s, 0, 'rifleman', 4)
+      give(s, 1, 'warrior', 1)
+      flatten(s, 1)
+      addExtra(s, 1, { terrains: ['평지'] }, 0)
+      expect(recalls(s)).toEqual([])
+      // 견제형을 끄면 예전처럼 장군이 모자랄 때 값싼 점령부터 푼다
+      expect(withTune({ harass: false }, () => recalls(s)).length).toBeGreaterThan(0)
+    })
+
+    it('상대가 훨씬 좋은 타일을 얻으면 가장 덜 중요한 점령의 장군을 불러들이고, 다음 차례 그 타일에 선전포고한다', () => {
+      let s = atPhase('produce', ['korea', 'egypt'])
+      s.players[0].generals = 0
+      s.players[0].returningGenerals = 0
+      give(s, 0, 'rifleman', 4)
+      give(s, 1, 'warrior', 1)
+      flatten(s, 1)
+      const held = addExtra(s, 1, { terrains: ['평지'] }, 0)
+      const lake = addExtra(s, 1, { terrains: ['호수'], wonder: 'lake_victoria' })
+      expect(recalls(s)).toEqual([expect.objectContaining({ defenderId: 1, tileId: held.card.id })])
+      // 장군이 돌아온 다음 차례: 선전포고 대상의 첫 번째가 그 타일이다
+      s = structuredClone(s)
+      s.phase = 'declare'
+      delete s.players[1].cities[0].tiles.find((t) => t.card.id === held.card.id)!.occupiedBy
+      s.players[0].generals = 1
+      expect(aiCandidates(s).find((a) => a.type === 'declareWar')).toMatchObject({ defenderId: 1, tileId: lake.card.id })
+    })
+
+    it('3명 이상에서 1등이 바뀌면 옛 상대의 점령을 풀어 새 1등을 노린다', () => {
+      const s = atPhase('produce', ['korea', 'egypt', 'china'])
+      s.players[0].generals = 0
+      s.players[0].returningGenerals = 0
+      // 1번이 확실한 1등
+      s.players[1].techs.push('agriculture', 'writing', 'sailing', 'mining', 'archery', 'calendar', 'masonry', 'bronze_working')
+      s.players[1].wonders.push('pyramids', 'petra')
+      give(s, 0, 'rifleman', 4)
+      give(s, 1, 'warrior', 1)
+      give(s, 2, 'warrior', 1)
+      flatten(s, 2)
+      const old = addExtra(s, 2, { terrains: ['호수'], wonder: 'lake_victoria' }, 0)
+      expect(rankTop(s)!.leader.id).toBe(1)
+      // 옛 상대의 타일이 더 좋아도 1등이 우선이다
+      expect(recalls(s)).toEqual([expect.objectContaining({ defenderId: 2, tileId: old.card.id })])
+    })
+
+    it('옮겨 갈 타일에서 이길 가망이 없으면 장군을 놀리지 않고 지금 점령을 그대로 둔다', () => {
+      const s = atPhase('produce', ['korea', 'egypt', 'china'])
+      s.players[0].generals = 0
+      s.players[0].returningGenerals = 0
+      s.players[1].techs.push('agriculture', 'writing', 'sailing', 'mining', 'archery', 'calendar', 'masonry', 'bronze_working')
+      s.players[1].wonders.push('pyramids', 'petra')
+      give(s, 0, 'rifleman', 4)
+      s.players[0].military.push({ uid: s.nextUid++, defId: 'hwacha', unique: '화차', dirs: ['C'] }) // 고유 유닛을 들고 있어 견제형이다
+      give(s, 1, 'infantry', 4) // 1등은 군대가 훨씬 강해 이길 가망이 없다
+      flatten(s, 2)
+      addExtra(s, 2, { terrains: ['평지'] }, 0)
+      expect(rankTop(s)!.leader.id).toBe(1)
+      expect(recalls(s)).toEqual([])
+    })
   })
 })
 

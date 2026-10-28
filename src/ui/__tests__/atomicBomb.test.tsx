@@ -25,7 +25,7 @@ describe('원자폭탄 사용 버튼', () => {
     expect(render(base())).toBe('')
   })
 
-  it('카드가 있어도 점령 중인 상대 타일이 없으면 눌 수 없다', () => {
+  it('카드가 있어도 장군이 점령 중인 타일이 없으면 눌 수 없다', () => {
     const s = base()
     s.players[0].military.push({ uid: 1, defId: 'atomic_bomb' })
     const html = render(s)
@@ -33,12 +33,26 @@ describe('원자폭탄 사용 버튼', () => {
     expect(html).toMatch(/<button[^>]*disabled/)
   })
 
-  it('점령 중인 상대 타일이 있으면 눌 수 있다 (첫 5타일이어도)', () => {
+  it('점령 중인 상대 타일이 있으면 눌 수 있다', () => {
     const s = base()
     s.players[0].military.push({ uid: 1, defId: 'atomic_bomb' })
-    s.players[1].cities[0].tiles[0].occupiedBy = 0 // 도시 타일(첫 5타일)
+    s.players[1].cities[0].tiles[1].occupiedBy = 0
     const html = render(s)
     expect(html).toContain('원자폭탄 사용')
     expect(html).not.toMatch(/<button[^>]*disabled/)
+  })
+
+  it('다른 문명의 장군이 점령 중인 타일이어도 눌 수 있다 (장군의 주인은 상관없음)', () => {
+    const s = base()
+    s.players[0].military.push({ uid: 1, defId: 'atomic_bomb' })
+    s.players[0].cities[0].tiles.push({ card: { id: 9004, terrains: ['숲'] }, role: 'extra', occupiedBy: 1 }) // 러시아 장군이 내 타일을 점령
+    expect(render(s)).not.toMatch(/<button[^>]*disabled/)
+  })
+
+  it('도시 타일은 고를 수 없다 (도시 타일에는 장군을 올릴 수 없다)', () => {
+    const s = base()
+    s.players[0].military.push({ uid: 1, defId: 'atomic_bomb' })
+    s.players[1].cities[0].tiles[0].occupiedBy = 0 // 규칙상 생길 수 없는 상태를 억지로 만들어도
+    expect(render(s)).toMatch(/<button[^>]*disabled/)
   })
 })

@@ -6,7 +6,7 @@ import type { TechDef, WonderCardDef } from './data'
 import { apply, researchableTechs } from './game'
 import { canHammerScience, computeYields, ctxOf, culture, happiness, rationalismScience, tileYield, totalWorkers, tourism } from './yields'
 import { conditionMet, investableWonders, minHammers } from './wonders'
-import { MAX_HOLD, cardCost, heldCount, producible, uniqueOf, upgradeTargets } from './military'
+import { cardCost, heldCount, holdLimit, producible, uniqueOf, upgradeTargets } from './military'
 import { declarationTargets, findTile, occupiedTiles } from './war'
 import { battleActions, battleOdds } from './aiBattle'
 import { currentPlayer, defaultTileCity } from './core'
@@ -22,7 +22,17 @@ export const setAiStyle = (style: 'default' | 'hammer'): void => {
 
 /** 튜닝값 (시뮬레이션으로 조정) */
 /** 시뮬레이션(30판)으로 고른 값: 정책은 과학 12 미만이면 합리주의·자유로, 과학이론 우선도 +60, 아폴로 질주는 남은 기술 8개부터 (더 일찍 달리면 오히려 판이 길어진다) */
-export const AI_TUNE = { scienceWeight: 1.3, apolloRush: 8, policyNeed: 12, coalition: true, cultureRush: 9, cultureSlack: 2, warlord: true, warlordArmy: 6 }
+export const AI_TUNE = {
+  scienceWeight: 1.3, apolloRush: 8, policyNeed: 12, coalition: true, cultureRush: 9, cultureSlack: 2, warlord: true, warlordArmy: 6,
+  /** 전쟁광이 노리는 상대 타일의 망치 1당 가산점: 망치 2 이상인 타일이 도시 사면(+8)보다 먼저다 (반격할 군사 카드를 못 뽑게 누른다) */
+  warlordHammer: 6,
+  /** 견제형 점령: 끄면 예전처럼 장군이 모자랄 때 값싼 점령부터 푼다 */
+  harass: true,
+  /** 견제형이 되는 군사 우위: 내 힘이 살아 있는 상대 평균의 이 배수 이상 (고유 유닛을 들고 있으면 배수와 상관없이) */
+  harassEdge: 1.3,
+  /** 장군을 불러들여 옮길 만한 차이: 노릴 타일의 중요도가 점령 중인 타일보다 이만큼 이상 커야 한다 (왔다 갔다 방지) */
+  harassMargin: 3,
+}
 
 const weight = (y: { food: number; hammer: number; science: number; gold: number }) =>
   y.food * 1.6 + y.hammer * 1.1 + y.science * AI_TUNE.scienceWeight + y.gold * 0.4
@@ -163,7 +173,7 @@ function hammerUse(s: GameState, p: Player): Map<number, number[]> {
   for (const city of p.cities) {
     const costs: number[] = []
     for (const o of cardOptions(p)) {
-      if (o.def.notBattle || o.def.special === 'coastalOnly' || (!o.unique && heldCount(p, o.def.id) >= MAX_HOLD) || !producible(s, p, o.def.id, o.unique, city)) continue
+      if (o.def.notBattle || o.def.special === 'coastalOnly' || (!o.unique && heldCount(p, o.def.id) >= holdLimit(p, o.def.id)) || !producible(s, p, o.def.id, o.unique, city)) continue
       costs.push(cardCost(p, o.def, o.unique ? uniqueOf(p, o.unique) : undefined))
     }
     for (const w of investableWonders(s, p, city)) costs.push(-minHammers(p, w)) // 음수: 불가사의 최소 망치
@@ -479,6 +489,8 @@ function coalitionLeader(s: GameState, p: Player): Player | null {
 }
 /** 상대의 공격 대상 도시 (두 번째 도시가 있으면 그쪽을 먼저 무너뜨려야 한다) */
 const sidesOccupied = (o: Player): number => conquestCity(o).tiles.filter((t) => t.role === 'side' && t.occupiedBy !== undefined).length
+/** 그 도시 사면 중 내 장군이 점령한 칸 수 (도시 공격은 사면에 장군이 가장 많은 문명만, 공동이면 모두) */
+const sidesMine = (o: Player, pid: number): number => conquestCity(o).tiles.filter((t) => t.role === 'side' && t.occupiedBy === pid).length
 /** 이 문명이 노리는 한 상대: 이미 점령한 타일이 많고(꾸준히), 군대가 약하고, 전통으로 일꾼을 줄여 약해진 상대 */
 function warlordVictim(s: GameState, p: Player): number | null {
   const occupied = occupiedTiles(s, p)
@@ -506,6 +518,67 @@ function strengthOf(p: Player): number {
 const conquestCity = (o: Player) => (o.cities.length > 1 ? o.cities[o.cities.length - 1] : o.cities[0])
 
 const armyOf = (p: Player): number => p.military.filter((c) => cardStats(c).hp !== undefined).length
+
+/** 상대(또는 내) 타일이 그 주인에게 주는 망치 */
+function tileHammers(s: GameState, ownerId: number, cityId: number, tileId: number): number {
+  const owner = s.players[ownerId]
+  const card = findTile(owner, cityId, tileId)?.tile.card
+  return card ? tileYield(card, ctxOf(owner)).hammer : 0
+}
+/** 전쟁광이 탈락시키려는 상대의 망치 타일 (망치 2 이상): 계속 점령해 그 상대가 반격할 군사 카드를 못 뽑게 한다 */
+const HAMMER_HOLD = 2
+
+/**
+ * 견제형 문명: 정복(도시 공격)은 하지 않지만, 고유 유닛을 들고 있거나 같은 시대 상대들보다 군사력이 충분히 앞서
+ * 장군 한두 개로 상대 타일을 오래 점령해 방해한다. 전쟁광은 해당 없다 (한 상대를 골라 탈락시킨다).
+ */
+function isHarasser(s: GameState, p: Player): boolean {
+  if (!AI_TUNE.harass || isWarlord(p) || armyOf(p) < 2) return false
+  const rivals = s.players.filter((o) => o.id !== p.id && !o.eliminated && o.cities.length > 0)
+  if (!rivals.length) return false
+  if (p.military.some((c) => c.unique && cardStats(c).hp !== undefined)) return true
+  const avg = rivals.reduce((n, o) => n + strengthOf(o), 0) / rivals.length
+  return strengthOf(p) >= AI_TUNE.harassEdge * Math.max(1, avg)
+}
+/** 견제형이 노릴 상대: 셋 이상이면 1등(내가 1등이면 2등)을 우선한다. 둘뿐이면 남은 상대 */
+function harassTarget(s: GameState, p: Player): Player | null {
+  const top = rankTop(s)
+  if (top) return p.id === top.leader.id ? top.runnerUp : top.leader
+  return s.players.find((o) => o.id !== p.id && !o.eliminated && o.cities.length > 0) ?? null
+}
+/** 상대의 아직 점령되지 않은 땅 중 가장 중요한 타일 (도시 타일 제외) */
+function bestOpenTile(s: GameState, o: Player): { cityId: number; tileId: number; v: number } | null {
+  let best: { cityId: number; tileId: number; v: number } | null = null
+  for (const c of o.cities) {
+    for (const t of c.tiles) {
+      if (t.role === 'city' || t.occupiedBy !== undefined) continue
+      const v = tileImportance(s, o.id, c.id, t.card.id)
+      if (!best || v > best.v) best = { cityId: c.id, tileId: t.card.id, v }
+    }
+  }
+  return best
+}
+/**
+ * 견제형의 장군 옮기기: 점령한 타일은 오래 들고 있는 것이 기본이다. 쓸 장군이 없을 때만 하나를 불러들인다.
+ * 1) 점령 중인 상대가 더는 노릴 상대(1등)가 아니면 그 장군부터 불러들여 새 1등으로 옮긴다.
+ * 2) 노릴 상대가 문화·기술로 훨씬 좋은 타일을 얻었으면 가장 덜 중요한 점령을 풀어 그 타일로 옮긴다.
+ * 어느 쪽이든 옮겨 갈 타일에서 이길 가망이 없으면 장군을 놀리지 않고 지금 점령을 그대로 둔다.
+ * 회수한 장군은 다음 차례부터 쓸 수 있고, 다음 차례 선전포고가 그 타일을 고른다 (판 사이 기억 없이 매 차례 다시 계산한다).
+ */
+function harassRecalls(s: GameState, p: Player): Action[] {
+  if (p.generals - p.generalWorkers + p.returningGenerals >= 1) return []
+  const target = harassTarget(s, p)
+  if (!target) return []
+  const occ = occupiedTiles(s, p).map((t) => ({ t, v: tileImportance(s, t.defenderId, t.cityId, t.tileId) }))
+  if (!occ.length) return []
+  const best = bestOpenTile(s, target)
+  if (!best) return []
+  const offTarget = occ.filter((x) => x.t.defenderId !== target.id).sort((a, b) => a.v - b.v)
+  const pick = offTarget[0] ?? [...occ].sort((a, b) => a.v - b.v)[0]
+  if (!offTarget.length && best.v < pick.v + AI_TUNE.harassMargin) return []
+  if (battleOdds(s, p, { defenderId: target.id, cityId: best.cityId, tileId: best.tileId, kind: 'normal' }) < ODDS_NEEDED.normal) return []
+  return [{ type: 'recallGeneral', ...pick.t }]
+}
 
 /** 이웃이 군사를 가졌으면 그만큼(최대 4장, 최소 2장) 수비 군사를 갖춰야 한다 */
 /** 이번 라운드에 나를 노린 선전포고가 있다 */
@@ -829,7 +902,7 @@ function produceCandidates(s: GameState, p: Player): Action[] {
     const riskyActions: Action[] = bids.risky.map((w) => ({ type: 'invest', cityId: city.id, wonderId: w.id, hammers: h }))
     const cardActions: Action[] = []
     for (const o of cardOptions(p)) {
-      if (o.def.notBattle || (!o.unique && heldCount(p, o.def.id) >= MAX_HOLD) || !producible(s, p, o.def.id, o.unique, city) || cardCost(p, o.def, o.unique ? uniqueOf(p, o.unique) : undefined) > h) continue
+      if (o.def.notBattle || (!o.unique && heldCount(p, o.def.id) >= holdLimit(p, o.def.id)) || !producible(s, p, o.def.id, o.unique, city) || cardCost(p, o.def, o.unique ? uniqueOf(p, o.unique) : undefined) > h) continue
       cardActions.push({ type: 'produce', cityId: city.id, defId: o.def.id, unique: o.unique })
     }
     // 군대가 3장 미만이거나 이웃의 군사에 비해 수비가 모자라면 군사 카드를 먼저, 그 뒤에는 불가사의에 망치를 모두 건다
@@ -837,7 +910,7 @@ function produceCandidates(s: GameState, p: Player): Action[] {
     const needDefense = army < defenseTarget(s, p) || underAttack(s, p)
     const warRush = isWarlord(p) && warFoundation(p) && preIndustrial(s)
     // 공성 카드가 없으면 그것부터 만든다 (도시를 치려면 공성 카드가 살아남아야 한다)
-    const joinSiege = !isWarlord(p) && !hasSiege(p) && (() => { const l = coalitionLeader(s, p); return !!l && l.cities.length > 0 && sidesOccupied(l) >= 2 })()
+    const joinSiege = !isWarlord(p) && !hasSiege(p) && (() => { const l = coalitionLeader(s, p); return !!l && l.cities.length > 0 && sidesOccupied(l) >= 2 && sidesMine(l, p.id) >= 1 })()
     const rush = (warRush && army < AI_TUNE.warlordArmy) || ((warRush || joinSiege) && !hasSiege(p) && cardActions.some(isSiegeAction))
     if ((warRush || joinSiege) && !hasSiege(p)) cardActions.sort((x, y) => Number(isSiegeAction(y)) - Number(isSiegeAction(x)))
     // 줄루의 임피는 상대 카드의 효과 칸 공격과 효과(원거리의 반격 없음 등)를 없애므로, 줄루가 상대면 마크로만 싸우는 보병 계열을 먼저 만든다
@@ -858,15 +931,20 @@ function produceCandidates(s: GameState, p: Player): Action[] {
         if (uq && ups.some((x) => x.id === uq.base) && cardCost(p, cardById(uq.base), uq) <= gold) out.push({ type: 'upgrade', uid: c.uid, unique: u.name })
       }
     }
-    for (const c of p.military) for (const t of upgradeTargets(p, c).filter((x) => heldCount(p, x.id) < MAX_HOLD && cardCost(p, x) <= gold)) out.push({ type: 'upgrade', uid: c.uid, toDefId: t.id })
+    for (const c of p.military) for (const t of upgradeTargets(p, c).filter((x) => heldCount(p, x.id) < holdLimit(p, x.id) && cardCost(p, x) <= gold)) out.push({ type: 'upgrade', uid: c.uid, toDefId: t.id })
   }
   // 4) 장군이 없고(돌아오는 중인 것도 없고) 군대가 있으면 점령 중인 장군 1개를 불러들여 다시 전쟁에 쓴다.
   //    다만 상대에게 중요한 타일(좋은 산출·자원·자연경관)을 점령 중이면 그대로 들고 있는다. 상대의 성장을 누르는 편이 낫다.
-  if (p.generals + p.returningGenerals < 1 && army >= 2) {
+  //    견제형 문명은 점령을 오래 들고 있고, 1등이 바뀌었거나 상대가 훨씬 좋은 타일을 얻었을 때만 장군을 옮긴다 (harassRecalls).
+  if (isHarasser(s, p)) out.push(...harassRecalls(s, p))
+  else if (p.generals + p.returningGenerals < 1 && army >= 2) {
+    const victim = isWarlord(p) && AI_TUNE.warlordHammer > 0 ? warlordVictim(s, p) : null
     const cheap = occupiedTiles(s, p)
       .map((t) => ({ t, v: tileImportance(s, t.defenderId, t.cityId, t.tileId) }))
       .filter((x) => x.v < KEEP_OCCUPIED)
       .filter((x) => !keepForConquest(s, p, x.t))
+      // 전쟁광은 탈락시키려는 상대의 망치 타일을 풀지 않는다 (반격할 군사 카드를 못 뽑게 계속 누른다)
+      .filter((x) => !(x.t.defenderId === victim && tileHammers(s, x.t.defenderId, x.t.cityId, x.t.tileId) >= HAMMER_HOLD))
       .sort((a, b) => a.v - b.v)
     for (const { t } of cheap) out.push({ type: 'recallGeneral', ...t })
   }
@@ -956,7 +1034,7 @@ function declareCandidates(s: GameState, p: Player): Action[] {
     if (top && aim === top.leader.id && !isWarlord(p) && piledOn(s, top.leader) && sidesOccupied(top.leader) < 3) aim = top.runnerUp.id !== p.id ? top.runnerUp.id : -1
     let rate = value
     if (!isWarlord(p) && top && aim === top.leader.id) {
-      // 1등을 견제하는 연합: 도시 옆 4칸을 함께 점령해 두면 (누구의 장군이든) 공성 카드를 가진 누구나 도시를 파괴할 수 있다
+      // 1등을 견제하는 연합: 도시 옆 4칸을 함께 점령해 두면, 그중 장군이 가장 많은 문명(공동이면 모두)이 공성 카드로 도시를 파괴할 수 있다
       rate = (t) => {
         if (t.kind === 'retake') return 1000
         if (t.kind === 'city') return hasSiege(p) ? 500 : -1
@@ -970,13 +1048,17 @@ function declareCandidates(s: GameState, p: Player): Action[] {
       aim = warlordVictim(s, p)
       // 힘이 앞서지 않으면 장군만 낭비하므로 선전포고하지 않고 군대를 더 키운다 (탈환은 언제든)
       if (aim !== null && strengthOf(p) < strengthOf(s.players[aim]) * 1.15) aim = -1
+      // 탈락시킬 상대의 망치 타일을 먼저 점령한다: 성장을 마쳐도 반격할 군사 카드를 못 뽑아 리드가 오래간다
       rate = (t) => {
         if (t.kind === 'retake') return 1000
         if (t.kind === 'city') return hasSiege(p) ? 500 : -1
         const o = s.players[t.defenderId]
         const side = t.cityId === conquestCity(o).id && findTile(o, t.cityId, t.tileId)?.tile.role === 'side'
-        return tileImportance(s, t.defenderId, t.cityId, t.tileId) + (side ? 8 : 0)
+        return tileImportance(s, t.defenderId, t.cityId, t.tileId) + AI_TUNE.warlordHammer * tileHammers(s, t.defenderId, t.cityId, t.tileId) + (side ? 8 : 0)
       }
+    } else if (isHarasser(s, p)) {
+      // 견제형은 도시를 치지 않고, 노리는 상대의 가장 중요한 타일(산출·자원·자연경관)을 점령한다
+      rate = (t) => (t.kind === 'retake' ? 1000 : t.kind === 'city' ? -1 : tileImportance(s, t.defenderId, t.cityId, t.tileId))
     }
     const targets = declarationTargets(s, p)
       .filter((t) => aim === null || t.kind === 'retake' || t.defenderId === aim || (isWarlord(p) && t.kind === 'city'))
