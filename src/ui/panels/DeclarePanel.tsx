@@ -101,12 +101,13 @@ export function DeclarePanel({ game, player, dispatch }: PanelProps) {
                 : (city) => {
                     const s = sidesHeld(city, player.id)
                     const blocked = city.id === 0 && boardOwner.cities.length > 1
-                    const full = s.total > 0 && s.any === s.total
+                    // 타일이 없는 면은 점령된 칸으로 친다
+                    const full = s.any === s.total
                     const leaders = cityAttackLeaders(city)
-                    const ready = full && leaders.includes(player.id) && !blocked
+                    const ready = full && (leaders.length === 0 || leaders.includes(player.id)) && !blocked
                     return (
                       <span className={ready ? 'ok' : 'muted'}>
-                        · 주변 점령 {s.any}/{s.total} (내 장군 {s.held}){s.open > 0 ? ` (빈 면 ${s.open})` : ''}
+                        · 주변 점령 {s.any}/{s.total} (내 장군 {s.held}){s.open > 0 ? ` (타일 없는 면 ${s.open}: 점령된 칸으로 침)` : ''}
                         {blocked
                           ? ' · 두 번째 도시를 먼저 파괴해야 공격 가능'
                           : ready
