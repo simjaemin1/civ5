@@ -911,6 +911,50 @@ describe('도시 공격·탈환·탈락', () => {
     expect(s.players[0].military.some((c) => c.defId === 'atomic_bomb')).toBe(false)
   })
 
+  it('원자폭탄은 장군의 주인과 상관없이 장군이 점령 중인 타일을 파괴하고, 그 장군은 주인에게 돌아간다', () => {
+    let s = round2(['korea', 'russia', 'china'], [hand4(), hand4(), hand4()])
+    s = mod(s, (c) => {
+      const city = c.players[1].cities[0]
+      city.tiles.push({ card: tile(['평지']), role: 'extra' })
+      city.tiles.at(-1)!.occupiedBy = 2 // 중국 장군이 러시아 타일을 점령
+      c.players[0].cities[0].tiles.push({ card: tile(['평지']), role: 'extra', occupiedBy: 1 }) // 러시아 장군이 한국 타일을 점령
+      c.players[2].generals = 0
+      c.players[1].generals = 0
+      give(c, 0, 'atomic_bomb')
+      give(c, 0, 'atomic_bomb')
+    })
+    const russiaTile = s.players[1].cities[0].tiles.at(-1)!.card.id
+    s = apply(s, { type: 'useAtomicBomb', defenderId: 1, cityId: 0, tileId: russiaTile })
+    expect(s.players[1].cities[0].tiles.some((t) => t.card.id === russiaTile)).toBe(false)
+    expect(s.players[2].generals).toBe(1) // 중국 장군이 돌아간다
+    expect(s.players[0].generals).toBe(0)
+    // 내 영토를 점령 중인 상대 장군도 대상이 된다
+    const myTile = s.players[0].cities[0].tiles.at(-1)!.card.id
+    s = apply(s, { type: 'useAtomicBomb', defenderId: 0, cityId: 0, tileId: myTile })
+    expect(s.players[0].cities[0].tiles.some((t) => t.card.id === myTile)).toBe(false)
+    expect(s.players[1].generals).toBe(1)
+    expect(s.players[0].military.some((c) => c.defId === 'atomic_bomb')).toBe(false)
+  })
+
+  it('원자폭탄은 스웨덴이 일꾼처럼 장군을 올린 타일은 파괴할 수 없다 (점령이 아님)', () => {
+    let s = round2(['sweden', 'russia'], [hand4(), hand4()])
+    s = mod(s, (c) => {
+      c.players[0].generals = 1
+      give(c, 1, 'atomic_bomb')
+    })
+    const sweden = s.players.find((p) => p.civId === 'sweden')!
+    const tileIdOf = sweden.cities[0].tiles.find((t) => t.role !== 'city')!.card.id
+    s = mod(s, (c) => {
+      const sw = c.players[sweden.id]
+      sw.generalWorkers = 1
+      sw.cities[0].placed = [tileIdOf]
+    })
+    const russia = s.players.find((p) => p.civId === 'russia')!
+    expect(sweden.cities[0].tiles.every((t) => t.occupiedBy === undefined)).toBe(true)
+    s = mod(s, (c) => (c.turnIdx = c.order.indexOf(russia.id)))
+    expect(() => apply(s, { type: 'useAtomicBomb', defenderId: sweden.id, cityId: 0, tileId: tileIdOf })).toThrow(/위대한 장군이 점령 중인 타일만/)
+  })
+
   it('원자폭탄은 첫 5타일(사면)도 파괴할 수 있고, 그 면은 빈 면이 되어 다음 문화 타일이 붙는다', () => {
     let s = round2()
     s = mod(s, (c) => {

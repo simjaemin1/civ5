@@ -597,25 +597,32 @@ export function checkCultureDefeats(s: GameState): void {
   }
 }
 
-/** 원자폭탄: 내 차례에 사용해, 내 장군이 올라간 상대 타일을 파괴하고 장군을 돌려받는다. 첫 5타일(사면)도 파괴할 수 있다. 도시 타일에는 장군을 올릴 수 없으므로 파괴할 수 없다. */
+/**
+ * 원자폭탄: 내 차례에 사용해, 위대한 장군이 점령 중인 타일 1개를 파괴하고 그 장군을 주인에게 돌려보낸다.
+ * 장군의 주인은 상관없다 (사용자 결정, 카드 수정). 첫 5타일(사면)도 파괴할 수 있다. 도시 타일에는 장군을 올릴 수 없으므로 파괴할 수 없다.
+ */
 export function detonateAtomicBomb(s: GameState, p: Player, a: { defenderId: number; cityId: number; tileId: number }): void {
   const bomb = p.military.find((c) => c.defId === 'atomic_bomb')
   if (!bomb) throw new RuleError('원자폭탄 카드가 없습니다')
   const def = s.players[a.defenderId]
   const found = def && findTile(def, a.cityId, a.tileId)
   if (!def || def.eliminated || !found) throw new RuleError('대상 타일이 없습니다')
-  if (found.tile.occupiedBy !== p.id) throw new RuleError('내 장군이 올라간 타일만 파괴할 수 있습니다')
+  const occupier = found.tile.occupiedBy
+  // 어느 문명의 장군이든 점령 중인 타일이면 된다 (스웨덴이 일꾼처럼 올린 장군은 점령이 아니라 해당 없음)
+  if (occupier === undefined) throw new RuleError('위대한 장군이 점령 중인 타일만 파괴할 수 있습니다')
   const { tile, city } = found
   if (tile.role === 'city') throw new RuleError('도시 타일에는 장군을 올릴 수 없어 원자폭탄으로 파괴할 수 없습니다')
   city.tiles = city.tiles.filter((t) => t !== tile)
   city.placed = city.placed.filter((id) => id !== a.tileId)
+  // 몽골이 이 타일에 올린 일꾼도 내려온다
+  for (const o of s.players) for (const c of o.cities) c.enemyPlaced = c.enemyPlaced?.filter((e) => !(e.playerId === def.id && e.tileId === a.tileId))
   if (tile.role === 'side' && tile.side) {
     // 십자의 빈 면이 되살아난다: 다음에 얻는 문화 타일은 반드시 그 면에 붙는다
     city.openSides = SIDES.filter((x) => x === tile.side || city.openSides.includes(x))
   }
-  p.generals += 1
+  s.players[occupier].generals += 1 // 점령 중이던 장군은 주인에게 돌아간다
   p.military = p.military.filter((c) => c.uid !== bomb.uid)
-  say(s, `${civById(p.civId).name} 원자폭탄 → ${civById(def.civId).name} 타일 파괴`)
+  say(s, `${civById(p.civId).name} 원자폭탄 → ${civById(def.civId).name} 타일 파괴 (${civById(s.players[occupier].civId).name} 장군이 돌아감)`)
 }
 
 /** 만리장성: 게임 중 1번, 내 영토 위의 상대 장군을 모두 돌려보낸다. */
