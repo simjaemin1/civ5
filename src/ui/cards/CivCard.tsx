@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Overlay } from '../Overlay'
 import { civById } from '../../engine'
 import { cardImage } from './cardImages'
 
@@ -36,6 +37,7 @@ export function CivCard({ civId, width = 260, zoomable = true }: Props) {
     <>
       {face(width, zoomable ? () => setZoom(true) : undefined)}
       {zoom && (
+        <Overlay>
         <div className="modal-backdrop" onClick={() => setZoom(false)} onKeyDown={(e) => e.key === 'Escape' && setZoom(false)} role="dialog" aria-modal="true" aria-label={civ.name}>
           <div className="zoom" onClick={(e) => e.stopPropagation()}>
             {face(Math.min(720, window.innerWidth - 48))}
@@ -44,6 +46,7 @@ export function CivCard({ civId, width = 260, zoomable = true }: Props) {
             </button>
           </div>
         </div>
+        </Overlay>
       )}
     </>
   )

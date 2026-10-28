@@ -1,4 +1,5 @@
 import { CityTag } from '../icons'
+import { Overlay } from '../Overlay'
 import { useMemo, useState } from 'react'
 import type { Placement } from '../../engine'
 import { apply, civById, declarationTargets, totalWorkers, RuleError } from '../../engine'
@@ -280,6 +281,7 @@ export function PlacePanel({ game, player, dispatch }: PanelProps) {
         </section>
       )}
       {askEnemy && (
+        <Overlay>
         <div className="modal-backdrop" onClick={() => setAskEnemy(null)} role="dialog" aria-modal="true" aria-label="일꾼을 쓸 도시">
           <div className="zoom pick-city" onClick={(e) => e.stopPropagation()}>
             <b>어느 도시의 일꾼을 사용하시겠습니까?</b>
@@ -296,6 +298,7 @@ export function PlacePanel({ game, player, dispatch }: PanelProps) {
             <button onClick={() => setAskEnemy(null)}>취소</button>
           </div>
         </div>
+        </Overlay>
       )}
     </div>
   )

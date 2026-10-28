@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Overlay } from '../Overlay'
 import type { TechDef } from '../../engine'
 import { ICON, techCardLines } from '../format'
 import { cardImage } from './cardImages'
@@ -41,6 +42,7 @@ export function TechCard({ tech, state = 'idle', note, disabled, onClick, width 
         {state === 'owned' && <span className="badge">✓ 보유</span>}
       </button>
       {zoom && (
+        <Overlay>
         <div className="modal-backdrop" onClick={() => setZoom(false)} onKeyDown={(e) => e.key === 'Escape' && setZoom(false)} role="dialog" aria-modal="true" aria-label={tech.name}>
           <div className="zoom" onClick={(e) => e.stopPropagation()}>
             <TechCard tech={tech} state={state} width={Math.min(360, window.innerWidth - 48)} zoomable={false} glow={glow} />
@@ -50,6 +52,7 @@ export function TechCard({ tech, state = 'idle', note, disabled, onClick, width 
             </button>
           </div>
         </div>
+        </Overlay>
       )}
     </>
   )

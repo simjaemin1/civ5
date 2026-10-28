@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Overlay } from './Overlay'
 import { KIND_LABEL, entryOf } from './encyclopedia'
 import type { Item, Ref } from './encyclopedia'
 import { searchWords } from './searchWords'
@@ -75,7 +76,9 @@ function Encyclopedia({ start, onClose }: { start: Ref; onClose: () => void }) {
         {it.label}
       </button>
     )
+  // 화면 맨 위(문서 끝)에 그린다: 오른쪽 칸(고정 칸) 안에 두면 위쪽 단계 막대 같은 고정 요소에 가려진다
   return (
+    <Overlay>
     <div className="modal-backdrop" onClick={onClose} role="dialog" aria-modal="true" aria-label={`도감: ${entry.title}`}>
       <div className="modal wiki" onClick={(e) => e.stopPropagation()}>
         <div className="wiki-head">
@@ -99,5 +102,6 @@ function Encyclopedia({ start, onClose }: { start: Ref; onClose: () => void }) {
         </dl>
       </div>
     </div>
+    </Overlay>
   )
 }

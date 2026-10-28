@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Overlay } from '../Overlay'
 import type { PolicyId } from '../../engine'
 import { POLICIES } from '../../engine'
 import { cardImage } from './cardImages'
@@ -39,6 +40,7 @@ export function PolicyCard({ policy, width = 150, active, disabled, onClick }: P
     <>
       {face(width, onClick ?? (() => setZoom(true)))}
       {zoom && (
+        <Overlay>
         <div className="modal-backdrop" onClick={() => setZoom(false)} onKeyDown={(e) => e.key === 'Escape' && setZoom(false)} role="dialog" aria-modal="true" aria-label={def.name}>
           <div className="zoom" onClick={(e) => e.stopPropagation()}>
             {face(Math.min(360, window.innerWidth - 48))}
@@ -47,6 +49,7 @@ export function PolicyCard({ policy, width = 150, active, disabled, onClick }: P
             </button>
           </div>
         </div>
+        </Overlay>
       )}
     </>
   )

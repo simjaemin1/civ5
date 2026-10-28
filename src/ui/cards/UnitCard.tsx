@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Overlay } from '../Overlay'
 import type { Dir } from '../../engine'
 import { MILITARY_CARDS, UNIQUES, cardById, cardStats } from '../../engine'
 import { unitImage } from './unitImage'
@@ -78,6 +79,7 @@ export function UnitCard({ card, width = 150, selected, dim, onClick, zoomable =
     <>
       {face(width, onClick ?? (zoomable ? () => setZoom(true) : undefined), flip)}
       {zoom && (
+        <Overlay>
         <div className="modal-backdrop" onClick={() => setZoom(false)} onKeyDown={(e) => e.key === 'Escape' && setZoom(false)} role="dialog" aria-modal="true" aria-label={st.name}>
           <div className="zoom" onClick={(e) => e.stopPropagation()}>
             {face(Math.min(360, window.innerWidth - 48))}
@@ -86,6 +88,7 @@ export function UnitCard({ card, width = 150, selected, dim, onClick, zoomable =
             </button>
           </div>
         </div>
+        </Overlay>
       )}
     </>
   )

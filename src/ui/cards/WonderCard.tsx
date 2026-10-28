@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Overlay } from '../Overlay'
 import type { ReactNode } from 'react'
 import type { WonderCardDef } from '../../engine'
 import { ICON, conditionText, wonderEffectText } from '../format'
@@ -57,6 +58,7 @@ export function WonderCard({ wonder, caption, width = 260, owned, dim, note, own
       {face(width, true)}
       {caption && <figcaption>{caption}</figcaption>}
       {zoom && (
+        <Overlay>
         <div className="modal-backdrop" onClick={() => setZoom(false)} onKeyDown={(e) => e.key === 'Escape' && setZoom(false)} role="dialog" aria-modal="true" aria-label={wonder.name}>
           <div className="zoom" onClick={(e) => e.stopPropagation()}>
             {face(Math.min(720, window.innerWidth - 48), false)}
@@ -66,6 +68,7 @@ export function WonderCard({ wonder, caption, width = 260, owned, dim, note, own
             </button>
           </div>
         </div>
+        </Overlay>
       )}
     </figure>
   )
