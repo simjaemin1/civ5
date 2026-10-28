@@ -320,7 +320,7 @@ export function GameScreen({ initial, seats, onExit }: Props) {
               <button className="settings-exit" onClick={onExit}>나가기</button>
             </div>
           </details>
-          <TechTreeButton player={player} players={game.players} />
+          <TechTreeButton player={game.players[viewer]} players={game.order.map((id) => game.players[id])} />
           <CivEmblem player={player} away={picked !== null} onHome={() => setPeek(null)} />
         </div>
       </header>
