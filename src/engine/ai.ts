@@ -1,4 +1,4 @@
-import type { Action, CardInst, GameState, Player, Side, TileCard } from './types'
+import type { Action, GameState, Player, Side, TileCard } from './types'
 import { RuleError, SIDES } from './types'
 import { MILITARY_CARDS, RESOURCES, TECHS, WONDERS, cardById, civById, wonderCardById } from './data'
 import { cardStats } from './cardstats'
@@ -7,7 +7,8 @@ import { apply, researchableTechs } from './game'
 import { canHammerScience, computeYields, ctxOf, culture, happiness, rationalismScience, tileYield, totalWorkers, tourism } from './yields'
 import { conditionMet, investableWonders, minHammers } from './wonders'
 import { MAX_HOLD, cardCost, heldCount, producible, uniqueOf, upgradeTargets } from './military'
-import { arrangeBattle, chooseTargets, declarationTargets, findTile, occupiedTiles, startNextBattle, targetSlot, usableInBattle } from './war'
+import { declarationTargets, findTile, occupiedTiles } from './war'
+import { battleActions, battleOdds } from './aiBattle'
 import { currentPlayer, defaultTileCity } from './core'
 import { turnKey } from './undo'
 
@@ -928,59 +929,10 @@ function piledOn(s: GameState, leader: Player): boolean {
 
 /** 선전포고에 필요한 승률 (탈환은 장군이 들지 않아 조금 낮게) */
 const ODDS_NEEDED: Record<'normal' | 'retake' | 'city', number> = { normal: 0.45, retake: 0.35, city: 0.45 }
-/** 상대 카드 방향 표본 수 */
-const ODDS_SAMPLES = 4
 
 const coastalTarget = (s: GameState, t: ReturnType<typeof declarationTargets>[number]): boolean => {
   const owner = t.kind === 'retake' ? s.players.find((o) => o.cities.some((c) => c.id === t.cityId && c.tiles.some((x) => x.card.id === t.tileId && x.occupiedBy !== undefined))) : s.players[t.defenderId]
   return !!owner && !!findTile(owner, t.cityId, t.tileId)?.tile.card.terrains.includes('해안')
-}
-
-/**
- * 이 목표에 선전포고하면 이길 확률: 상태 복사본에서 엔진 전투를 그대로 돌린다 (양쪽 배치·대상 선택은 AI).
- * 상대 카드의 방향은 비공개이므로 왼쪽·가운데·오른쪽을 고르게 뽑은 표본으로 센다. 도시 공격은 공성 카드가 살아남아야 성공이다.
- * 난수는 상태의 난수를 바꾸지 않는 따로 된 수열이다 (같은 상태면 같은 판단).
- */
-function battleOdds(s: GameState, p: Player, t: ReturnType<typeof declarationTargets>[number]): number {
-  const enemyId = t.defenderId
-  const enemy = s.players[enemyId]
-  const hidden = enemy.military.some((c) => c.dirs?.length)
-  const samples = hidden ? ODDS_SAMPLES : 1
-  let r = (s.rng ^ (p.id * 2654435761) ^ (t.tileId * 40503)) >>> 0
-  const rand = () => {
-    r = (Math.imul(r, 1664525) + 1013904223) >>> 0
-    return r / 2 ** 32
-  }
-  const DIRS = ['L', 'C', 'R'] as const
-  let wins = 0
-  for (let k = 0; k < samples; k++) {
-    // 일반·탈환 전투는 두 문명만 바뀐다. 도시 공격은 도시가 무너지면 다른 문명의 장군도 돌아오므로 모두 복사한다
-    const players = t.kind === 'city' ? structuredClone(s.players) : s.players.map((o) => (o.id === p.id || o.id === enemyId ? structuredClone(o) : o))
-    const q: GameState = { ...s, players, deck: [...s.deck], log: [], battleReports: [], declarations: [], battle: null, uniqueSupply: structuredClone(s.uniqueSupply), winner: null }
-    if (hidden) for (const c of q.players[enemyId].military) if (c.dirs) c.dirs = c.dirs.map(() => DIRS[Math.floor(rand() * 3)])
-    q.declarations = [{ attackerId: p.id, defenderId: enemyId, cityId: t.cityId, tileId: t.tileId, kind: t.kind }]
-    q.players[p.id].busyWorkers += 1
-    if (!startNextBattle(q)) return 0
-    for (let i = 0; i < 20 && q.battle; i++) {
-      let done = false
-      for (const a of battleCandidates(q)) {
-        try {
-          if (a.type === 'arrangeBattle') arrangeBattle(q, a.playerId, a.slots)
-          else if (a.type === 'chooseTargets') chooseTargets(q, a.playerId, a.picks)
-          done = true
-          break
-        } catch (e) {
-          if (!(e instanceof RuleError)) throw e
-        }
-      }
-      if (!done) break
-    }
-    const rep = q.battleReports[q.battleReports.length - 1]
-    if (!rep || rep.winner !== 'attacker') continue
-    if (t.kind === 'city' && !rep.units.some((u) => u.owner === p.id && !u.destroyed && cardStats(u.inst).siege)) continue
-    wins++
-  }
-  return wins / samples
 }
 
 function declareCandidates(s: GameState, p: Player): Action[] {
@@ -1053,98 +1005,8 @@ function declareCandidates(s: GameState, p: Player): Action[] {
   return out
 }
 
-/**
- * 공격 마크가 상대 칸 안쪽(1~4번)을 향하면 값이 있고 벽(범위 밖)을 향하면 헛방이다.
- * 원거리 계열은 반드시 안쪽을 향하게, 창병 계열은 벽을 향해도 괜찮지만 임피는 공격수라 안쪽을 향하게 둔다.
- */
-function wallWeight(c: CardInst): number {
-  if (cardStats(c).effect === 'impi') return 3
-  const line = cardById(c.defId).line
-  if (line === 'ranged') return 3
-  if (line === 'anti_cavalry') return 0.3
-  return 2
-}
-
-/** 이 카드를 slot(1~4번)에 놓았을 때 안쪽을 향하는 공격의 가치 */
-function inwardValue(c: CardInst, slot: number): number {
-  const w = wallWeight(c)
-  return cardStats(c).marks.reduce((n, m) => {
-    const j = targetSlot(m.dir, slot)
-    return n + (j >= 1 && j <= 4 ? m.power * w : 0)
-  }, 0)
-}
-
-/** 낼 카드(최대 4장)를 4칸에 놓는 방법 중 안쪽을 향하는 공격이 가장 많은 것. 같으면 원래 순서를 지킨다 */
-export function bestSlots(p: Player, uids: number[]): (number | null)[] {
-  const base: (number | null)[] = [uids[0] ?? null, uids[1] ?? null, uids[2] ?? null, uids[3] ?? null]
-  const inst = (u: number) => p.military.find((c) => c.uid === u)!
-  const score = (slots: (number | null)[]): number => slots.reduce<number>((n, u, i) => n + (u === null ? 0 : inwardValue(inst(u), i + 1)), 0)
-  let best = base
-  let bestScore = score(base)
-  const used = new Set<number>()
-  const cur: (number | null)[] = []
-  const walk = (i: number) => {
-    if (i === 4) {
-      const sc = score(cur)
-      if (sc > bestScore) {
-        best = [...cur]
-        bestScore = sc
-      }
-      return
-    }
-    for (const u of uids) {
-      if (used.has(u)) continue
-      used.add(u)
-      cur[i] = u
-      walk(i + 1)
-      used.delete(u)
-    }
-    // 카드가 4장보다 적으면 빈칸도 둘 수 있다
-    if (cur.filter((x, k) => k < i && x !== null).length + (4 - i) > uids.length) {
-      cur[i] = null
-      walk(i + 1)
-    }
-  }
-  walk(0)
-  return best
-}
-
 function battleCandidates(s: GameState): Action[] {
-  const b = s.battle!
-  const pid = actorOf(s)
-  const p = s.players[pid]
-  if (b.step === 'arrange') {
-    const power = (uid: number) => {
-      const st = cardStats(p.military.find((c) => c.uid === uid)!)
-      return (st.hp ?? 0) + (st.choose ?? st.marks[0]?.power ?? st.markPower ?? 0) * 2
-    }
-    // 도시를 공격할 때는 공성 카드를 반드시 내보낸다 (살아남아 이겨야 도시가 파괴된다)
-    const siegeFirst = (uid: number) => (b.decl.kind === 'city' && b.decl.attackerId === pid && cardStats(p.military.find((c) => c.uid === uid)!).siege ? 1000 : 0)
-    // 이 전투에 쓸 수 없는 카드(해안이 아닌 전투의 전함, 원자폭탄 등)는 빼고 고른다
-    const usable = p.military
-      .filter((c) => usableInBattle(s, b, p, c))
-      .map((c) => c.uid)
-      .sort((x, y) => power(y) + siegeFirst(y) - (power(x) + siegeFirst(x)))
-    const picked = usable.slice(0, 4)
-    return [
-      { type: 'arrangeBattle', playerId: pid, slots: bestSlots(p, picked) },
-      { type: 'arrangeBattle', playerId: pid, slots: [picked[0] ?? null, picked[1] ?? null, picked[2] ?? null, picked[3] ?? null] },
-      { type: 'arrangeBattle', playerId: pid, slots: [null, null, null, null] },
-    ]
-  }
-  const head = b.chooseQueue[0]
-  const enemyId = pid === b.decl.attackerId ? b.decl.defenderId : b.decl.attackerId
-  const enemy = s.players[enemyId]
-  const enemyBoard = (b.slots[enemyId] ?? []).filter((x): x is number => x !== null)
-  const hpOf = (uid: number) => cardStats(enemy.military.find((c) => c.uid === uid)!).hp ?? 99
-  const sorted = [...enemyBoard].sort((x, y) => hpOf(x) - hpOf(y))
-  const antiTank = enemyBoard.filter((u) => cardStats(enemy.military.find((c) => c.uid === u)!).baseId === 'anti_tank_gun')
-  const picks: Record<number, number | null> = {}
-  for (const uid of head.uids) {
-    const me = p.military.find((c) => c.uid === uid)!
-    picks[uid] = cardStats(me).baseId === 'tank' && antiTank.length ? antiTank[0] : (sorted[0] ?? null)
-  }
-  return [{ type: 'chooseTargets', playerId: pid, picks }]
+  return battleActions(s, actorOf(s))
 }
 
 /** 지금 입력해야 하는 문명의 행동 후보 (앞에 있을수록 선호, 마지막은 항상 규칙을 지키는 진행 행동). */

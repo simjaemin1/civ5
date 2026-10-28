@@ -594,34 +594,42 @@ describe('도시 선택 (식량·망치 변환, 문화 타일, 일꾼 버리기)
 
 describe('시작 타일 엘도라도', () => {
   const eldoradoIn = (hand: TileCard[]) => hand.some((c) => c.wonder === 'eldorado')
-  it('시작 손에서 엘도라도를 처음 발견하면 손이 5장, 도시를 세우면 영토 효과로 6장', () => {
+  it('시작 손에 엘도라도가 있으면 처음 발견 +1과 영토 효과 +1을 미리 받아 6장 중에서 도시를 고른다 (도시를 세워도 더 받지 않음)', () => {
     let hit = 0
     for (let seed = 1; seed <= 400 && hit < 3; seed++) {
-      let s = createGame({ seed, civIds: ['denmark', 'china'] })
-      const hand = s.players[s.order[0]].hand
-      if (!eldoradoIn(hand)) continue
+      const s = createGame({ seed, civIds: ['denmark', 'china'] })
+      const p = s.players[s.order[0]]
+      if (!eldoradoIn(p.hand)) continue
       hit++
-      expect(hand).toHaveLength(5)
+      expect(p.hand).toHaveLength(6)
       expect(s.eldoradoFound).toBe(true)
-      s = found(s)
-      expect(culture(me(s))).toBe(6)
+      expect(p.startClaim?.bonusIds).toHaveLength(1)
+      // 마지막에 받은 타일(영토 효과로 미리 받은 타일)로도 도시를 세울 수 있다
+      const last = p.hand[5]
+      const others = p.hand.filter((c) => c.id !== last.id)
+      const t = apply(s, { type: 'buildCity', cityTileId: last.id, sideTiles: { N: others[0].id, E: others[1].id, S: others[2].id, W: others[3].id } })
+      const q = t.players[p.id]
+      expect(q.cities[0].tiles.find((x) => x.role === 'city')!.card.id).toBe(last.id)
+      expect(culture(q)).toBe(6) // 엘도라도 영토 효과는 다시 받지 않는다
+      expect(q.startClaim).toBeUndefined()
+      expect(q.pendingTiles ?? []).toHaveLength(0)
     }
     expect(hit).toBeGreaterThan(0)
   })
-  it('시작 손이 이미 5장인 문명(시작 문화 1)은 발견하면 손이 6장, 십자에 놓지 않은 1장은 추가 타일, 도시를 세우면 영토 효과로 7장', () => {
+  it('시작 손이 이미 5장인 문명(시작 문화 1)은 7장, 십자에 놓지 않은 타일은 추가 타일이 된다', () => {
     let hit = 0
     for (let seed = 1; seed <= 600 && hit < 2; seed++) {
       let s = createGame({ seed, civIds: ['persia', 'greece'] })
       const p = s.players[s.order[0]]
       if (p.civId !== 'persia' || !eldoradoIn(p.hand)) continue
       hit++
-      expect(p.hand).toHaveLength(6) // 선택 화면에서 +1
+      expect(p.hand).toHaveLength(7)
       s = found(s)
       expect(culture(me(s))).toBe(7)
     }
     expect(hit).toBeGreaterThan(0)
   })
-  it('AI도 6장 시작 손(시작 문화 1 + 엘도라도)으로 도시를 세운다', () => {
+  it('AI도 엘도라도가 든 시작 손 전부로 도시를 세운다', () => {
     let hit = 0
     for (let seed = 1; seed <= 600 && hit < 2; seed++) {
       let s = createGame({ seed, civIds: ['persia', 'greece'] })
@@ -630,6 +638,26 @@ describe('시작 타일 엘도라도', () => {
       hit++
       s = aiStep(s).state
       expect(culture(s.players[p.id])).toBe(7)
+    }
+    expect(hit).toBeGreaterThan(0)
+  })
+  it('불모지 탈출로 엘도라도를 버리면 영토 효과로 미리 받은 타일도 덱으로 돌아간다 (처음 발견으로 받은 타일은 남는다)', () => {
+    let hit = 0
+    for (let seed = 1; seed <= 400 && hit < 2; seed++) {
+      const s = createGame({ seed, civIds: ['denmark', 'china'] })
+      const p = s.players[s.order[0]]
+      if (!eldoradoIn(p.hand)) continue
+      hit++
+      const eldo = p.hand.find((c) => c.wonder === 'eldorado')!
+      const bonus = p.startClaim!.bonusIds[0]
+      const tiles = (g: GameState) => g.deck.length + g.players.reduce((n, x) => n + x.hand.length, 0)
+      const t = apply(s, { type: 'wasteland', discardTileId: eldo.id })
+      const q = t.players[p.id]
+      const again = eldoradoIn(q.hand) // 섞인 덱에서 엘도라도를 다시 뽑았으면 다시 미리 받는다
+      expect(q.hand.some((c) => c.id === bonus)).toBe(again && q.startClaim?.bonusIds.includes(bonus) === true)
+      expect(q.hand).toHaveLength(again ? 6 : 5)
+      expect(tiles(t)).toBe(tiles(s)) // 타일이 사라지거나 늘지 않는다
+      if (!again) expect(q.startClaim).toBeUndefined()
     }
     expect(hit).toBeGreaterThan(0)
   })
@@ -843,7 +871,7 @@ describe('지난 배치 기억', () => {
 })
 
 describe('불모지로 뽑은 엘도라도', () => {
-  it('불모지 탈출로 엘도라도를 새로 뽑아도 처음 발견이면 손 +1, 도시를 세우면 영토 효과 +1', () => {
+  it('불모지 탈출로 엘도라도를 새로 뽑아도 처음 발견 +1과 영토 효과 +1을 미리 받는다', () => {
     let hit = 0
     for (let seed = 1; seed <= 400 && hit < 2; seed++) {
       const s0 = createGame({ seed, civIds: ['denmark', 'china'] })
@@ -853,7 +881,7 @@ describe('불모지로 뽑은 엘도라도', () => {
       if (!s.players[cur].hand.some((c) => c.wonder === 'eldorado')) continue
       hit++
       expect(s.eldoradoFound).toBe(true)
-      expect(s.players[cur].hand).toHaveLength(5) // 4장 + 불모지 1장 - 버린 1장 + 발견 보너스 1장
+      expect(s.players[cur].hand).toHaveLength(6) // 4장 + 불모지 1장 - 버린 1장 + 발견 1장 + 영토 효과 1장
     }
     expect(hit).toBeGreaterThan(0)
   })
