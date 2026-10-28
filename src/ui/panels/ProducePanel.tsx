@@ -4,7 +4,7 @@ import { MAX_HOLD, heldCount, MILITARY_CARDS, cardById, cardCost, civById, decla
 import { UnitCard } from '../cards/UnitCard'
 import { catalogCard } from '../cards/unitImage'
 import { WonderCard } from '../cards/WonderCard'
-import { cardText, conditionText, ICON, wonderEffectText } from '../format'
+import { cardText, conditionText, ICON, josa, wonderEffectText } from '../format'
 import type { PanelProps } from './types'
 import { ConfirmButton } from '../ConfirmButton'
 import { Help } from '../prefs'
@@ -153,7 +153,7 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
                           className=""
                           disabled={mustPolicy || !!r.block}
                           title={r.block ?? cardText({ defId: r.def.id, unique: r.unique })}
-                          warn={full ? `${r.unique ?? r.def.name}을(를) 이미 ${MAX_HOLD}장 가지고 있습니다. 만들면 1장을 골라 버려야 합니다` : null}
+                          warn={full ? `${josa(r.unique ?? r.def.name, '을', '를')} 이미 ${MAX_HOLD}장 가지고 있습니다. 만들면 1장을 골라 버려야 합니다` : null}
                           onClick={() => dispatch({ type: 'produce', cityId: city.id, defId: r.def.id, unique: r.unique })}
                         >
                           생산 {ICON.hammer}
@@ -198,6 +198,8 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
               <div className="upgrade-opts">
               {options.map((upper) => {
                 const cost = cardCost(player, upper)
+                // 승급하면 상위 카드가 1장 늘어난다: 이미 5장이면 넘친 1장을 골라 버려야 한다 (고유 유닛 승급은 따로 셈)
+                const full = heldCount(player, upper.id) >= MAX_HOLD
                 return (
                   <div key={upper.id} className="row">
                     <span>→</span>
@@ -207,9 +209,15 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
                       {ICON.gold}
                       {cost}
                     </b>
-                    <button disabled={mustPolicy || turn.upgraded || turn.yields.gold < cost} onClick={() => dispatch({ type: 'upgrade', uid: inst.uid, toDefId: upper.id })}>
+                    <ConfirmButton
+                      className=""
+                      disabled={mustPolicy || turn.upgraded || turn.yields.gold < cost}
+                      warn={full ? `${josa(upper.name, '을', '를')} 이미 ${MAX_HOLD}장 가지고 있습니다. 승급하면 1장을 골라 버려야 합니다` : null}
+                      onClick={() => dispatch({ type: 'upgrade', uid: inst.uid, toDefId: upper.id })}
+                    >
                       승급
-                    </button>
+                    </ConfirmButton>
+                    {full && <small className="warn">⚠ {upper.name} 이미 {MAX_HOLD}장 보유: 승급하면 1장을 골라 버립니다</small>}
                     {civ.uniques
                       .filter((u) => u.base === upper.id && (game.uniqueSupply[u.name]?.length ?? 0) > 0)
                       .map((u) => (
