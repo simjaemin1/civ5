@@ -321,7 +321,7 @@ export function GameScreen({ initial, seats, onExit }: Props) {
             </div>
           </details>
           <TechTreeButton player={game.players[viewer]} players={game.order.map((id) => game.players[id])} />
-          <CivEmblem player={player} away={picked !== null} onHome={() => setPeek(null)} />
+          <CivEmblem player={game.players[peekId ?? viewer]} />
         </div>
       </header>
       {error && <div className="error banner-error">⚠ {error}</div>}

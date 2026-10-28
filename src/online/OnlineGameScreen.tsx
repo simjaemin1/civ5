@@ -243,7 +243,7 @@ export function OnlineGameScreen({ online, onExit }: Props) {
             </div>
           </details>
           <TechTreeButton player={me} players={game.order.map((id) => game.players[id])} />
-          <CivEmblem player={me} away={picked !== null} onHome={() => setPeek(null)} />
+          <CivEmblem player={game.players[peekId ?? me.id]} />
         </div>
       </header>
       {error && (

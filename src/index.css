@@ -638,3 +638,9 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
   .modal.compact .side-label { font-size: 0.75rem; margin: 2px; }
   .modal.compact .hits, .modal.compact .result { font-size: 0.75rem; }
 }
+/* 문명 기호를 누르면: 그 문명이 가진 군사 카드(글자)와 지은 불가사의(작은 카드) */
+.civ-pop { width: min(560px, calc(100vw - 24px)); }
+.civ-pop h4 { margin: 10px 0 4px; }
+.civ-pop-units { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0; }
+.civ-pop-wonders { display: flex; flex-wrap: wrap; gap: 8px; }
+.civ-emblem.on { box-shadow: 0 0 0 3px #fffaf0, 0 0 0 5px var(--accent); }
