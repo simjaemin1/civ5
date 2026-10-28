@@ -489,7 +489,7 @@ function coalitionLeader(s: GameState, p: Player): Player | null {
 }
 /** 상대의 공격 대상 도시 (두 번째 도시가 있으면 그쪽을 먼저 무너뜨려야 한다) */
 const sidesOccupied = (o: Player): number => conquestCity(o).tiles.filter((t) => t.role === 'side' && t.occupiedBy !== undefined).length
-/** 그 도시 사면 중 내 장군이 점령한 칸 수 (도시 공격은 내 장군이 2개 이상이어야 한다) */
+/** 그 도시 사면 중 내 장군이 점령한 칸 수 (도시 공격은 사면에 장군이 가장 많은 문명만, 공동이면 모두) */
 const sidesMine = (o: Player, pid: number): number => conquestCity(o).tiles.filter((t) => t.role === 'side' && t.occupiedBy === pid).length
 /** 이 문명이 노리는 한 상대: 이미 점령한 타일이 많고(꾸준히), 군대가 약하고, 전통으로 일꾼을 줄여 약해진 상대 */
 function warlordVictim(s: GameState, p: Player): number | null {
@@ -1034,7 +1034,7 @@ function declareCandidates(s: GameState, p: Player): Action[] {
     if (top && aim === top.leader.id && !isWarlord(p) && piledOn(s, top.leader) && sidesOccupied(top.leader) < 3) aim = top.runnerUp.id !== p.id ? top.runnerUp.id : -1
     let rate = value
     if (!isWarlord(p) && top && aim === top.leader.id) {
-      // 1등을 견제하는 연합: 도시 옆 4칸을 함께 점령해 두면, 그중 내 장군이 2개 이상인 문명은 공성 카드로 도시를 파괴할 수 있다
+      // 1등을 견제하는 연합: 도시 옆 4칸을 함께 점령해 두면, 그중 장군이 가장 많은 문명(공동이면 모두)이 공성 카드로 도시를 파괴할 수 있다
       rate = (t) => {
         if (t.kind === 'retake') return 1000
         if (t.kind === 'city') return hasSiege(p) ? 500 : -1

@@ -370,27 +370,34 @@ describe('선전포고', () => {
     expect(declarationTargets(s, s.players[0]).some((t) => t.tileId === cityTile)).toBe(false)
   })
 
-  it('도시 4칸이 모두 점령되어 있고(누구의 장군이든) 그중 내 장군이 2개 이상이어야 도시에 선전포고할 수 있다 (막타 방지)', () => {
-    const at = (mine: number) =>
-      mod(round2(['korea', 'russia', 'china'], [hand4(), hand4(), hand4()]), (c) => {
+  it('도시 4칸이 모두 점령되어 있고(누구의 장군이든) 그 칸에 장군을 가장 많이 올린 문명만 도시에 선전포고할 수 있다 (공동이면 모두, 막타 방지)', () => {
+    /** 4칸을 차례로 owners의 장군이 점령 (0 한국, 2 중국, 3 일본) */
+    const at = (owners: number[]) =>
+      mod(round2(['korea', 'russia', 'china', 'japan'], [hand4(), hand4(), hand4(), hand4()]), (c) => {
         const city = c.players[1].cities[0]
         city.tiles.push({ card: tile(['평지']), role: 'side', side: 'W' })
         city.openSides = []
-        // 4칸 중 mine칸은 0번(한국), 나머지는 제3의 문명(중국)이 점령
-        city.tiles.filter((t) => t.role === 'side').forEach((t, i) => (t.occupiedBy = i < mine ? 0 : 2))
-        c.players[0].generals = 1
+        city.tiles.filter((t) => t.role === 'side').forEach((t, i) => (t.occupiedBy = owners[i]))
+        for (const p of c.players) p.generals = 1
       })
-    const canAttack = (s: GameState) => declarationTargets(s, s.players[0]).some((t) => t.kind === 'city')
-    expect(canAttack(at(0))).toBe(false) // 4칸을 모두 남이 점령: 막타 불가
-    expect(canAttack(at(1))).toBe(false)
-    expect(canAttack(at(2))).toBe(true)
-    expect(canAttack(at(4))).toBe(true)
+    const canAttack = (s: GameState, pid: number) => declarationTargets(s, s.players[pid]).some((t) => t.kind === 'city')
+    expect(canAttack(at([2, 2, 2, 2]), 0)).toBe(false) // 4칸을 모두 남이 점령: 막타 불가
+    expect(canAttack(at([0, 2, 2, 2]), 0)).toBe(false) // 1 대 3
+    expect(canAttack(at([0, 0, 0, 2]), 0)).toBe(true) // 3 대 1
+    expect(canAttack(at([0, 0, 0, 2]), 2)).toBe(false)
+    // 공동 1위면 모두 선전포고할 수 있다
+    const tie = at([0, 0, 2, 2])
+    expect(canAttack(tie, 0)).toBe(true)
+    expect(canAttack(tie, 2)).toBe(true)
+    const spread = at([0, 0, 2, 3]) // 2 대 1 대 1
+    expect(canAttack(spread, 0)).toBe(true)
+    expect(canAttack(spread, 3)).toBe(false)
     // 한 칸이라도 비어 있으면 안 된다
-    const gap = mod(at(2), (c) => (c.players[1].cities[0].tiles.filter((t) => t.role === 'side').at(-1)!.occupiedBy = undefined))
-    expect(canAttack(gap)).toBe(false)
+    const gap = mod(at([0, 0, 0, 2]), (c) => (c.players[1].cities[0].tiles.filter((t) => t.role === 'side').at(-1)!.occupiedBy = undefined))
+    expect(canAttack(gap, 0)).toBe(false)
   })
 
-  it('아직 3칸뿐인 도시는 3칸만 점령되어도 (그중 내 장군 2개 이상이면) 도시에 선전포고할 수 있다', () => {
+  it('아직 3칸뿐인 도시는 3칸만 점령되어도 (그 칸에 내 장군이 가장 많으면) 도시에 선전포고할 수 있다', () => {
     const at = (mine: number) =>
       mod(round2(['korea', 'russia', 'china'], [hand4(), hand4(), hand4()]), (c) => {
         // 시작 손패 4장이면 도시 + 3칸 (4번째 칸은 아직 없다)
