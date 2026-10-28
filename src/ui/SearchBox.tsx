@@ -23,8 +23,8 @@ export function SearchBox() {
       <input
         type="search"
         value={q}
-        placeholder="🔍 도감 검색 (예: 철제기술, 거신상, 모피)"
-        aria-label="도감 검색"
+        placeholder="🔍 검색"
+        aria-label="검색"
         onChange={(e) => {
           setQ(e.target.value)
           setSel(0)
