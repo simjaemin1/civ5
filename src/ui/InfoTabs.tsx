@@ -218,14 +218,15 @@ function TabContent({ game, viewer, tab }: { game: GameState; viewer: number; ta
               <UnitCard card={catalogCard(c.id)} width={130} />
               <small className="holders">
                 {game.players
-                  .map((p) => ({ p, n: p.military.filter((m) => m.defId === c.id && !m.unique).length }))
-                  .filter((x) => x.n > 0)
-                  .map(({ p, n }) => (
+                  .map((p) => ({ p, n: p.military.filter((m) => m.defId === c.id && !m.unique).length, u: p.military.filter((m) => m.defId === c.id && m.unique).length }))
+                  .filter((x) => x.n + x.u > 0)
+                  .map(({ p, n, u }) => (
                     <span key={p.id} className={p.id === viewer ? 'mine' : ''}>
-                      {civById(p.civId).name} {n}장
+                      {/* 고유 유닛은 원본 칸에 따로 적는다: "아즈텍 5장(고유 3장)" */}
+                      {civById(p.civId).name} {n}장{u > 0 ? `(고유 ${u}장)` : ''}
                     </span>
                   ))}
-                {game.players.every((p) => !p.military.some((m) => m.defId === c.id && !m.unique)) && <span className="none">보유 없음</span>}
+                {game.players.every((p) => !p.military.some((m) => m.defId === c.id)) && <span className="none">보유 없음</span>}
               </small>
             </div>
           ))}
