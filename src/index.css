@@ -584,7 +584,7 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
 .wiki-link { padding: 0; font-weight: 700; }
 @media (max-width: 520px) { .wiki-row { grid-template-columns: 1fr; gap: 2px; } }
 /* 시점 화면: 아래 한 줄(지금 내정 중인 문명) · 오른쪽 아래 "내정하러 가기" */
-.peek-now { position: sticky; bottom: 0; z-index: 2; margin: 10px 0 0; padding: 6px 10px; border-top: 1px dashed var(--line); background: var(--surface); font-size: 0.92em; }
+.peek-now { margin: 6px 0 0; font-size: 0.92em; }
 .home-fab { position: fixed; right: 20px; bottom: 20px; z-index: 40; padding: 10px 18px; font-size: 1.05em; font-weight: 700; border-radius: 999px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25); background: var(--surface); }
 .home-fab.urgent { background: var(--accent); color: var(--accent-ink); border-color: transparent; animation: home-pulse 1.6s ease-in-out infinite; }
 @keyframes home-pulse { 50% { box-shadow: 0 4px 22px rgba(140, 90, 31, 0.7); } }
@@ -603,15 +603,17 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
 .turn-steps li.who { font-size: 0.9rem; padding-right: 4px; }
 .turn-steps li.who + li::before { content: ''; margin: 0; }
 /* 시점 화면 기본 정보 상자: 지금 차례 문명이 행동을 확정하면 같은 자리에 잠깐 안내 */
-.peek-info { position: relative; }
+.peek-box h3 { margin: 0 0 6px; }
+.peek-info { position: relative; display: flex; flex-direction: column; justify-content: center; min-height: 110px; }
+.peek-info > p { margin: 4px 0; }
 .peek-info.noticing > p { visibility: hidden; }
-.actor-notice { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; border-radius: 10px; background: var(--active-bg, #fff3d6); border: 2px solid var(--accent); color: #2a1d0e; font-size: 1.15rem; text-align: center; animation: notice-in 0.25s ease-out; overflow: auto; }
+.actor-notice { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; border-radius: 10px; background: var(--panel); color: #2a1d0e; font-size: 1.15rem; text-align: center; animation: notice-in 0.25s ease-out; overflow: auto; }
 .actor-notice.produce { font-size: 1rem; }
-.actor-notice.undo { background: #b03a2e; border-color: #b03a2e; color: #fff; font-size: 1.6rem; }
+.actor-notice.undo { color: #b03a2e; font-size: 1.6rem; }
 @keyframes notice-in { from { opacity: 0; } to { opacity: 1; } }
 .main > .turn-steps ol { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
 .main > .turn-steps .step-btn, .main > .turn-steps .undo { white-space: nowrap; }
-.actor-notice.waiting { background: var(--surface); border-style: dashed; color: var(--muted); animation: none; }
+.actor-notice.waiting { color: var(--muted); animation: none; }
 .actor-notice .dots::after { content: '…'; display: inline-block; width: 1.2em; text-align: left; animation: dots 1.4s steps(4, end) infinite; overflow: hidden; vertical-align: bottom; }
 @keyframes dots { 0% { width: 0; } 100% { width: 1.2em; } }
 .produce-sum { display: flex; align-items: center; gap: 18px; text-align: left; }

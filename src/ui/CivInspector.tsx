@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { CityTag, Icon } from './icons'
 import type { GameState } from '../engine'
 import { TURN_PHASES, WONDER_CARDS, civById, culture, happiness, totalWorkers, tourism } from '../engine'
@@ -8,7 +9,7 @@ import { Board } from './Board'
 import { ICON, policyName } from './format'
 
 /** 한 문명의 공개 정보: 요약, 직전 차례 산출, 문명 카드·정책, 점령, 영토 (기술은 맨 위 플라스크 기술표에서 문명 표시를 눌러 본다) */
-export function CivDetail({ game, id, actor, notice }: { game: GameState; id: number; actor: number; notice?: ReactNode }) {
+export function CivDetail({ game, id, actor, notice, head, foot }: { game: GameState; id: number; actor: number; notice?: ReactNode; head?: ReactNode; foot?: ReactNode }) {
   const p = game.players[id]
   const held = p.cities.flatMap((c) => c.tiles.filter((t) => t.occupiedBy !== undefined).map((t) => ({ t, by: game.players[t.occupiedBy!] })))
   const occupying = game.players.flatMap((o) =>
@@ -18,7 +19,9 @@ export function CivDetail({ game, id, actor, notice }: { game: GameState; id: nu
   const now = id === actor && TURN_PHASES.includes(game.phase)
   return (
     <>
-      {/* 기본 정보 상자: 이 문명이 내정에서 행동을 확정하면 같은 자리·같은 크기로 잠깐 안내가 대신 나온다 */}
+      {/* 내정 화면과 같은 틀: 위 상자(내정 화면의 단계 패널 자리) + 아래 영토. 상자 안 기본 정보는, 이 문명이 내정 중이면 같은 자리에 진행 문구가 대신 나온다 */}
+      <div className="panel peek-box">
+      {head}
       <div className={`peek-info${notice ? ' noticing' : ''}`}>
       <p className="summary">
         <span>{ICON.culture} 문화 <b>{culture(p)}</b></span>
@@ -58,8 +61,10 @@ export function CivDetail({ game, id, actor, notice }: { game: GameState; id: nu
           {occupying.map(({ t, owner }) => `${civById(owner.civId).name}의 ${t.card.terrains.join('·')} 타일을 점령 중`).join(' · ')}
         </p>
       )}
-      {!now && p.cities.length > 0 && <p className="muted small">영토: 직전 차례 일꾼 배치</p>}
-      {p.cities.length ? <Board game={game} player={p} /> : <p className="muted">아직 도시가 없거나 탈락했습니다.</p>}
+      {!now && p.cities.length > 0 && <p className="muted small">아래 영토: 직전 차례 일꾼 배치</p>}
+      {foot}
+      </div>
+      {p.cities.length ? <Board game={game} player={p} /> : <p className="panel muted">아직 도시가 없거나 탈락했습니다.</p>}
     </>
   )
 }
@@ -69,7 +74,7 @@ export function CivDetail({ game, id, actor, notice }: { game: GameState; id: nu
  * 다른 문명으로 바꾸면 내용만 부드럽게 바뀐다. 기술 상태는 맨 위 플라스크 기술표에서 문명 표시를 눌러 본다.
  * 맨 아래 한 줄에 지금 내정 중인 문명이 무엇을 하는지 보여 주고, 오른쪽 아래 버튼(HomeButton)으로 내 내정 화면에 돌아간다.
  */
-export function CivPeek({ game, id, actor, me, onNext }: { game: GameState; id: number; actor: number; me: number; onNext?: () => void }) {
+export function CivPeek({ game, id, actor, me, onNext, follow }: { game: GameState; id: number; actor: number; me: number; onNext?: () => void; follow?: boolean }) {
   const p = game.players[id]
   const [msg, closeMsg] = useActorNotice(game, id, actor)
   // 이 문명의 차례에 이 문명을 보고 있으면: 결정을 기다리는 동안 "기술 선택 중…", 결정하면 잠깐 결과 (생산 결과는 닫을 때까지)
@@ -79,16 +84,26 @@ export function CivPeek({ game, id, actor, me, onNext }: { game: GameState; id: 
     closeMsg()
     if (id !== actor) onNext?.()
   }
+  // 따라 보기(남의 차례에 자동으로 연 시점): 차례가 넘어가면 생산 결과를 닫을 때까지 기다렸다가 다음 문명(내 차례면 내정 화면)으로 넘어간다
+  const done = follow && id !== actor && !msg
+  useEffect(() => {
+    if (done) onNext?.()
+  }, [done, onNext])
   const notice = msg ? <ActorNotice msg={msg} onClose={close} /> : waiting ? <ActorWaiting text={waiting} /> : null
   return (
-    <div className="panel peek">
-      <div className="peek-bar">
-        <h3>👁 {civById(p.civId).name} 시점 <small className="muted">(공개 정보)</small></h3>
-      </div>
-      <div key={id} className="peek-body">
-        <CivDetail game={game} id={id} actor={actor} notice={notice} />
-      </div>
-      <ActorStrip game={game} actor={actor} me={me} />
+    <div key={id} className="peek peek-body">
+      <CivDetail
+        game={game}
+        id={id}
+        actor={actor}
+        notice={notice}
+        head={
+          <h3>
+            👁 {civById(p.civId).name} 시점 <small className="muted">(공개 정보)</small>
+          </h3>
+        }
+        foot={id !== actor && <ActorStrip game={game} actor={actor} me={me} />}
+      />
     </div>
   )
 }

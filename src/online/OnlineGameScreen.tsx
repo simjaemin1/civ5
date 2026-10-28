@@ -29,7 +29,7 @@ import { ResearchPanel } from '../ui/panels/ResearchPanel'
 import { ScoutBox } from '../ui/panels/ScoutBox'
 import { SetupPanel } from '../ui/panels/SetupPanel'
 import { TilePlacer } from '../ui/panels/TilePlacer'
-import { BattleWatch, TurnWatch } from './TurnWatch'
+import { BattleWatch } from './TurnWatch'
 import type { OnlineRoom } from './useOnlineRoom'
 
 const PHASE: Record<GameView['phase'], string> = {
@@ -77,6 +77,7 @@ export function OnlineGameScreen({ online, onExit }: Props) {
   const me = game ? game.players[game.viewer] : null
   // 차례 순서에서 고른 문명의 시점 (내 문명이 바뀌면 풀린다)
   const [peek, setPeek] = useState<{ id: number; self: number } | null>(null)
+  const [follow, setFollow] = useState<number | null>(null)
   const actorName = game ? civById(game.players[actorOf(game)].civId).name : ''
   useTurnTitle(!game ? '접속 중' : over ? '게임 종료' : mine ? '▶ 내 차례' : `${actorName} 차례 기다리는 중`)
   useEnterHotkey()
@@ -106,7 +107,15 @@ export function OnlineGameScreen({ online, onExit }: Props) {
   }, [game, me, prefs.autoSkip, mine, over, seq, send])
 
   if (!game || !room || !you || !me) return <p className="muted">게임 정보를 받는 중…</p>
-  const peekId = peek && peek.self === me.id ? peek.id : null
+  const picked = peek && peek.self === me.id ? peek.id : null
+  // 남의 내정 차례에는 따로 고르지 않아도 그 문명의 시점 화면을 따라 본다 (follow).
+  // 차례가 넘어가면 생산 결과를 닫을 때까지 그 문명에 머물렀다가 다음 문명으로, 내 차례면 내정 화면으로 넘어간다.
+  const turnPhase = !over && TURN_PHASES.includes(game.phase)
+  const followId = turnPhase ? (follow ?? (mine ? null : actorOf(game))) : null
+  if (!turnPhase && follow !== null) setFollow(null)
+  else if (turnPhase && follow === null && !mine) setFollow(actorOf(game))
+  const peekId = picked ?? followId
+  const followNext = () => setFollow(mine ? null : actorOf(game))
 
   // 전투 결과: 한 번에 여러 개 끝나도 오래된 것부터 하나씩. 접속한 시점까지의 전투는 이미 본 것으로 친다
   const reports = game.battleReports ?? []
@@ -127,20 +136,19 @@ export function OnlineGameScreen({ online, onExit }: Props) {
         <p>라운드 {game.round}에서 게임이 끝났습니다.</p>
       </div>
     )
-  } else if (!mine) {
-    const b = game.battle
+  } else if (!mine && game.phase === 'battle' && game.battle) {
     main = (
       <>
         <div className="panel waiting" data-testid="waiting">
-          <h3>
-            ⏳ {civById(actorPlayer.civId).name}({seats[actor]?.name}){seats[actor]?.ai ? ' 🤖' : ''} — {PHASE[game.phase]} 기다리는 중…
-          </h3>
+          <h3>⏳ 전투 정산 기다리는 중…</h3>
           {seats[actor] && !seats[actor].ai && !seats[actor].connected && <p className="error">접속이 끊겨 있습니다. 돌아올 때까지 기다립니다.</p>}
-          <small className="muted">내 차례가 오면 탭 제목에 ▶ 표시가 붙습니다. 아래에서 상대가 하는 일을 볼 수 있습니다.</small>
         </div>
-        {game.phase === 'battle' && b ? <BattleWatch game={game} viewer={me.id} /> : <TurnWatch game={game} actor={actor} name={seats[actor]?.name ?? ''} />}
+        <BattleWatch game={game} viewer={me.id} />
       </>
     )
+  } else if (!mine) {
+    // 남의 내정 차례에는 아래에서 그 문명의 시점 화면을 보여 준다 (watchId)
+    main = null
   } else if (me.pendingTiles?.length && ['place', 'research', 'produce', 'declare'].includes(game.phase)) {
     main = <TilePlacer game={game} player={me} dispatch={dispatch} />
   } else if (game.phase === 'setup') {
@@ -235,7 +243,7 @@ export function OnlineGameScreen({ online, onExit }: Props) {
             </div>
           </details>
           <TechTreeButton player={me} players={game.players} />
-          <CivEmblem player={me} away={peekId !== null} onHome={() => setPeek(null)} />
+          <CivEmblem player={me} away={picked !== null} onHome={() => setPeek(null)} />
         </div>
       </header>
       {error && (
@@ -253,7 +261,7 @@ export function OnlineGameScreen({ online, onExit }: Props) {
             !over && TURN_PHASES.includes(game.phase) && <TurnSteps game={game} phases={[]} who={actorName} />
           )}
           {peekId !== null ? (
-            <CivPeek game={game} id={peekId} actor={actor} me={me.id} onNext={() => (actor === me.id || !TURN_PHASES.includes(game.phase) ? setPeek(null) : setPeek({ id: actor, self: me.id }))} />
+            <CivPeek game={game} id={peekId} actor={actor} me={me.id} follow={picked === null} onNext={picked === null ? followNext : () => (actor === me.id || !TURN_PHASES.includes(game.phase) ? setPeek(null) : setPeek({ id: actor, self: me.id }))} />
           ) : (
             <>
           {mine && !over && game.phase !== 'setup' && game.phase !== 'battle' && me.wonders.includes('great_wall') && !me.greatWallUsed && (
@@ -266,13 +274,13 @@ export function OnlineGameScreen({ online, onExit }: Props) {
           {mine && !over && game.phase !== 'setup' && game.phase !== 'battle' && <AtomicBombPanel game={game} player={me} dispatch={dispatch} />}
           {main}
           {showBoard && <Board game={game} player={me} />}
-          {!mine && !over && me.cities.length > 0 && <Board game={game} player={me} />}
+          {!mine && !over && game.phase === 'battle' && me.cities.length > 0 && <Board game={game} player={me} />}
             </>
           )}
         </div>
         <SidePanel game={game} seats={seats} actor={actor} viewer={me.id} onView={(id) => (id === actor && id === me.id && TURN_PHASES.includes(game.phase) ? setPeek(null) : setPeek({ id, self: me.id }))} viewing={peekId} onShowBattle={setReplaySeq} />
       </div>
-      {peekId !== null && <HomeButton onHome={() => setPeek(null)} myTurn={mine && !over} />}
+      {picked !== null && <HomeButton onHome={() => setPeek(null)} myTurn={mine && !over} />}
       <LogPanel game={game} />
     </div>
   )

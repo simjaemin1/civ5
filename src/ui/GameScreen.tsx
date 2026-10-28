@@ -175,7 +175,9 @@ export function GameScreen({ initial, seats, onExit }: Props) {
   const jumpInTurn = (i: number) => restore(turnStart + i, false)
 
   const yields = player.turn?.yields
-  const peekId = peek && peek.self === player.id ? peek.id : null
+  const picked = peek && peek.self === player.id ? peek.id : null
+  // AI 내정 차례에는 따로 고르지 않아도 그 AI의 시점 화면을 본다
+  const peekId = picked ?? (actorSeat.ai && !over && TURN_PHASES.includes(game.phase) ? actor : null)
   const skipsFood = !!player.turn?.skipFoodSettle
 
   let main: React.ReactNode
@@ -319,7 +321,7 @@ export function GameScreen({ initial, seats, onExit }: Props) {
             </div>
           </details>
           <TechTreeButton player={player} players={game.players} />
-          <CivEmblem player={player} away={peekId !== null} onHome={() => setPeek(null)} />
+          <CivEmblem player={player} away={picked !== null} onHome={() => setPeek(null)} />
         </div>
       </header>
       {error && <div className="error banner-error">⚠ {error}</div>}
@@ -353,7 +355,7 @@ export function GameScreen({ initial, seats, onExit }: Props) {
         </div>
         <SidePanel game={game} seats={seats} actor={actor} viewer={viewer} onView={(id) => (id === actor && !actorSeat.ai && TURN_PHASES.includes(game.phase) ? setPeek(null) : setPeek({ id, self: player.id }))} viewing={peekId} onShowBattle={setReplaySeq} />
       </div>
-      {peekId !== null && <HomeButton onHome={() => setPeek(null)} myTurn={!actorSeat.ai && !over} />}
+      {picked !== null && <HomeButton onHome={() => setPeek(null)} myTurn={!actorSeat.ai && !over} />}
       <LogPanel game={game} />
     </div>
   )

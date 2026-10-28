@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { actorOf, aiStep, civById, createGame, view } from '../../engine'
 import type { GameState } from '../../engine'
-import { BattleWatch, TurnWatch } from '../../online/TurnWatch'
+import { BattleWatch } from '../../online/TurnWatch'
+import { CivPeek } from '../CivInspector'
 
 /** AI끼리 진행하다 조건을 만족하는 상태에서 멈춘다 */
 function until(seed: number, ok: (s: GameState) => boolean, max = 3000): GameState {
@@ -13,16 +14,14 @@ function until(seed: number, ok: (s: GameState) => boolean, max = 3000): GameSta
 }
 
 describe('다른 문명의 차례 지켜보기', () => {
-  it('차례를 진행하는 문명의 단계와 이번 차례에 한 일, 영토가 보인다', () => {
+  it('남의 차례에는 그 문명의 시점 화면: 진행 중 문구와 영토가 보이고 비공개 정보는 없다', () => {
     const s = until(3, (g) => g.phase === 'research' && g.players[actorOf(g)].cities.length > 0)
     const actor = actorOf(s)
     const viewer = s.players.find((p) => p.id !== actor)!.id
-    const html = renderToStaticMarkup(<TurnWatch game={view(s, viewer)} actor={actor} name="손님" />)
-    const civ = civById(s.players[actor].civId).name
-    expect(html).toContain(`${civ}(손님)의 차례를 지켜보는 중`)
-    expect(html).toContain('기술을 연구하는 중')
-    expect(html).toContain('이번 차례에 한 일')
-    expect(html).toContain(`${civ}의 영토`)
+    const html = renderToStaticMarkup(<CivPeek game={view(s, viewer)} id={actor} actor={actor} me={viewer} />)
+    expect(html).toContain(`${civById(s.players[actor].civId).name} 시점`)
+    expect(html).toContain('기술 선택 중')
+    expect(html).toContain('일꾼')
     expect(html).not.toContain('손에 든') // 비공개 정보는 쓰지 않는다
   })
 
