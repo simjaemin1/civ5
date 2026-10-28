@@ -6,7 +6,6 @@ import { Board } from './Board'
 import { CivEmblem } from './CivEmblem'
 import { TechTreeButton } from './TechTreeButton'
 import { CivPeek, HomeButton } from './CivInspector'
-import type { PeekTab } from './CivInspector'
 import { InfoTabs, LogPanel } from './InfoTabs'
 import { SidePanel } from './SidePanel'
 import { usePrefs } from './prefsStore'
@@ -56,8 +55,6 @@ export function GameScreen({ initial, seats, onExit }: Props) {
   // 되돌릴 수 없는 지점: 무작위 결과를 보여 준 행동 직전 상태들 (이 상태와 그 이전으로는 차례 안 되돌리기 불가)
   // 차례 순서에서 고른 문명의 시점 (지금 사람이 바뀌면 풀린다)
   const [peek, setPeek] = useState<{ id: number; self: number } | null>(null)
-  // 시점 화면의 영토·기술 고르기: 다른 문명으로 바꾸거나 내정 화면에 다녀와도 그대로 둔다
-  const [peekTab, setPeekTab] = useState<PeekTab>('land')
   const [locked, setLocked] = useState<ReadonlySet<GameState>>(() => new Set())
   const [error, setError] = useState('')
   const [revealed, setRevealed] = useState('')
@@ -321,7 +318,7 @@ export function GameScreen({ initial, seats, onExit }: Props) {
               <button className="settings-exit" onClick={onExit}>나가기</button>
             </div>
           </details>
-          <TechTreeButton player={player} />
+          <TechTreeButton player={player} players={game.players} />
           <CivEmblem player={player} away={peekId !== null} onHome={() => setPeek(null)} />
         </div>
       </header>
@@ -332,7 +329,7 @@ export function GameScreen({ initial, seats, onExit }: Props) {
       <div className="game-body">
         <div className="main">
           {peekId !== null ? (
-            <CivPeek game={game} id={peekId} actor={actor} me={player.id} tab={peekTab} onTab={setPeekTab} />
+            <CivPeek game={game} id={peekId} actor={actor} me={player.id} />
           ) : (
             <>
           <div className="stats">

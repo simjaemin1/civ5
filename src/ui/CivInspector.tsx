@@ -2,29 +2,10 @@ import { CityTag, Icon } from './icons'
 import type { GameState } from '../engine'
 import { TURN_PHASES, WONDER_CARDS, civById, culture, happiness, totalWorkers, tourism } from '../engine'
 import { Board } from './Board'
-import { TechTree } from './InfoTabs'
 import { ICON, policyName } from './format'
 
-/** 한 문명의 공개 정보: 요약, 직전 차례 산출, 문명 카드·정책, 점령, 영토·기술 */
-export type PeekTab = 'land' | 'tech'
-
-/** 영토·기술 고르기 (시점 화면 맨 위 줄) */
-export function PeekTabs({ game, id, actor, tab, onTab }: { game: GameState; id: number; actor: number; tab: PeekTab; onTab: (t: PeekTab) => void }) {
-  const p = game.players[id]
-  const now = id === actor && TURN_PHASES.includes(game.phase)
-  return (
-    <div className="tabs peek-tabs" role="tablist">
-      <button role="tab" aria-selected={tab === 'land'} className={tab === 'land' ? 'active' : ''} onClick={() => onTab('land')}>
-        영토 ({culture(p)}장){now ? '' : ' · 직전 차례 일꾼 배치'}
-      </button>
-      <button role="tab" aria-selected={tab === 'tech'} className={tab === 'tech' ? 'active' : ''} onClick={() => onTab('tech')}>
-        기술 ({p.techs.length}개)
-      </button>
-    </div>
-  )
-}
-
-export function CivDetail({ game, id, actor, tab }: { game: GameState; id: number; actor: number; tab: PeekTab }) {
+/** 한 문명의 공개 정보: 요약, 직전 차례 산출, 문명 카드·정책, 점령, 영토 (기술은 맨 위 플라스크 기술표에서 문명 표시를 눌러 본다) */
+export function CivDetail({ game, id, actor }: { game: GameState; id: number; actor: number }) {
   const p = game.players[id]
   const held = p.cities.flatMap((c) => c.tiles.filter((t) => t.occupiedBy !== undefined).map((t) => ({ t, by: game.players[t.occupiedBy!] })))
   const occupying = game.players.flatMap((o) =>
@@ -70,26 +51,26 @@ export function CivDetail({ game, id, actor, tab }: { game: GameState; id: numbe
           {occupying.map(({ t, owner }) => `${civById(owner.civId).name}의 ${t.card.terrains.join('·')} 타일을 점령 중`).join(' · ')}
         </p>
       )}
-      {tab === 'land' ? (p.cities.length ? <Board game={game} player={p} /> : <p className="muted">아직 도시가 없거나 탈락했습니다.</p>) : <TechTree player={p} fit="screen" />}
+      {!now && p.cities.length > 0 && <p className="muted small">영토: 직전 차례 일꾼 배치</p>}
+      {p.cities.length ? <Board game={game} player={p} /> : <p className="muted">아직 도시가 없거나 탈락했습니다.</p>}
     </>
   )
 }
 
 /**
  * 차례 순서에서 고른 문명의 시점: 내 메인 칸 대신 그 문명의 공개 정보를 보여 준다.
- * 영토·기술 중 고른 쪽은 다른 문명으로 바꾸거나 내정 화면에 다녀와도 그대로 유지하고(화면 쪽에서 들고 있다), 내용만 부드럽게 바뀐다.
+ * 다른 문명으로 바꾸면 내용만 부드럽게 바뀐다. 기술 상태는 맨 위 플라스크 기술표에서 문명 표시를 눌러 본다.
  * 맨 아래 한 줄에 지금 내정 중인 문명이 무엇을 하는지 보여 주고, 오른쪽 아래 버튼(HomeButton)으로 내 내정 화면에 돌아간다.
  */
-export function CivPeek({ game, id, actor, me, tab, onTab }: { game: GameState; id: number; actor: number; me: number; tab: PeekTab; onTab: (t: PeekTab) => void }) {
+export function CivPeek({ game, id, actor, me }: { game: GameState; id: number; actor: number; me: number }) {
   const p = game.players[id]
   return (
     <div className="panel peek">
       <div className="peek-bar">
         <h3>👁 {civById(p.civId).name} 시점 <small className="muted">(공개 정보)</small></h3>
-        <PeekTabs game={game} id={id} actor={actor} tab={tab} onTab={onTab} />
       </div>
       <div key={id} className="peek-body">
-        <CivDetail game={game} id={id} actor={actor} tab={tab} />
+        <CivDetail game={game} id={id} actor={actor} />
       </div>
       <ActorStrip game={game} actor={actor} me={me} />
     </div>

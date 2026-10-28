@@ -6,7 +6,6 @@ import { BattleReportModal } from '../ui/BattleReportModal'
 import { CivEmblem } from '../ui/CivEmblem'
 import { TechTreeButton } from '../ui/TechTreeButton'
 import { CivPeek, HomeButton } from '../ui/CivInspector'
-import type { PeekTab } from '../ui/CivInspector'
 import { InfoTabs, LogPanel } from '../ui/InfoTabs'
 import { SidePanel } from '../ui/SidePanel'
 import { TurnSteps } from '../ui/TurnSteps'
@@ -78,8 +77,6 @@ export function OnlineGameScreen({ online, onExit }: Props) {
   const me = game ? game.players[game.viewer] : null
   // 차례 순서에서 고른 문명의 시점 (내 문명이 바뀌면 풀린다)
   const [peek, setPeek] = useState<{ id: number; self: number } | null>(null)
-  // 시점 화면의 영토·기술 고르기: 다른 문명으로 바꾸거나 내정 화면에 다녀와도 그대로 둔다
-  const [peekTab, setPeekTab] = useState<PeekTab>('land')
   const actorName = game ? civById(game.players[actorOf(game)].civId).name : ''
   useTurnTitle(!game ? '접속 중' : over ? '게임 종료' : mine ? '▶ 내 차례' : `${actorName} 차례 기다리는 중`)
   useEnterHotkey()
@@ -237,7 +234,7 @@ export function OnlineGameScreen({ online, onExit }: Props) {
               <button className="settings-exit" onClick={onExit}>나가기</button>
             </div>
           </details>
-          <TechTreeButton player={me} />
+          <TechTreeButton player={me} players={game.players} />
           <CivEmblem player={me} away={peekId !== null} onHome={() => setPeek(null)} />
         </div>
       </header>
@@ -251,7 +248,7 @@ export function OnlineGameScreen({ online, onExit }: Props) {
       <div className="game-body">
         <div className="main">
           {peekId !== null ? (
-            <CivPeek game={game} id={peekId} actor={actor} me={me.id} tab={peekTab} onTab={setPeekTab} />
+            <CivPeek game={game} id={peekId} actor={actor} me={me.id} />
           ) : (
             <>
           <div className="stats">

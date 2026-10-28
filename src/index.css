@@ -526,7 +526,6 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
 /* 기록의 라운드 표시: 라운드가 바뀌는 줄에만 [R4], 이어지면 - (글 시작을 맞춘다) */
 .log-r { display: inline-block; min-width: 2.6em; color: var(--muted); }
 .prog-on { color: var(--ink); font-weight: 800; }
-.peek-tabs { margin: 0; }
 /* 시점 문명을 바꾸면 내용이 살짝 나타난다 */
 .peek-body { animation: peek-in 0.22s ease-out; }
 @keyframes peek-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
@@ -589,3 +588,13 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
 .home-fab { position: fixed; right: 20px; bottom: 20px; z-index: 40; padding: 10px 18px; font-size: 1.05em; font-weight: 700; border-radius: 999px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25); background: var(--surface); }
 .home-fab.urgent { background: var(--accent); color: var(--accent-ink); border-color: transparent; animation: home-pulse 1.6s ease-in-out infinite; }
 @keyframes home-pulse { 50% { box-shadow: 0 4px 22px rgba(140, 90, 31, 0.7); } }
+/* 기술표 창 + 왼쪽에 사전 색인처럼 튀어나온 문명 표시 */
+.tree-dock { position: fixed; z-index: 40; right: 12px; top: 72px; display: flex; align-items: flex-start; max-width: calc(100vw - 24px); }
+.tree-dock .tree-float { position: static; max-width: calc(100vw - 84px); }
+.tree-civ-tabs { display: flex; flex-direction: column; gap: 6px; margin-top: 44px; margin-right: -2px; position: relative; z-index: 1; }
+.tree-civ-tabs button { width: 58px; height: 54px; padding: 0 0 0 6px; display: flex; align-items: center; justify-content: center; background: #e9dcc0; border: 2px solid var(--accent); border-right: 0; border-radius: 12px 0 0 12px; box-shadow: -3px 3px 8px rgba(0,0,0,0.25); cursor: pointer; transform: translateX(6px); transition: transform 0.12s; }
+.tree-civ-tabs button:hover { transform: translateX(0); }
+.tree-civ-tabs button.active { background: var(--panel); transform: translateX(0); width: 60px; }
+.tree-civ-tabs button.out { opacity: 0.45; }
+.tree-civ-tabs img { width: 40px; height: 40px; object-fit: contain; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.45)); }
+.tree-civ-tabs span { font-weight: 800; font-size: 1.2rem; color: #2a1d0e; }
