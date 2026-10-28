@@ -621,3 +621,20 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
 .wonder-built { margin: 4px 0 6px; padding: 6px 10px; border: 1px solid var(--accent); border-radius: 8px; background: var(--active-bg, #fff3d6); font-size: 0.92rem; }
 /* 휴대폰: 문명 카드를 오른쪽(아래로 쌓인) 칸의 맨 끝으로 내린다. 차례 순서가 위로 올라와 문명 시점을 오가기 쉽다. 컴퓨터는 그대로 */
 @media (max-width: 760px) { .side-civ { order: 99; } }
+/* 휴대폰 전투 결과: 재생 없이 끝난 모습을 4칸 그대로 작게 (세로 화면에서 한눈에) */
+@media (max-width: 760px) {
+  .modal-backdrop:has(.modal.compact) { padding: 4px; }
+  .modal.compact { padding: 8px; }
+  .modal.compact h2 { font-size: 1rem; margin: 0 0 4px; }
+  .modal.compact > p { font-size: 0.75rem; margin: 0; }
+  .modal.compact .scene { padding: 4px; margin: 6px 0; }
+  .modal.compact .scene-row { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 3px; margin: 2px 0; }
+  .modal.compact .cell > small { font-size: 0.6rem; }
+  .modal.compact .unit { padding: 2px; min-height: 0; font-size: 0.6rem; border-radius: 5px; }
+  .modal.compact .unit .card, .modal.compact .unit .empty-card { width: 100% !important; }
+  .modal.compact .unit .dmg small { display: none; }
+  .modal.compact .hpbar i { height: 4px; }
+  .modal.compact .attack-gap { height: 8px; }
+  .modal.compact .side-label { font-size: 0.75rem; margin: 2px; }
+  .modal.compact .hits, .modal.compact .result { font-size: 0.75rem; }
+}

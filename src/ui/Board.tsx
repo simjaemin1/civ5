@@ -39,7 +39,8 @@ function CityBoard({ game, player, city, placed, generalPlaced, onTileClick, isD
   const [over, setOver] = useState(false)
   const badgeOf = (t: City['tiles'][number]): TileBadge => ({
     city: t.role === 'city',
-    worker: placed ? placed.has(t.card.id) : city.placed.includes(t.card.id),
+    // 상대가 점령한 타일에는 이 라운드에 올려 둔 일꾼이 기록상 남아 있어도 그리지 않는다: 전투에서 지자마자 점령한 장군이 보이게
+    worker: placed ? placed.has(t.card.id) : t.occupiedBy === undefined && city.placed.includes(t.card.id),
     general: generalPlaced ? generalPlaced.has(t.card.id) : city.generalPlaced?.includes(t.card.id),
     occupiedBy: t.occupiedBy !== undefined ? civById(game.players[t.occupiedBy].civId).name : undefined,
     target: targetBy(t.card.id),

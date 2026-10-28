@@ -143,8 +143,10 @@ export function BattleReportModal({ game, report, viewerId, onClose, lossSound =
   const steps = stepsOf(report)
   // step: 0 = 시작, i = i번째 공격까지 재생, steps.length = 끝.
   // 운영체제의 "애니메이션 효과 끄기(움직임 줄이기)"와 상관없이 항상 재생한다 (사용자 결정). 보기 싫으면 건너뛰기를 누른다.
-  const [step, setStep] = useState(0)
-  const [run, setRun] = useState(true)
+  // 휴대폰(세로 화면)에서는 재생하지 않고 끝난 모습을 바로 한 화면에 작게 보여 준다 (사용자 결정)
+  const [compact] = useState(() => typeof window !== 'undefined' && !!window.matchMedia?.('(max-width: 760px)').matches)
+  const [step, setStep] = useState(() => (compact ? steps.length : 0))
+  const [run, setRun] = useState(!compact)
   useEffect(() => {
     if (!run || step >= steps.length) return
     const t = setTimeout(() => setStep((n) => n + 1), step === 0 ? 700 : 1000)
@@ -183,7 +185,7 @@ export function BattleReportModal({ game, report, viewerId, onClose, lossSound =
   }
   return (
     <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="전투 결과">
-      <div className="modal">
+      <div className={`modal${compact ? ' compact' : ''}`}>
         <h2>
           ⚔ 전투 결과 — {civById(att.civId).name}({ATTACK_TITLE[report.kind]}) vs {civById(def.civId).name}(수비)
         </h2>
@@ -220,6 +222,7 @@ export function BattleReportModal({ game, report, viewerId, onClose, lossSound =
               {civById(game.players[bottomId].civId).name} ({roleOf(bottomId)})
             </div>
           </div>
+        {!compact && (
         <div className="row anim-bar">
           {!done && (
             <span className="muted">
@@ -228,6 +231,7 @@ export function BattleReportModal({ game, report, viewerId, onClose, lossSound =
           )}
           {done ? <button onClick={replay}>↻ 다시 보기</button> : <button onClick={skip}>⏭ 건너뛰기</button>}
         </div>
+        )}
         <details className="hits">
           <summary>공격 기록 ({hits.length}번)</summary>
           {hits.length === 0 && <div className="muted">서로 마주 본 공격이 없었습니다.</div>}
