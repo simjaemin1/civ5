@@ -489,6 +489,8 @@ function coalitionLeader(s: GameState, p: Player): Player | null {
 }
 /** 상대의 공격 대상 도시 (두 번째 도시가 있으면 그쪽을 먼저 무너뜨려야 한다) */
 const sidesOccupied = (o: Player): number => conquestCity(o).tiles.filter((t) => t.role === 'side' && t.occupiedBy !== undefined).length
+/** 그 도시 사면 중 내 장군이 점령한 칸 수 (도시 공격은 내 장군이 2개 이상이어야 한다) */
+const sidesMine = (o: Player, pid: number): number => conquestCity(o).tiles.filter((t) => t.role === 'side' && t.occupiedBy === pid).length
 /** 이 문명이 노리는 한 상대: 이미 점령한 타일이 많고(꾸준히), 군대가 약하고, 전통으로 일꾼을 줄여 약해진 상대 */
 function warlordVictim(s: GameState, p: Player): number | null {
   const occupied = occupiedTiles(s, p)
@@ -908,7 +910,7 @@ function produceCandidates(s: GameState, p: Player): Action[] {
     const needDefense = army < defenseTarget(s, p) || underAttack(s, p)
     const warRush = isWarlord(p) && warFoundation(p) && preIndustrial(s)
     // 공성 카드가 없으면 그것부터 만든다 (도시를 치려면 공성 카드가 살아남아야 한다)
-    const joinSiege = !isWarlord(p) && !hasSiege(p) && (() => { const l = coalitionLeader(s, p); return !!l && l.cities.length > 0 && sidesOccupied(l) >= 2 })()
+    const joinSiege = !isWarlord(p) && !hasSiege(p) && (() => { const l = coalitionLeader(s, p); return !!l && l.cities.length > 0 && sidesOccupied(l) >= 2 && sidesMine(l, p.id) >= 1 })()
     const rush = (warRush && army < AI_TUNE.warlordArmy) || ((warRush || joinSiege) && !hasSiege(p) && cardActions.some(isSiegeAction))
     if ((warRush || joinSiege) && !hasSiege(p)) cardActions.sort((x, y) => Number(isSiegeAction(y)) - Number(isSiegeAction(x)))
     // 줄루의 임피는 상대 카드의 효과 칸 공격과 효과(원거리의 반격 없음 등)를 없애므로, 줄루가 상대면 마크로만 싸우는 보병 계열을 먼저 만든다
@@ -1032,7 +1034,7 @@ function declareCandidates(s: GameState, p: Player): Action[] {
     if (top && aim === top.leader.id && !isWarlord(p) && piledOn(s, top.leader) && sidesOccupied(top.leader) < 3) aim = top.runnerUp.id !== p.id ? top.runnerUp.id : -1
     let rate = value
     if (!isWarlord(p) && top && aim === top.leader.id) {
-      // 1등을 견제하는 연합: 도시 옆 4칸을 함께 점령해 두면 (누구의 장군이든) 공성 카드를 가진 누구나 도시를 파괴할 수 있다
+      // 1등을 견제하는 연합: 도시 옆 4칸을 함께 점령해 두면, 그중 내 장군이 2개 이상인 문명은 공성 카드로 도시를 파괴할 수 있다
       rate = (t) => {
         if (t.kind === 'retake') return 1000
         if (t.kind === 'city') return hasSiege(p) ? 500 : -1
