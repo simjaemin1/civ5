@@ -1,0 +1,140 @@
+@font-face { font-family: 'NSans'; src: url('fonts/NSans-400.ttf') format('truetype'); font-weight: 400; }
+@font-face { font-family: 'NSans'; src: url('fonts/NSans-700.ttf') format('truetype'); font-weight: 700; }
+@font-face { font-family: 'NSans'; src: url('fonts/NSans-800.ttf') format('truetype'); font-weight: 800; }
+@font-face { font-family: 'NSans'; src: url('fonts/NSans-900.ttf') format('truetype'); font-weight: 900; }
+@font-face { font-family: 'NSerif'; src: url('fonts/NSerif-400.ttf') format('truetype'); font-weight: 400; }
+@font-face { font-family: 'NSerif'; src: url('fonts/NSerif-700.ttf') format('truetype'); font-weight: 700; }
+
+:root {
+  --ink: #2a251f;
+  --muted: #6d6458;
+  --red: #b3261e;
+  --blue: #2f5d8a;
+  --green: #3f7a3a;
+  --paper: #ffffff;
+  --line: #d8cdbb;
+  --tint: #f5eee2;
+  --tint2: #ece3d3;
+  --box: #e9ecef;
+  --boxline: #343a40;
+}
+
+@page { size: 148mm 210mm; margin: 12mm 11mm 13mm 11mm; }
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: 'NSerif', serif;
+  font-size: 8.9pt;
+  line-height: 1.62;
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+b, strong { font-weight: 700; color: #1d1915; }
+.u { text-decoration: underline; text-underline-offset: 2px; }
+.red { color: var(--red); }
+.sans { font-family: 'NSans', sans-serif; }
+
+/* ── 표지 ── */
+.cover {
+  height: 185mm;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; break-after: page;
+}
+.cover .kicker { font-family: 'NSans'; letter-spacing: 0.4em; font-size: 8pt; color: var(--muted); }
+.cover h1 { font-family: 'NSans'; font-weight: 900; font-size: 25pt; margin: 4mm 0 2mm; letter-spacing: -0.02em; }
+.cover .sub { font-size: 10pt; color: var(--muted); }
+.cover .ring { display: grid; grid-template-columns: repeat(8, 11mm); gap: 2.2mm; margin: 12mm 0 10mm; }
+.cover .ring img { width: 11mm; height: 11mm; border-radius: 50%; box-shadow: 0 0.4mm 1mm rgba(0,0,0,.25); }
+.cover .rule { width: 60mm; border-top: 0.4mm solid var(--red); margin: 3mm auto; }
+.cover .foot { font-family: 'NSans'; font-size: 7.5pt; color: var(--muted); margin-top: 6mm; }
+
+/* ── 차례 ── */
+.toc { break-after: page; }
+.toc h2 { font-family: 'NSans'; font-weight: 900; font-size: 15pt; margin: 2mm 0 6mm; }
+.toc ol { list-style: none; padding: 0; margin: 0; font-family: 'NSans'; font-size: 9.6pt; }
+.toc li { display: flex; align-items: baseline; gap: 2mm; padding: 1.6mm 0; border-bottom: 0.2mm dotted var(--line); }
+.toc li .n { width: 7mm; color: var(--red); font-weight: 800; }
+.toc li .t { flex: 1; }
+.toc li .p { color: var(--muted); font-variant-numeric: tabular-nums; }
+.toc .hint { margin-top: 7mm; font-size: 8pt; color: var(--muted); }
+
+/* ── 장 ── */
+.ch { break-before: auto; margin-top: 7mm; }
+.ch.newpage { break-before: page; margin-top: 0; }
+.chhead { break-after: avoid; display: flex; align-items: center; gap: 3mm; margin: 0 0 4mm; padding-bottom: 2mm; border-bottom: 0.5mm solid var(--ink); }
+.chhead .num { font-family: 'NSans'; font-weight: 900; font-size: 9pt; color: #fff; background: var(--red); border-radius: 1mm; padding: 0.6mm 2.2mm; }
+.chhead h1 { font-family: 'NSans'; font-weight: 800; font-size: 15pt; margin: 0; letter-spacing: -0.02em; }
+.lead { font-size: 9.4pt; margin: 0 0 3mm; }
+h3 { font-family: 'NSans'; font-weight: 700; font-size: 10.2pt; margin: 5mm 0 1.6mm; padding-left: 2.4mm; border-left: 1mm solid var(--red); line-height: 1.3; break-after: avoid; }
+h3 + * { break-before: avoid; }
+p { margin: 0 0 2mm; }
+ul, ol { margin: 0 0 2.4mm; padding-left: 5mm; }
+li { margin: 0 0 1mm; }
+ol.steps { list-style: none; padding: 0; counter-reset: s; }
+ol.steps > li { counter-increment: s; position: relative; padding-left: 7mm; }
+ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: 0.3mm; width: 4.6mm; height: 4.6mm; border-radius: 50%; background: var(--ink); color: #fff; font-family: 'NSans'; font-weight: 700; font-size: 7pt; display: flex; align-items: center; justify-content: center; line-height: 1; }
+
+/* ── 상자 ── */
+.key { border: 0.35mm solid var(--red); background: #fbf1ec; border-radius: 1.5mm; padding: 2.4mm 3mm; margin: 2.5mm 0 3mm; break-inside: avoid; }
+.key .tag { font-family: 'NSans'; font-weight: 800; font-size: 7.6pt; color: var(--red); letter-spacing: 0.08em; display: block; margin-bottom: 0.6mm; }
+.note { background: var(--tint); border-radius: 1.5mm; padding: 2mm 3mm; margin: 2mm 0 3mm; font-size: 8.5pt; break-inside: avoid; }
+.example { border-left: 0.8mm solid var(--line); padding: 0.4mm 0 0.4mm 3mm; margin: 2mm 0 3mm; font-size: 8.5pt; break-inside: avoid; }
+.example .tag { font-family: 'NSans'; font-weight: 700; font-size: 7.6pt; color: var(--muted); }
+
+/* ── 표 ── */
+table { width: 100%; border-collapse: collapse; margin: 1.5mm 0 3mm; font-family: 'NSans'; font-size: 7.7pt; line-height: 1.45; }
+thead { display: table-header-group; }
+th { background: var(--tint2); font-weight: 700; text-align: left; padding: 1.2mm 1.6mm; border-bottom: 0.3mm solid var(--ink); white-space: nowrap; }
+td { padding: 1.1mm 1.6mm; border-bottom: 0.2mm solid var(--line); vertical-align: top; }
+tr { break-inside: avoid; }
+table.small { font-size: 7.2pt; }
+table.keep { break-inside: avoid; }
+.keepblock { break-inside: avoid; }
+table.small td, table.small th { padding: 0.9mm 1.2mm; }
+td.c, th.c { text-align: center; }
+td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.keep { break-inside: avoid; }
+
+/* ── 그림 ── */
+figure { margin: 2mm 0 3mm; break-inside: avoid; }
+figure svg { display: block; width: 100%; height: auto; }
+figcaption { font-family: 'NSans'; font-size: 7.4pt; color: var(--muted); text-align: center; margin-top: 1.2mm; }
+.fig-frame { background: #fff; border: 0.25mm solid var(--line); border-radius: 1.5mm; padding: 3mm; }
+
+/* 꼭 기억할 네 가지 */
+.four { display: grid; grid-template-columns: 1fr 1fr; gap: 2.2mm; margin: 2mm 0 2mm; }
+.four .c { border: 0.25mm solid var(--line); background: #fff; border-radius: 1.6mm; padding: 2.2mm 2.5mm; display: flex; gap: 2mm; align-items: flex-start; break-inside: avoid; }
+.four .c .i { flex: 0 0 auto; width: 9mm; text-align: center; }
+.four .c .i img { width: 8mm; height: 8mm; object-fit: contain; }
+.four .c .i .n { font-family: 'NSans'; font-weight: 900; color: var(--red); font-size: 8pt; display: block; }
+.four .c p { margin: 0; font-size: 8.3pt; line-height: 1.5; }
+
+/* 단계 흐름 */
+.flow { display: flex; flex-wrap: wrap; gap: 1.6mm; align-items: stretch; margin: 2mm 0 3mm; }
+.flow .st { flex: 1 1 0; min-width: 17mm; border: 0.25mm solid var(--line); border-radius: 1.5mm; background: #fff; padding: 1.6mm 1mm; text-align: center; font-family: 'NSans'; font-size: 7.2pt; line-height: 1.3; position: relative; }
+.flow .st b { display: block; font-size: 7.8pt; }
+.flow .st .k { position: absolute; top: -1.8mm; left: -1.2mm; width: 4.2mm; height: 4.2mm; border-radius: 50%; background: var(--red); color: #fff; font-weight: 800; font-size: 6.5pt; display: flex; align-items: center; justify-content: center; }
+.flow .st img { height: 6.5mm; display: block; margin: 0 auto 0.8mm; }
+
+/* 문명 상징 */
+.emb { width: 5mm; height: 5mm; border-radius: 50%; vertical-align: middle; margin-right: 1.2mm; }
+
+/* 카드 그림 줄 */
+.cards { display: flex; gap: 2mm; justify-content: center; align-items: flex-end; flex-wrap: wrap; }
+.cards .cd { text-align: center; font-family: 'NSans'; font-size: 7pt; color: var(--muted); }
+.cards .cd img { width: 17mm; display: block; border-radius: 1mm; box-shadow: 0 0.3mm 0.8mm rgba(0,0,0,.2); }
+.plus { font-family: 'NSans'; font-weight: 900; font-size: 13pt; color: var(--muted); align-self: center; padding: 0 1mm; }
+
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 3mm; align-items: start; }
+.vic { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2mm; margin: 2mm 0 3mm; }
+.vic .c { border: 0.25mm solid var(--line); border-radius: 1.6mm; background: #fff; padding: 2.4mm 2mm; text-align: center; break-inside: avoid; }
+.vic .c img { height: 9mm; }
+.vic .c b { display: block; font-family: 'NSans'; font-size: 9pt; margin: 1mm 0 0.6mm; }
+.vic .c span { font-size: 7.8pt; line-height: 1.45; display: block; }
+
+table.tight td, table.tight th { padding-top: 0.6mm; padding-bottom: 0.6mm; }
