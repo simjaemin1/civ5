@@ -31,7 +31,9 @@ export function CivDetail({ game, id, actor, notice, head, foot }: { game: GameS
         <span>정책 <b>{policyName(p.policy)}</b></span>
         <span><Icon name="general" size={16} /> 장군 <b>{p.generals}</b></span>
         <span>군사 카드 <b>{p.military.length}장</b> <small className="muted">(방향은 비공개, 종류별 보유 수는 군사 카드 탭에 공개)</small></span>
-        <span>불가사의 <b>{p.wonders.map((w) => WONDER_CARDS.find((x) => x.id === w)?.name).join(', ') || '없음'}</b></span>
+      </p>
+      <p className="summary">
+        <span>🏛 불가사의 <b>{p.wonders.map((w) => WONDER_CARDS.find((x) => x.id === w)?.name).join(', ') || '없음'}</b></span>
       </p>
       <p className="last-yields">
         <b>{now ? '이번 차례 산출 (진행 중)' : '직전 차례 산출'}:</b>{' '}

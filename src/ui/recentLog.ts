@@ -4,6 +4,7 @@
  * - 불가사의 투자: "한국 피라미드에 망치 4 투자" 그대로
  * - 문화: "한국 문화 +1 (5→6)" → "한국 문화 5→6"
  * - 인구·행복: 엔진이 바뀐 경우에만 남기는 "한국 인구 3→4", "한국 행복 4→5" 그대로
+ * - 불가사의 완성: "한국 피라미드 완성" → "🏛 한국 피라미드 완성" (꼭 보이게)
  * 그 밖의 모든 기록은 화면 아래 로그 칸에 그대로 나온다.
  */
 export function recentSummary(log: readonly string[]): string[] {
@@ -14,6 +15,10 @@ export function recentSummary(log: readonly string[]): string[] {
     const [, round, body] = m
     if (/ 생산 \(망치 \d+\)$/.test(body) || /에 망치 \d+ 투자$/.test(body) || /^\S+ (인구|행복) \d+→\d+$/.test(body)) {
       out.push(line)
+      continue
+    }
+    if (/^\S+ .+ 완성$/.test(body)) {
+      out.push(`${round} 🏛 ${body}`)
       continue
     }
     const c = body.match(/^(\S+) 문화 \+\d+ \((\d+)→(\d+)\)$/)
