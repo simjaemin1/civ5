@@ -351,7 +351,7 @@ export function GameScreen({ initial, seats, onExit }: Props) {
             </>
           )}
         </div>
-        <SidePanel game={game} seats={seats} actor={actor} viewer={viewer} onView={(id) => (id === actor && TURN_PHASES.includes(game.phase) ? setPeek(null) : setPeek({ id, self: player.id }))} viewing={peekId} onShowBattle={setReplaySeq} />
+        <SidePanel game={game} seats={seats} actor={actor} viewer={viewer} onView={(id) => (id === actor && !actorSeat.ai && TURN_PHASES.includes(game.phase) ? setPeek(null) : setPeek({ id, self: player.id }))} viewing={peekId} onShowBattle={setReplaySeq} />
       </div>
       {peekId !== null && <HomeButton onHome={() => setPeek(null)} myTurn={!actorSeat.ai && !over} />}
       <LogPanel game={game} />

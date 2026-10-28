@@ -1,11 +1,14 @@
 import { CityTag, Icon } from './icons'
 import type { GameState } from '../engine'
 import { TURN_PHASES, WONDER_CARDS, civById, culture, happiness, totalWorkers, tourism } from '../engine'
+import type { ReactNode } from 'react'
+import { ActorNotice } from './ActorNotice'
+import { useActorNotice } from './actorChange'
 import { Board } from './Board'
 import { ICON, policyName } from './format'
 
 /** 한 문명의 공개 정보: 요약, 직전 차례 산출, 문명 카드·정책, 점령, 영토 (기술은 맨 위 플라스크 기술표에서 문명 표시를 눌러 본다) */
-export function CivDetail({ game, id, actor }: { game: GameState; id: number; actor: number }) {
+export function CivDetail({ game, id, actor, notice }: { game: GameState; id: number; actor: number; notice?: ReactNode }) {
   const p = game.players[id]
   const held = p.cities.flatMap((c) => c.tiles.filter((t) => t.occupiedBy !== undefined).map((t) => ({ t, by: game.players[t.occupiedBy!] })))
   const occupying = game.players.flatMap((o) =>
@@ -15,6 +18,8 @@ export function CivDetail({ game, id, actor }: { game: GameState; id: number; ac
   const now = id === actor && TURN_PHASES.includes(game.phase)
   return (
     <>
+      {/* 기본 정보 상자: 이 문명이 내정에서 행동을 확정하면 같은 자리·같은 크기로 잠깐 안내가 대신 나온다 */}
+      <div className={`peek-info${notice ? ' noticing' : ''}`}>
       <p className="summary">
         <span>{ICON.culture} 문화 <b>{culture(p)}</b></span>
         <span>관광 <b>{tourism(p)}</b></span>
@@ -44,6 +49,8 @@ export function CivDetail({ game, id, actor }: { game: GameState; id: number; ac
           <span className="muted">아직 없음</span>
         )}
       </p>
+      {notice}
+      </div>
       {(held.length > 0 || occupying.length > 0) && (
         <p className="muted">
           {held.map(({ t, by }) => `${t.card.terrains.join('·')} 타일이 ${civById(by.civId).name}에게 점령당함`).join(' · ')}
@@ -64,13 +71,14 @@ export function CivDetail({ game, id, actor }: { game: GameState; id: number; ac
  */
 export function CivPeek({ game, id, actor, me }: { game: GameState; id: number; actor: number; me: number }) {
   const p = game.players[id]
+  const msg = useActorNotice(game, id, actor)
   return (
     <div className="panel peek">
       <div className="peek-bar">
         <h3>👁 {civById(p.civId).name} 시점 <small className="muted">(공개 정보)</small></h3>
       </div>
       <div key={id} className="peek-body">
-        <CivDetail game={game} id={id} actor={actor} />
+        <CivDetail game={game} id={id} actor={actor} notice={msg && <ActorNotice msg={msg} />} />
       </div>
       <ActorStrip game={game} actor={actor} me={me} />
     </div>

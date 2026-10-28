@@ -270,7 +270,7 @@ export function OnlineGameScreen({ online, onExit }: Props) {
             </>
           )}
         </div>
-        <SidePanel game={game} seats={seats} actor={actor} viewer={me.id} onView={(id) => (id === actor && TURN_PHASES.includes(game.phase) ? setPeek(null) : setPeek({ id, self: me.id }))} viewing={peekId} onShowBattle={setReplaySeq} />
+        <SidePanel game={game} seats={seats} actor={actor} viewer={me.id} onView={(id) => (id === actor && id === me.id && TURN_PHASES.includes(game.phase) ? setPeek(null) : setPeek({ id, self: me.id }))} viewing={peekId} onShowBattle={setReplaySeq} />
       </div>
       {peekId !== null && <HomeButton onHome={() => setPeek(null)} myTurn={mine && !over} />}
       <LogPanel game={game} />
