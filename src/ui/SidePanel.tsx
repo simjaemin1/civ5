@@ -5,7 +5,7 @@ import { markRounds, recentSummary } from './recentLog'
 import { Icon } from './icons'
 import { CivCard } from './cards/CivCard'
 import { SearchBox } from './SearchBox'
-import { ICON, policyName } from './format'
+import { ICON, josa, policyName } from './format'
 
 const civName = (game: GameState, pid: number) => civById(game.players[pid].civId).name
 const KIND = { normal: '선전포고', retake: '탈환', city: '도시 공격' } as const
@@ -141,9 +141,18 @@ export function WonderRace({ game, viewer }: { game: GameState; viewer: number }
 /** 오른쪽 "최근 기록": 생산과 불가사의 투자는 그대로, 인구·행복·문화는 바뀐 경우만 "3→4"로 보여 준다 (나머지는 아래 로그 칸에 모두 있다) */
 export function RecentLog({ game, lines = 12 }: { game: GameState; lines?: number }) {
   const rows = recentSummary(game.log).slice(-lines).reverse()
+  // 불가사의는 라운드 끝 정산에서 완성되므로, 그 라운드와 바로 다음 라운드 동안 맨 위에 따로 띄운다
+  const built = game.log
+    .map((l) => l.match(/^\[R(\d+)\] (\S+) (.+) 완성$/))
+    .filter((m): m is RegExpMatchArray => !!m && Number(m[1]) >= game.round - 1)
   return (
     <section className="side-sec">
       <h4>최근 기록</h4>
+      {built.map((m, i) => (
+        <div key={i} className="wonder-built">
+          🏛 {josa(m[2], '이', '가')} <b>{josa(m[3], '을', '를')}</b> 완성했습니다
+        </div>
+      ))}
       <div className="log small">
         {rows.length === 0 && <span className="muted">아직 없습니다.</span>}
         {markRounds(rows).map((l, i) => (

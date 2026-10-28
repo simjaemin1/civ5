@@ -618,3 +618,4 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
 @keyframes dots { 0% { width: 0; } 100% { width: 1.2em; } }
 .produce-sum { display: flex; align-items: center; gap: 18px; text-align: left; }
 .produce-sum button { font-size: 0.9rem; }
+.wonder-built { margin: 4px 0 6px; padding: 6px 10px; border: 1px solid var(--accent); border-radius: 8px; background: var(--active-bg, #fff3d6); font-size: 0.92rem; }
