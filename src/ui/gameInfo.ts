@@ -1,14 +1,35 @@
 import type { City, GameState, GameView, MilitaryCardDef, Player } from '../engine'
+import { cityGrid } from './cityLayout'
 import { RESOURCES, TECHS, cardById, civById, cardCost, cardStats, findTile, isCoastalCity, isObsolete, producible, uniqueOf } from '../engine'
+
+/** 타일 생김새 이름: 지형·자원 (예: "평지 밀") */
+function tileLook(t: City['tiles'][number]): string {
+  const res = t.card.resource ? ` ${RESOURCES[t.card.resource]?.name ?? ''}` : ''
+  return `${t.card.terrains.join('·') || '자연경관'}${res}`
+}
+
+/**
+ * 도시 안 타일의 이름. 똑같이 생긴 타일이 둘 이상이면 왼쪽 위 타일부터 번호를 붙인다 (평지 1, 평지 2, 평지 3).
+ * 화면 영토 판의 배치(cityGrid)와 같은 순서: 위 줄부터, 같은 줄은 왼쪽부터.
+ */
+export function tileName(city: City, tileId: number): string {
+  const t = city.tiles.find((x) => x.card.id === tileId)
+  if (!t) return '?'
+  const look = tileLook(t)
+  const same = cityGrid(city, (sd) => city.tiles.find((x) => x.role === 'side' && x.side === sd))
+    .cells.filter((c) => c.tile && tileLook(c.tile) === look)
+    .sort((a, b) => a.row - b.row || a.col - b.col)
+  return same.length > 1 ? `${look} ${same.findIndex((c) => c.tile!.card.id === tileId) + 1}` : look
+}
 
 /** 선전포고 목표 타일의 지형 이름 (탈환은 공격 측의 원래 타일) */
 export function declTileName(game: GameState, d: GameState['declarations'][number]): string {
   const owner = game.players[d.kind === 'retake' ? d.attackerId : d.defenderId]
-  const t = findTile(owner, d.cityId, d.tileId)?.tile
-  if (!t) return '?'
-  const res = t.card.resource ? ` ${RESOURCES[t.card.resource]?.name ?? ''}` : ''
+  const found = findTile(owner, d.cityId, d.tileId)
+  if (!found) return '?'
+  const t = found.tile
   // 탈환은 공격 측이 원래 가진 타일이므로 주인 이름을 붙인다
-  return `${d.kind === 'retake' ? `${civById(owner.civId).name} ` : ''}도시${d.cityId + 1} ${t.card.terrains.join('·') || '자연경관'}${res}${t.role === 'city' ? ' (도시 타일)' : ''}`
+  return `${d.kind === 'retake' ? `${civById(owner.civId).name} ` : ''}도시${d.cityId + 1} ${tileName(found.city, d.tileId)}${t.role === 'city' ? ' (도시 타일)' : ''}`
 }
 
 /** 이번 라운드 불가사의 투자액 (공개 정보)과 진척도 */
