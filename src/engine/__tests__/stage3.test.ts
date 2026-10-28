@@ -757,6 +757,43 @@ describe('도시 공격·탈환·탈락', () => {
     expect(s.players[0].generals).toBe(5) // 선전포고에 건 장군 1 + 도시 4칸에 올려 둔 장군 4가 모두 돌아온다
   })
 
+  it('첫 도시를 파괴해 탈락시키면 탈락한 문명의 위대한 장군을 모두 얻는다 (점령 중이던 장군은 그 점령 그대로)', () => {
+    const civs = ['korea', 'russia', 'china']
+    let cannon = 0
+    let s = round2(civs, [hand4(), hand4(), hand4()])
+    expect(actorOf(s)).toBe(0)
+    s = mod(s, (c) => {
+      const city = c.players[1].cities[0]
+      city.tiles.push({ card: tile(['평지']), role: 'side', side: 'W' })
+      city.openSides = []
+      for (const t of city.tiles) if (t.role === 'side') t.occupiedBy = 0
+      c.players[0].generals = 1
+      cannon = give(c, 0, 'cannon', 'L')
+      const russia = c.players[1]
+      russia.military = []
+      russia.generals = 2 // 손에 든 장군
+      russia.returningGenerals = 1 // 돌아오는 중인 장군
+      c.players[2].cities[0].tiles[1].occupiedBy = 1 // 중국 타일을 점령 중
+      c.players[0].cities[0].tiles[1].occupiedBy = 1 // 한국(정복자) 타일을 점령 중
+    })
+    s = play(s, { type: 'placeWorkers', placements: [] }, { type: 'skipResearch' }, { type: 'endProduction' })
+    s = apply(s, { type: 'declareWar', defenderId: 1, cityId: 0, tileId: tileId(s, 1, 0) })
+    // 러시아가 이번 라운드에 중국에 건 선전포고 (장군 1개를 걸었다)
+    s = mod(s, (c) => c.declarations.push({ attackerId: 1, defenderId: 2, cityId: 0, tileId: tileId(c, 2, 2), kind: 'normal' }))
+    s = passTurn(passTurn(s))
+    expect(s.battle?.decl.kind).toBe('city')
+    s = arrange(s, 0, [cannon, null, null, null])
+    if (s.battle) s = arrange(s, 1, [null, null, null, null])
+    expect(s.players[1].eliminated).toBe(true)
+    expect(s.winner).toBeNull() // 중국이 남아 게임은 계속된다
+    // 선전포고 1 + 도시 사면 4가 돌아오고, 러시아 장군: 손 2 + 돌아오는 중 1 + 선전포고 1 + 한국 타일 점령 1(풀려서 손으로)
+    expect(s.players[0].generals).toBe(5 + 5)
+    expect(s.players[2].cities[0].tiles[1].occupiedBy).toBe(0) // 중국 타일 점령은 한국 것으로
+    expect(s.players[0].cities[0].tiles[1].occupiedBy).toBeUndefined()
+    expect(s.players[1].generals).toBe(0)
+    expect(s.log.some((l) => l.includes('위대한 장군 6개를 얻음 (점령 중이던 1개는 그 타일을 그대로 점령)'))).toBe(true)
+  })
+
   it('공성 카드가 없으면 이겨도 도시는 파괴되지 않는다', () => {
     let w = 0
     let s = toBattle(round2(), (c) => {
@@ -856,25 +893,17 @@ describe('도시 공격·탈환·탈락', () => {
     expect(s.players[1].cities[0].openSides).toEqual([])
   })
 
-  it('원자폭탄으로 도시 타일을 파괴하면 도시가 사라진다 (첫 도시면 탈락, 두 번째 도시가 있으면 첫 도시는 불가)', () => {
-    const base = () => {
-      let s = round2()
-      s = mod(s, (c) => {
-        c.players[1].cities[0].tiles[0].occupiedBy = 0
-        give(c, 0, 'atomic_bomb')
-      })
-      return play(s, { type: 'placeWorkers', placements: [] }, { type: 'skipResearch' })
-    }
-    const cityTile = (s: GameState) => s.players[1].cities[0].tiles[0].card.id
-    let s = base()
-    s = apply(s, { type: 'useAtomicBomb', defenderId: 1, cityId: 0, tileId: cityTile(s) })
-    expect(s.players[1].eliminated).toBe(true) // 하나뿐인 첫 도시
-    expect(s.players[0].generals).toBe(1) // 점령 중이던 장군이 돌아온다 (한 번만)
-    expect(s.players[0].military.some((c) => c.defId === 'atomic_bomb')).toBe(false)
-    // 두 번째 도시가 있으면 첫 도시의 도시 타일은 불가
-    let t = base()
-    t = mod(t, (c) => c.players[1].cities.push({ ...structuredClone(c.players[1].cities[0]), id: 1 }))
-    expect(() => apply(t, { type: 'useAtomicBomb', defenderId: 1, cityId: 0, tileId: cityTile(t) })).toThrow(RuleError)
+  it('원자폭탄은 도시 타일을 파괴할 수 없다 (도시 타일에는 장군을 올려 점령할 수 없다)', () => {
+    let s = round2()
+    s = mod(s, (c) => {
+      c.players[1].cities[0].tiles[0].occupiedBy = 0 // 규칙상 생길 수 없는 상태를 억지로 만들어도
+      give(c, 0, 'atomic_bomb')
+    })
+    s = play(s, { type: 'placeWorkers', placements: [] }, { type: 'skipResearch' })
+    const cityTile = s.players[1].cities[0].tiles[0]
+    expect(cityTile.role).toBe('city')
+    expect(() => apply(s, { type: 'useAtomicBomb', defenderId: 1, cityId: 0, tileId: cityTile.card.id })).toThrow(RuleError)
+    expect(declarationTargets(s, s.players[0]).some((t) => t.tileId === cityTile.card.id && t.kind === 'normal')).toBe(false)
   })
 
   it('원자폭탄은 만리장성처럼 자신의 차례 어느 단계에서든 쓸 수 있다 (일꾼 배치 단계에서도)', () => {
@@ -942,11 +971,16 @@ describe('도시 공격·탈환·탈락', () => {
 describe('승리와 탈락', () => {
   it('문화 패배: 상대의 관광이 내 문화(타일 수)보다 많아지면 탈락, 마지막 생존자는 문화 승리', () => {
     let s = round2()
-    s = mod(s, (c) => c.players[0].wonders.push('louvre', 'eiffel_tower')) // 관광 6 > 러시아 문화 4
+    s = mod(s, (c) => {
+      c.players[0].wonders.push('louvre', 'eiffel_tower') // 관광 6 > 러시아 문화 4
+      c.players[1].generals = 2
+    })
+    const generals = s.players[0].generals
     s = passTurn(s)
     s = passTurn(s) // 라운드 끝 → 문화 패배 판정
     expect(s.players[1].eliminated).toBe(true)
     expect(s.winner).toEqual({ playerId: 0, type: 'culture' })
+    expect(s.players[0].generals).toBe(generals) // 문화 탈락은 장군을 넘겨주지 않는다
   })
 
   it('인터넷 검열시스템이 있으면 문화 패배를 당하지 않는다', () => {

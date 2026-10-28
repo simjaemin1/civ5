@@ -33,12 +33,19 @@ describe('원자폭탄 사용 버튼', () => {
     expect(html).toMatch(/<button[^>]*disabled/)
   })
 
-  it('점령 중인 상대 타일이 있으면 눌 수 있다 (첫 5타일이어도)', () => {
+  it('점령 중인 상대 타일이 있으면 눌 수 있다', () => {
     const s = base()
     s.players[0].military.push({ uid: 1, defId: 'atomic_bomb' })
-    s.players[1].cities[0].tiles[0].occupiedBy = 0 // 도시 타일(첫 5타일)
+    s.players[1].cities[0].tiles[1].occupiedBy = 0
     const html = render(s)
     expect(html).toContain('원자폭탄 사용')
     expect(html).not.toMatch(/<button[^>]*disabled/)
+  })
+
+  it('도시 타일은 고를 수 없다 (도시 타일에는 장군을 올릴 수 없다)', () => {
+    const s = base()
+    s.players[0].military.push({ uid: 1, defId: 'atomic_bomb' })
+    s.players[1].cities[0].tiles[0].occupiedBy = 0 // 규칙상 생길 수 없는 상태를 억지로 만들어도
+    expect(render(s)).toMatch(/<button[^>]*disabled/)
   })
 })
