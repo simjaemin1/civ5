@@ -14,14 +14,6 @@ const ORDER: PolicyId[] = ['tradition', 'aesthetics', 'despotism', 'regime', 'li
 
 /** 연구나 불가사의로 생긴 선택(정책, 두 번째 도시, 독일의 무료 카드)을 먼저 처리한다 */
 export function PendingPanel({ game, player, dispatch }: PanelProps) {
-  // 외교로 파괴할 상대 장군: 있으면 첫 번째를 기본으로 골라 둔다 (고르지 않고 외교를 골라 효과를 날리지 않게)
-  const [dismiss, setDismiss] = useState(() => {
-    for (const c of player.cities) for (const t of c.tiles) if (t.occupiedBy !== undefined && t.occupiedBy !== player.id) return `${c.id}:${t.card.id}`
-    return ''
-  })
-  const enemyTiles = player.cities.flatMap((c) =>
-    c.tiles.filter((t) => t.occupiedBy !== undefined && t.occupiedBy !== player.id).map((t) => ({ cityId: c.id, tile: t })),
-  )
   const workers = totalWorkers(player)
   const cap = player.cities.length ? happiness(player) : 0
   // 전통: 일꾼이 3개 이상이면 자동으로 "일꾼 3개 버리고 문화 2"로 처리한다. 버릴 도시는 도시를 눌러 한 명씩 고른다.
@@ -29,8 +21,7 @@ export function PendingPanel({ game, player, dispatch }: PanelProps) {
   const [alloc, setAlloc] = useState<{ policy: 'tradition' | 'regime'; need: number; counts: Record<number, number> } | null>(null)
   const taken = alloc ? Object.values(alloc.counts).reduce((n, v) => n + v, 0) : 0
   const choose = (id: PolicyId, extra?: { discard?: { cityId: number; count: number }[]; addWorkers?: { cityId: number; count: number }[] }) => {
-    const [cityId, tileId] = dismiss ? dismiss.split(':').map(Number) : []
-    dispatch({ type: 'choosePolicy', policy: id, ...extra, dismiss: id === 'diplomacy' && dismiss ? { cityId, tileId } : undefined })
+    dispatch({ type: 'choosePolicy', policy: id, ...extra })
   }
   const regimeGain = Math.min(REGIME_WORKERS, Math.max(0, cap - workers))
   const pick = (id: PolicyId) => {
@@ -81,19 +72,6 @@ export function PendingPanel({ game, player, dispatch }: PanelProps) {
             정책은 하나만 시행합니다. 새로 고르면 기존 정책은 끝나고, 지금 정책을 다시 골라도 "고를 때마다" 효과가 다시 발동합니다.
             일꾼 {workers}개 · 행복 한도 {cap}.
           </p>
-          {enemyTiles.length > 0 && (
-            <label className="muted">
-              외교로 파괴할 상대 장군{' '}
-              <select value={dismiss} onChange={(e) => setDismiss(e.target.value)}>
-                <option value="">(고르지 않음)</option>
-                {enemyTiles.map((e) => (
-                  <option key={e.tile.card.id} value={`${e.cityId}:${e.tile.card.id}`}>
-                    {civById(game.players[e.tile.occupiedBy!].civId).name} · {e.tile.card.terrains.join('·')}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
           <div className="cardgrid">
             {ORDER.map((id) => (
               <div key={id} className="policy-pick">

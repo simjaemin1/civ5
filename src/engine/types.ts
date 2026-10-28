@@ -268,7 +268,7 @@ export type Action =
   | { type: 'discardCard'; uid: number }
   | { type: 'skipResearch' }
   | { type: 'endProduction' }
-  | { type: 'choosePolicy'; policy: PolicyId; discard?: { cityId: number; count: number }[]; dismiss?: { cityId: number; tileId: number }; addWorkers?: { cityId: number; count: number }[] }
+  | { type: 'choosePolicy'; policy: PolicyId; discard?: { cityId: number; count: number }[]; addWorkers?: { cityId: number; count: number }[] }
   | { type: 'policyOffer'; accept: boolean }
   | { type: 'buildSecondCity'; cityTileId: number; sideTiles: Partial<Record<Side, number>> }
   | { type: 'invest'; cityId: number; wonderId: string; hammers: number }

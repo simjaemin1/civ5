@@ -255,7 +255,7 @@ export function apply(prev: GameState, action: Action): GameState {
       return s
     case 'choosePolicy':
       expectPhase(s, 'research', 'produce')
-      choosePolicy(s, p, action.policy, action.discard, action.dismiss, action.addWorkers)
+      choosePolicy(s, p, action.policy, action.discard, action.addWorkers)
       return s
     case 'policyOffer':
       expectPhase(s, 'research', 'produce')

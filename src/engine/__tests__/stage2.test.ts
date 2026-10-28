@@ -47,6 +47,15 @@ describe('정책', () => {
     expect(culture(me(s))).toBe(6)
   })
 
+  it('외교: 시행 중에는 행복 +2, 다른 정책으로 바꾸면 사라진다', () => {
+    let s = mod(toProduce(solo()), (c) => (c.players[0].pendingPolicies = 2))
+    const base = happiness(me(s))
+    s = apply(s, { type: 'choosePolicy', policy: 'diplomacy' })
+    expect(happiness(me(s))).toBe(base + 2)
+    s = apply(s, { type: 'choosePolicy', policy: 'aesthetics' })
+    expect(happiness(me(s))).toBe(base)
+  })
+
   it('전제정치: 위대한 장군 +1', () => {
     let s = mod(toProduce(solo()), (c) => (c.players[0].pendingPolicies = 1))
     s = apply(s, { type: 'choosePolicy', policy: 'despotism' })

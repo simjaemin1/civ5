@@ -14,7 +14,6 @@ export function choosePolicy(
   p: Player,
   policy: PolicyId,
   discard: { cityId: number; count: number }[] = [],
-  dismiss?: { cityId: number; tileId: number },
   addWorkers?: { cityId: number; count: number }[],
 ): void {
   if (p.pendingPolicies <= 0) throw new RuleError('고를 수 있는 정책 선택권이 없습니다')
@@ -68,19 +67,7 @@ export function choosePolicy(
       if (gain > 0) say(s, `${name} 체제: 일꾼 ${gain}개 추가`)
       break
     }
-    case 'diplomacy': {
-      // 내 원래 타일 위의 상대 위대한 장군 토큰 1개를 골라 파괴한다 (그 문명은 장군을 돌려받지 못함)
-      if (dismiss) {
-        const city = p.cities.find((c) => c.id === dismiss.cityId)
-        const tile = city?.tiles.find((t) => t.card.id === dismiss.tileId)
-        if (!tile || tile.occupiedBy === undefined || tile.occupiedBy === p.id) {
-          throw new RuleError('상대 장군이 올라간 내 타일을 골라야 합니다')
-        }
-        tile.occupiedBy = undefined
-        say(s, `${name} 외교: 상대 장군 토큰 파괴`)
-      }
-      break
-    }
+    case 'diplomacy': // 시행 중 행복 +2 (yields.happiness)
     case 'liberty':
     case 'rationalism':
     case 'equality':

@@ -134,8 +134,13 @@ export function happiness(player: Player): number {
     for (const e of wonderCardById(id).effects) if (e.kind === 'happiness') bonus += e.amount * mult
   }
   for (const id of owned) for (const e of techById(id).effects) if (e.kind === 'happiness') bonus += e.amount
+  // 외교: 시행 중 행복 +2
+  if (player.policy === 'diplomacy') bonus += DIPLOMACY_HAPPINESS
   return civ.happiness + luxuries.size + bonus
 }
+
+/** 외교 정책을 시행하는 동안 얻는 행복 */
+export const DIPLOMACY_HAPPINESS = 2
 
 /** 합리주의: 매 차례 과학 4 (한국은 6) */
 export const rationalismScience = (civId: string): number => (civId === 'korea' ? 6 : 4)
