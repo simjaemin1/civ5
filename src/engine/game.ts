@@ -429,8 +429,9 @@ function buildCity(
   const city = foundCity(p.hand, a, 0, 1)
   p.cities.push(city)
   p.hand = []
-  // 시작 타일에 자연경관이 있어도 문화 효과를 받는다 (킬리만자로 등). 엘도라도의 영토 효과는 손에 미리 받았으므로 다시 주지 않는다
-  for (const t of city.tiles) if (t.card.wonder) onTileGained(s, p, t.card, p.startClaim?.tileId === t.card.id)
+  // 처음 받은 영토도 "얻은" 타일이다: 자연경관(킬리만자로 등)·스페인·일본(물고기)의 얻으면 효과를 받는다.
+  // 엘도라도의 영토 효과는 손에 미리 받았으므로 다시 주지 않는다
+  for (const t of city.tiles) onTileGained(s, p, t.card, p.startClaim?.tileId === t.card.id)
   p.startClaim = undefined
   if (p.civId === 'china') p.generals += 1 // 중국: 위대한 장군 1개로 시작
   say(s, `${civById(p.civId).name} 도시 건설 (타일 ${city.tiles.length}장)`)

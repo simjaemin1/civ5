@@ -1353,6 +1353,13 @@ describe('문명 능력 (전쟁·군사 관련)', () => {
     expect(culture(me(s))).toBe(before + 2)
   })
 
+  it('일본: 시작 타일(처음 받은 영토)에 물고기가 있어도 문화 1', () => {
+    const fishHand = [tile(['평지']), tile(['숲']), tile(['해안'], { resource: 'fish' }), tile(['언덕'])]
+    const withFish = found(startGame(['japan'], [fishHand]))
+    const without = found(startGame(['japan'], [hand4()]))
+    expect(culture(me(withFish))).toBe(culture(me(without)) + 1)
+  })
+
   it('스페인: 자연경관을 영토로 얻을 때마다 문화 1 (킬리만자로는 기본 문화 1이 더해짐)', () => {
     let s = found(startGame(['spain'], [hand4()], [{ id: 5001, terrains: ['산'], wonder: 'kilimanjaro' }, tile(['평지']), tile(['평지'])]))
     s = mod(s, (c) => c.players[0].techs.push('writing'))
