@@ -39,6 +39,7 @@ function viewPlayer(s: GameState, p: Player, viewer: number): Player {
     ...p,
     hand: [],
     pendingCity: null,
+    startClaim: undefined, // 손에 엘도라도가 있다는 것을 알려 주므로 본인만
     scouted: null,
     held: null,
     choices: undefined, // 맡아둔 타일을 쓸지 같은 선택은 본인만
