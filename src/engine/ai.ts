@@ -6,7 +6,7 @@ import type { TechDef, WonderCardDef } from './data'
 import { apply, researchableTechs } from './game'
 import { canHammerScience, computeYields, ctxOf, culture, happiness, rationalismScience, tileYield, totalWorkers, tourism } from './yields'
 import { conditionMet, investableWonders, minHammers } from './wonders'
-import { MAX_HOLD, cardCost, heldCount, producible, uniqueOf, upgradeTargets } from './military'
+import { cardCost, heldCount, holdLimit, producible, uniqueOf, upgradeTargets } from './military'
 import { declarationTargets, findTile, occupiedTiles } from './war'
 import { battleActions, battleOdds } from './aiBattle'
 import { currentPlayer, defaultTileCity } from './core'
@@ -173,7 +173,7 @@ function hammerUse(s: GameState, p: Player): Map<number, number[]> {
   for (const city of p.cities) {
     const costs: number[] = []
     for (const o of cardOptions(p)) {
-      if (o.def.notBattle || o.def.special === 'coastalOnly' || (!o.unique && heldCount(p, o.def.id) >= MAX_HOLD) || !producible(s, p, o.def.id, o.unique, city)) continue
+      if (o.def.notBattle || o.def.special === 'coastalOnly' || (!o.unique && heldCount(p, o.def.id) >= holdLimit(p, o.def.id)) || !producible(s, p, o.def.id, o.unique, city)) continue
       costs.push(cardCost(p, o.def, o.unique ? uniqueOf(p, o.unique) : undefined))
     }
     for (const w of investableWonders(s, p, city)) costs.push(-minHammers(p, w)) // 음수: 불가사의 최소 망치
@@ -902,7 +902,7 @@ function produceCandidates(s: GameState, p: Player): Action[] {
     const riskyActions: Action[] = bids.risky.map((w) => ({ type: 'invest', cityId: city.id, wonderId: w.id, hammers: h }))
     const cardActions: Action[] = []
     for (const o of cardOptions(p)) {
-      if (o.def.notBattle || (!o.unique && heldCount(p, o.def.id) >= MAX_HOLD) || !producible(s, p, o.def.id, o.unique, city) || cardCost(p, o.def, o.unique ? uniqueOf(p, o.unique) : undefined) > h) continue
+      if (o.def.notBattle || (!o.unique && heldCount(p, o.def.id) >= holdLimit(p, o.def.id)) || !producible(s, p, o.def.id, o.unique, city) || cardCost(p, o.def, o.unique ? uniqueOf(p, o.unique) : undefined) > h) continue
       cardActions.push({ type: 'produce', cityId: city.id, defId: o.def.id, unique: o.unique })
     }
     // 군대가 3장 미만이거나 이웃의 군사에 비해 수비가 모자라면 군사 카드를 먼저, 그 뒤에는 불가사의에 망치를 모두 건다
@@ -931,7 +931,7 @@ function produceCandidates(s: GameState, p: Player): Action[] {
         if (uq && ups.some((x) => x.id === uq.base) && cardCost(p, cardById(uq.base), uq) <= gold) out.push({ type: 'upgrade', uid: c.uid, unique: u.name })
       }
     }
-    for (const c of p.military) for (const t of upgradeTargets(p, c).filter((x) => heldCount(p, x.id) < MAX_HOLD && cardCost(p, x) <= gold)) out.push({ type: 'upgrade', uid: c.uid, toDefId: t.id })
+    for (const c of p.military) for (const t of upgradeTargets(p, c).filter((x) => heldCount(p, x.id) < holdLimit(p, x.id) && cardCost(p, x) <= gold)) out.push({ type: 'upgrade', uid: c.uid, toDefId: t.id })
   }
   // 4) 장군이 없고(돌아오는 중인 것도 없고) 군대가 있으면 점령 중인 장군 1개를 불러들여 다시 전쟁에 쓴다.
   //    다만 상대에게 중요한 타일(좋은 산출·자원·자연경관)을 점령 중이면 그대로 들고 있는다. 상대의 성장을 누르는 편이 낫다.
