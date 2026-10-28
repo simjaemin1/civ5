@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { actorOf, apply, defaultTileCity, extraHoles, gainCulture, cardById, culture, ctxOf, RuleError, MILITARY_CARDS, declarationTargets, freeWorkers, tileYield, isCoastalCity, happiness } from '..'
+import { SIDES, actorOf, apply, defaultTileCity, extraHoles, gainCulture, cardById, culture, ctxOf, RuleError, MILITARY_CARDS, declarationTargets, freeWorkers, tileYield, isCoastalCity, happiness } from '..'
 import type { GameState, TileCard } from '..'
 import { found, me, play, startGame, tile } from './helpers'
 
@@ -409,6 +409,28 @@ describe('선전포고', () => {
     expect(s.players[1].cities[0].tiles.filter((t) => t.role === 'side')).toHaveLength(3)
     expect(declarationTargets(s, s.players[0]).some((t) => t.kind === 'city' && t.tileId === cityTile)).toBe(true)
     expect(declarationTargets(at(1), at(1).players[0]).some((t) => t.kind === 'city')).toBe(false)
+  })
+
+  it('사면 중 타일이 없는 칸(원자폭탄으로 사라진 면)은 점령된 칸으로 친다', () => {
+    /** 러시아 첫 도시의 사면을 keep장만 남기고, 남은 칸은 owners의 장군이 점령 */
+    const at = (owners: (number | undefined)[]) =>
+      mod(round2(['korea', 'russia', 'china'], [hand4(), hand4(), hand4()]), (c) => {
+        const city = c.players[1].cities[0]
+        const sides = city.tiles.filter((t) => t.role === 'side')
+        const gone = sides.slice(owners.length)
+        city.tiles = city.tiles.filter((t) => !gone.includes(t))
+        city.openSides = SIDES.filter((x) => !city.tiles.some((t) => t.role === 'side' && t.side === x))
+        city.tiles.filter((t) => t.role === 'side').forEach((t, i) => (t.occupiedBy = owners[i]))
+        for (const p of c.players) p.generals = 1
+      })
+    const canAttack = (s: GameState, pid: number) => declarationTargets(s, s.players[pid]).some((t) => t.kind === 'city')
+    // 남은 1칸을 한국이 점령: 나머지 3칸은 타일이 없어 점령된 칸
+    expect(canAttack(at([0]), 0)).toBe(true)
+    expect(canAttack(at([0]), 2)).toBe(false) // 장군이 가장 많은 문명만
+    expect(canAttack(at([undefined]), 0)).toBe(false) // 남은 칸이 비어 있으면 불가
+    // 4칸 모두 타일이 없으면 모두가 공동(0개)이라 누구나 할 수 있다
+    expect(canAttack(at([]), 0)).toBe(true)
+    expect(canAttack(at([]), 2)).toBe(true)
   })
 
   it('한 차례에 한 번만 선전포고할 수 있다', () => {

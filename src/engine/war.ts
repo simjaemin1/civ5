@@ -39,13 +39,15 @@ export function cityAttackLeaders(city: City): number[] {
 }
 
 /**
- * 도시 공격 조건: 둘러싼 칸(사면)이 모두 점령되어 있고(누구의 장군이든), 그중 내 장군이 가장 많다 (공동 포함).
- * 아직 3칸뿐인 도시라면 3칸만 점령되어도 된다.
+ * 도시 공격 조건: 위·아래·왼쪽·오른쪽 4칸이 모두 위대한 장군에게 점령되어 있고(누구의 장군이든), 그중 내 장군이 가장 많다 (공동 포함).
+ * 타일이 없는 칸(아직 붙지 않은 면, 원자폭탄으로 사라진 면)은 점령된 칸으로 친다 (사용자 결정).
+ * 4칸 모두 타일이 없어 장군이 하나도 없으면 모두가 공동(0개)이라 누구나 선전포고할 수 있다.
  */
 function cityAttackable(defender: Player, city: City, attackerId: number): boolean {
   const sides = city.tiles.filter((t) => t.role === 'side')
-  if (sides.length === 0 || !sides.every((t) => t.occupiedBy !== undefined)) return false
-  if (!cityAttackLeaders(city).includes(attackerId)) return false
+  if (!sides.every((t) => t.occupiedBy !== undefined)) return false
+  const leaders = cityAttackLeaders(city)
+  if (leaders.length > 0 && !leaders.includes(attackerId)) return false
   // 두 번째 도시가 있으면 첫 도시의 도시 타일은 공격할 수 없다
   if (city.id === 0 && defender.cities.length > 1) return false
   return true
