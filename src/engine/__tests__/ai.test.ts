@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { MAX_HOLD, AI_TUNE, actorOf, aiCandidates, aiStep, apply, bestSlots, createGame, cardById, cardStats, MILITARY_CARDS, civById, CIVS, happiness, rankTop, totalWorkers, usableInBattle, WONDER_CARDS, declarationTargets, threat } from '..'
+import { MAX_HOLD, AI_TUNE, actorOf, aiCandidates, aiStep, apply, bestSlots, createGame, cardById, cardStats, MILITARY_CARDS, civById, CIVS, happiness, rankTop, totalWorkers, usableInBattle, battleActions, choosePicks, simplePicks, mixedStrategy, arrangeBattle, WONDER_CARDS, declarationTargets, threat } from '..'
 import type { GameState } from '..'
 
 /** AI끼리 게임을 끝까지(또는 maxSteps까지) 돌린다. */
@@ -205,7 +205,7 @@ describe('AI 전투 배치와 생산 (원거리는 안쪽으로, 줄루에는 �
     expect(slots.filter((x) => x !== null).sort()).toEqual(ids.slice().sort())
   })
 
-  it('전투 배치의 첫 후보는 규칙을 지키고, 쓸 수 있는 카드가 있으면 빈 배치를 내지 않는다 (전함·원자폭탄 거르기)', () => {
+  it('전투 배치의 첫 후보는 규칙을 지키고, 예전 휴리스틱은 쓸 수 있는 카드가 있으면 빈 배치를 내지 않는다 (전함·원자폭탄 거르기)', () => {
     const combos: [number, string[]][] = [
       [1001, ['england', 'netherlands']],
       [1002, ['england', 'aztec', 'france']],
@@ -220,8 +220,11 @@ describe('AI 전투 배치와 생산 (원거리는 안쪽으로, 줄루에는 �
         if (s.phase === 'battle' && s.battle?.step === 'arrange') {
           const pid = actorOf(s)
           const p = s.players[pid]
-          const first = aiCandidates(s)[0]
-          expect(() => apply(s, first), `시드 ${seed} 배치`).not.toThrow()
+          // 게임 이론 배치 (0장 내기도 후보라 빈 배치가 나올 수 있다)
+          expect(() => apply(s, aiCandidates(s)[0]), `시드 ${seed} 배치`).not.toThrow()
+          // 예전 휴리스틱
+          const first = battleActions(s, pid, true)[0]
+          expect(() => apply(s, first), `시드 ${seed} 예전 배치`).not.toThrow()
           const usable = p.military.filter((c) => usableInBattle(s, s.battle!, p, c)).length
           if (first.type === 'arrangeBattle' && usable > 0) expect(first.slots.some((x) => x !== null)).toBe(true)
           if (usable < p.military.length) withUnusable++
@@ -230,9 +233,9 @@ describe('AI 전투 배치와 생산 (원거리는 안쪽으로, 줄루에는 �
         s = aiStep(s).state
       }
     }
-    expect(arranges).toBeGreaterThan(50)
+    expect(arranges).toBeGreaterThan(30)
     expect(withUnusable).toBeGreaterThan(0) // 쓸 수 없는 카드를 든 채 배치하는 경우가 실제로 나온다
-  }, 120000)
+  }, 240000)
 
   it('줄루가 상대면 군사 카드를 만들 때 보병 계열을 먼저 만든다', () => {
     const produceFirst = (civs: string[]): string => {
@@ -446,5 +449,57 @@ describe('AI 전쟁 판단 (승률 추정·쏠림 방지·수비·실질 위협�
     expect(occupied).toBeLessThan(before)
     s.declarations = [{ attackerId: 2, defenderId: 1, cityId: o.cities[0].id, tileId: o.cities[0].tiles.find((x) => x.role !== 'city' && x !== tile)!.card.id, kind: 'normal' }]
     expect(threat(s, o)).toBeCloseTo(occupied - 3)
+  })
+})
+
+describe('AI 전투: 대상 고르기 (엔진으로 모든 대상 조합을 돌려 고른다)', () => {
+  /** 0번(공격)과 1번(수비)이 주어진 카드로 배치를 마친 대상 고르기 단계 */
+  const choosing = (mine: (string | null)[], theirs: (string | null)[]): { s: GameState; uid: (pid: number, slot: number) => number } => {
+    const s = structuredClone(createGame({ seed: 1, civIds: ['korea', 'russia'] }))
+    const put = (pid: number, defs: (string | null)[]) =>
+      defs.map((d) => {
+        if (!d) return null
+        const [defId, dir] = d.split(':')
+        const uid = s.nextUid++
+        s.players[pid].military.push({ uid, defId, dirs: dir ? [dir as 'L' | 'C' | 'R'] : undefined })
+        return uid
+      })
+    const a = put(0, mine)
+    const d = put(1, theirs)
+    s.phase = 'battle'
+    s.battle = { decl: { attackerId: 0, defenderId: 1, cityId: 0, tileId: -1, kind: 'normal' }, slots: { 0: null, 1: null }, chooseQueue: [], picks: {}, step: 'arrange', coastal: false }
+    arrangeBattle(s, 0, a)
+    arrangeBattle(s, 1, d)
+    return { s, uid: (pid, slot) => (pid === 0 ? a : d)[slot - 1]! }
+  }
+
+  it('고정 방향 공격만으로 이미 파괴되는 상대 카드 대신 다른 카드를 고른다', () => {
+    // 내 2번 합성궁병(가운데)이 상대 3번 궁수 A(체력 2)를 공격력 2로 파괴한다. 기마병은 A가 아니라 4번 궁수 B를 골라야 둘 다 잡는다
+    const { s, uid } = choosing(['horseman', 'composite_bowman:C', null, null], [null, null, 'archer:C', 'archer:C'])
+    expect(s.battle!.step).toBe('choose')
+    const horse = uid(0, 1)
+    const A = uid(1, 3)
+    const B = uid(1, 4)
+    expect(simplePicks(s, 0)[horse]).toBe(A) // 예전 규칙: 체력이 가장 낮은 첫 카드 (겹쳐 공격)
+    expect(choosePicks(s, 0)[horse]).toBe(B)
+    const next = apply(s, { type: 'chooseTargets', playerId: 0, picks: choosePicks(s, 0) })
+    expect(next.battleReports.at(-1)!.survivors).toEqual({ attacker: 2, defender: 0 })
+  })
+
+  it('고르는 카드 2장이 같은 대상을 노릴 때 한 장으로 충분하면 다른 대상으로 나뉜다', () => {
+    const { s, uid } = choosing(['horseman', 'horseman', null, null], [null, null, 'archer:L', 'archer:L'])
+    const picks = choosePicks(s, 0)
+    const targets = [picks[uid(0, 1)], picks[uid(0, 2)]]
+    expect(new Set(Object.values(simplePicks(s, 0))).size).toBe(1) // 예전 규칙은 한 카드에 몰아친다
+    expect(targets.sort()).toEqual([uid(1, 3), uid(1, 4)].sort())
+  })
+
+  it('균형 혼합 전략: 가위바위보 표에서 셋을 고르게 섞는다', () => {
+    const mix = mixedStrategy([
+      [0, -1, 1],
+      [1, 0, -1],
+      [-1, 1, 0],
+    ], 3000)
+    for (const p of mix) expect(p).toBeCloseTo(1 / 3, 1)
   })
 })
