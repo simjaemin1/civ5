@@ -4,6 +4,9 @@ import type { TechDef } from '../../engine'
 import { ICON, techCardLines } from '../format'
 import { cardImage } from './cardImages'
 
+/** 금빛 테두리로 빛나는 기술: 문자, 인쇄기술 */
+const GOLD_TECHS = ['writing', 'printing_press']
+
 export type TechCardState = 'owned' | 'available' | 'locked' | 'idle'
 
 interface Props {
@@ -17,7 +20,7 @@ interface Props {
   width?: number
   /** 누르면 큰 카드로 보여 주기 (onClick이 없을 때) */
   zoomable?: boolean
-  /** 정책(보라)·장군(빨강)을 주는 기술의 반짝이 테두리: 맨 위 플라스크 기술표에서만 켠다 (사용자 결정) */
+  /** 정책(보라)·장군(빨강)을 주는 기술과 문자·인쇄기술(금빛)의 반짝이 테두리: 플라스크 기술표와 내 연구 창에서만 켠다 (사용자 결정) */
   glow?: boolean
 }
 
@@ -26,13 +29,18 @@ export function TechCard({ tech, state = 'idle', note, disabled, onClick, width 
   const [zoom, setZoom] = useState(false)
   const img = cardImage('tech', tech.id)
   // 정책을 고르게 해 주는 기술은 보라색, 위대한 장군을 주는 기술은 빨간색 광택 테두리
-  const gives = { policy: glow && tech.effects.some((e) => e.kind === 'policy'), general: glow && tech.effects.some((e) => e.kind === 'general') }
+  // 문자·인쇄기술은 금빛 광택 (사용자 결정)
+  const gives = {
+    policy: glow && tech.effects.some((e) => e.kind === 'policy'),
+    general: glow && tech.effects.some((e) => e.kind === 'general'),
+    gold: glow && GOLD_TECHS.includes(tech.id),
+  }
   const click = onClick ?? (zoomable ? () => setZoom(true) : undefined)
   return (
     <>
       <button
         type="button"
-        className={`card tech-card ${state}${img ? ' has-img' : ''}${gives.policy ? ' gives-policy' : ''}${gives.general ? ' gives-general' : ''}`}
+        className={`card tech-card ${state}${img ? ' has-img' : ''}${gives.policy ? ' gives-policy' : ''}${gives.general ? ' gives-general' : ''}${gives.gold ? ' gives-gold' : ''}`}
         style={{ width }}
         disabled={disabled}
         onClick={click}

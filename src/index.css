@@ -404,7 +404,11 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
 .tech-card.gives-policy.gives-general { box-shadow: 0 0 0 2px #b266d9, 0 0 10px 3px rgba(229, 57, 53, 0.75), inset 0 0 8px rgba(178, 102, 217, 0.55); }
 @keyframes tech-glow-policy { 50% { box-shadow: 0 0 0 2px #d28cf0, 0 0 16px 5px rgba(178, 102, 217, 0.95), inset 0 0 12px rgba(178, 102, 217, 0.7); } }
 @keyframes tech-glow-general { 50% { box-shadow: 0 0 0 2px #ff6f6b, 0 0 16px 5px rgba(229, 57, 53, 0.95), inset 0 0 12px rgba(229, 57, 53, 0.65); } }
-@media (prefers-reduced-motion: reduce) { .tech-card.gives-policy, .tech-card.gives-general { animation: none; } }
+/* 문자·인쇄기술 = 금빛 광택 */
+.tech-card.gives-gold { box-shadow: 0 0 0 2px #e0b23a, 0 0 10px 3px rgba(224, 178, 58, 0.8), inset 0 0 8px rgba(224, 178, 58, 0.55); animation: tech-glow-gold 2.6s ease-in-out infinite; }
+.tech-card.owned.gives-gold { outline-color: #e0b23a; } /* 보유해도 테두리는 금빛 (보유는 "✓ 보유" 표시로 안다) */
+@keyframes tech-glow-gold { 50% { box-shadow: 0 0 0 2px #ffd866, 0 0 16px 5px rgba(240, 196, 70, 0.95), inset 0 0 12px rgba(240, 196, 70, 0.7); } }
+@media (prefers-reduced-motion: reduce) { .tech-card.gives-policy, .tech-card.gives-general, .tech-card.gives-gold { animation: none; } }
 .holders { display: flex; flex-wrap: wrap; gap: 2px 8px; justify-content: center; font-size: 0.78rem; max-width: 130px; }
 .holders .mine { font-weight: 700; color: var(--own-line); }
 .holders .none { color: var(--muted); }
