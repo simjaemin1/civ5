@@ -28,9 +28,16 @@ export function findTile(p: Player, cityId: number, tileId: number): { city: Cit
  * 도시 타일은 위·아래·왼쪽·오른쪽 칸이 모두 (어느 문명이든) 장군에게 점령당해 있으면 누구나 공격할 수 있다.
  * 아직 3칸뿐인 도시라면 3칸만 점령되어도 된다.
  */
-function cityAttackable(defender: Player, city: City): boolean {
+/** 도시 타일에 선전포고하려면 그 도시를 둘러싼 칸에 내 장군이 이만큼 이상 올라가 있어야 한다 (사용자 결정: 무분별한 막타 방지) */
+export const CITY_ATTACK_GENERALS = 2
+/** 정복으로 이만큼 문명을 탈락시키면 정복 승리 (사용자 결정) */
+export const CONQUEST_WIN = 2
+
+/** 도시 공격 조건: 둘러싼 칸(사면)이 모두 점령되어 있고(누구의 장군이든), 그중 내 장군이 2개 이상 */
+function cityAttackable(defender: Player, city: City, attackerId: number): boolean {
   const sides = city.tiles.filter((t) => t.role === 'side')
   if (sides.length === 0 || !sides.every((t) => t.occupiedBy !== undefined)) return false
+  if (sides.filter((t) => t.occupiedBy === attackerId).length < CITY_ATTACK_GENERALS) return false
   // 두 번째 도시가 있으면 첫 도시의 도시 타일은 공격할 수 없다
   if (city.id === 0 && defender.cities.length > 1) return false
   return true
@@ -55,7 +62,7 @@ export function declarationTargets(s: GameState, p: Player): DeclTarget[] {
     for (const city of opp.cities) {
       for (const t of city.tiles) {
         if (t.role === 'city') {
-          if (cityAttackable(opp, city)) out.push({ defenderId: opp.id, cityId: city.id, tileId: t.card.id, kind: 'city' })
+          if (cityAttackable(opp, city, p.id)) out.push({ defenderId: opp.id, cityId: city.id, tileId: t.card.id, kind: 'city' })
         } else if (t.occupiedBy === undefined) {
           out.push({ defenderId: opp.id, cityId: city.id, tileId: t.card.id, kind: 'normal' })
         }
@@ -551,6 +558,17 @@ export function eliminate(s: GameState, pid: number, cause: 'conquest' | 'cultur
     say(s, `${civById(heir.civId).name} ${civById(p.civId).name}의 위대한 장군 ${inHand + kept}개를 얻음${kept ? ` (점령 중이던 ${kept}개는 그 타일을 그대로 점령)` : ''}`)
   }
   say(s, `${civById(p.civId).name} 탈락 (${cause === 'culture' ? '문화 패배' : '정복 패배'})`)
+  // 정복 승리: 정복으로 2개 문명을 탈락시키면 (다른 문명이 남아 있어도) 바로 이긴다
+  if (heir) {
+    heir.conquests = (heir.conquests ?? 0) + 1
+    if (heir.conquests >= CONQUEST_WIN && !s.winner) {
+      s.winner = { playerId: heir.id, type: 'conquest' }
+      s.phase = 'over'
+      say(s, `${civById(heir.civId).name} 정복 승리 (정복으로 ${heir.conquests}개 문명 탈락)`)
+      return
+    }
+  }
+  // 마지막 생존: 남은 문명이 하나면 이긴다 (마지막 상대를 정복으로 탈락시켰으면 정복 승리, 관광이면 문화 승리)
   const left = alive(s)
   if (left.length === 1 && !s.winner) {
     s.winner = { playerId: left[0].id, type: cause === 'culture' ? 'culture' : 'conquest' }
