@@ -3,7 +3,7 @@ import { RuleError, SIDES } from './types'
 import { cardById, civById } from './data'
 import { gainCulture, say } from './core'
 import { freeWorkers } from './scouting'
-import { MAX_HOLD, releaseUnique } from './military'
+import { holdLimit, releaseUnique } from './military'
 import { cardStats, isCoastalOnly } from './cardstats'
 import type { CardStats } from './cardstats'
 import { culture, tourism } from './yields'
@@ -430,7 +430,7 @@ function resolveBattle(s: GameState): void {
     for (const u of units[pid]) {
       if (!destroyed.has(u.inst.uid)) continue
       p.military = p.military.filter((c) => c.uid !== u.inst.uid)
-      if (enemy.civId === 'ottoman' && isCoastalOnly(u.inst) && enemy.military.filter((c) => c.defId === u.inst.defId).length < MAX_HOLD) enemy.military.push(u.inst)
+      if (enemy.civId === 'ottoman' && isCoastalOnly(u.inst) && enemy.military.filter((c) => c.defId === u.inst.defId).length < holdLimit(enemy, u.inst.defId)) enemy.military.push(u.inst)
       else releaseUnique(s, u.inst) // 파괴된 고유 유닛은 3장 재고로 돌아간다
     }
   }

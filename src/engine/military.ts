@@ -11,6 +11,13 @@ import { dirsKey } from './cardstats'
  * 공용 덱의 카드는 사실상 무제한이라 재고는 세지 않는다.
  */
 export const MAX_HOLD = 5
+/** 고유 유닛이 있는 문명은 그 고유 유닛의 기초 카드를 2장까지만 보유한다 (고유 유닛 3장 + 기초 카드 2장 = 총 5장, 사용자 결정) */
+export const BASE_HOLD = 2
+
+/** 이 문명이 일반 카드(고유 유닛 제외)로 한 종류를 몇 장까지 보유할 수 있는지. 예: 몽골은 기사 2장 (케식텐은 따로 3장) */
+export function holdLimit(p: Player, defId: string): number {
+  return civById(p.civId).uniques.some((u) => u.base === defId && !cardById(defId).uniqueOnly) ? BASE_HOLD : MAX_HOLD
+}
 
 /**
  * 고유 유닛은 3장만 만들어져 있다: 방향 카드는 왼쪽·가운데·오른쪽 한 장씩, 방향이 없는 카드는 같은 카드 3장.
@@ -32,7 +39,7 @@ export function releaseUnique(s: GameState, c: CardInst): void {
   if (c.unique && s.uniqueSupply[c.unique]) s.uniqueSupply[c.unique].push(dirsKey(c.dirs))
 }
 
-/** 일반 카드(고유 유닛 제외)로 가진 장수: 한도(MAX_HOLD)는 이 수로 센다 */
+/** 일반 카드(고유 유닛 제외)로 가진 장수: 한도(holdLimit)는 이 수로 센다 */
 export const heldCount = (p: Player, defId: string): number => p.military.filter((c) => c.defId === defId && !c.unique).length
 
 export const hasAny = (p: Player, wonder: string): boolean => p.wonders.includes(wonder)
@@ -63,7 +70,7 @@ export function isObsolete(p: Player, def: MilitaryCardDef): boolean {
   return MILITARY_CARDS.some((c) => c.line === def.line && c.tier! > def.tier! && p.techs.includes(c.tech))
 }
 
-/** 이 문명이 지금 만들 수 있는 카드 (기술 보유. 한 종류 5장 보유 한도는 넘겨도 만들 수 있고, 넘친 만큼 골라 버린다). */
+/** 이 문명이 지금 만들 수 있는 카드 (기술 보유. 보유 한도(holdLimit)는 넘겨도 만들 수 있고, 넘친 만큼 골라 버린다). */
 export function producible(s: GameState, p: Player, defId: string, unique?: string, city?: City): { def: MilitaryCardDef; uq?: UniqueUnitDef } | null {
   const uq = unique ? uniqueOf(p, unique) : undefined
   if (unique && !uq) return null
@@ -95,10 +102,11 @@ function newCard(s: GameState, defId: string, unique?: string): CardInst {
 }
 
 /** 기술 효과 등으로 카드를 바로 받는다 (핵융합의 원자폭탄) */
-/** 보유 한도(MAX_HOLD)를 넘으면 버릴 카드를 골라야 한다: 넘친 종류를 기록한다 */
+/** 보유 한도(holdLimit)를 넘으면 버릴 카드를 골라야 한다: 넘친 장수만큼 종류를 기록한다 */
 function noteOverflow(p: Player, defId: string, unique?: string): void {
   if (unique) return // 고유 유닛은 3장만 존재하고 일반 카드의 한도에 세지 않는다
-  if (heldCount(p, defId) > MAX_HOLD) (p.pendingCardDiscard ??= []).push(defId)
+  const queued = (p.pendingCardDiscard ?? []).filter((d) => d === defId).length
+  for (let i = heldCount(p, defId) - holdLimit(p, defId) - queued; i > 0; i--) (p.pendingCardDiscard ??= []).push(defId)
 }
 
 /** 넘친 군사 카드 1장을 골라 버린다 (고유 유닛이면 재고로 돌아간다) */

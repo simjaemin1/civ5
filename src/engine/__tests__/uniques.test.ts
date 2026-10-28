@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { apply, cardById, cardStats, CIVS, culture, dirsKey, producible, heldCount, TECHS, UNIQUES } from '..'
+import { apply, cardById, cardStats, CIVS, culture, dirsKey, grantCard, holdLimit, producible, heldCount, TECHS, UNIQUES } from '..'
 import type { CardInst, GameState, TileCard } from '..'
 import { found, play, startGame, tile } from './helpers'
 
@@ -100,14 +100,25 @@ describe('고유 유닛 데이터', () => {
     expect(producible(s, s.players[0], 'archer', '투석병사')).toBeNull()
   })
 
-  it('고유 유닛 3장과 같은 바탕의 일반 카드 5장을 따로 가질 수 있다', () => {
+  it('고유 유닛이 있는 문명은 그 기초 카드를 2장까지만 보유한다 (고유 유닛 3장 + 기초 카드 2장 = 5장, 몽골은 케식텐 3장·기사 2장)', () => {
     let s = round2(['inca', 'russia'])
     s = mod(s, (c) => {
       for (let i = 0; i < 3; i++) unique(c, 0, '투석병사', ['L', 'C', 'R'][i])
-      for (let i = 0; i < 5; i++) give(c, 0, 'archer', 'L')
+      for (let i = 0; i < 2; i++) give(c, 0, 'archer', 'L')
     })
-    expect(heldCount(s.players[0], 'archer')).toBe(5)
+    expect(heldCount(s.players[0], 'archer')).toBe(2)
     expect(s.players[0].pendingCardDiscard).toBeUndefined()
+    // 기초 카드 3장째를 얻으면 1장을 골라 버려야 한다 (고유 유닛 3장은 그대로)
+    s = mod(s, (c) => grantCard(c, c.players[0], 'archer'))
+    expect(s.players[0].pendingCardDiscard).toEqual(['archer'])
+    // 한도: 고유 유닛의 기초 카드만 2장, 나머지는 5장. 고유 유닛이 없는 기초 카드는 5장
+    const civ = (id: string) => round2([id, 'russia']).players[0]
+    expect(holdLimit(civ('mongolia'), 'knight')).toBe(2)
+    expect(holdLimit(civ('mongolia'), 'archer')).toBe(5)
+    expect(holdLimit(civ('greece'), 'spearman')).toBe(2)
+    expect(holdLimit(civ('greece'), 'horseman')).toBe(2)
+    expect(holdLimit(civ('russia'), 'knight')).toBe(5)
+    expect(holdLimit(civ('korea'), 'knight')).toBe(5)
   })
 
   it('방향 마크가 없는 공성추는 같은 카드 3장', () => {

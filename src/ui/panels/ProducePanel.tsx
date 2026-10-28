@@ -1,6 +1,6 @@
 import { CityTag } from '../icons'
 import { useState } from 'react'
-import { MAX_HOLD, heldCount, MILITARY_CARDS, cardById, cardCost, civById, declarationTargets, investableWonders, minHammers, uniqueOf, upgradeTargets, occupiedTiles, findTile } from '../../engine'
+import { holdLimit, heldCount, MILITARY_CARDS, cardById, cardCost, civById, declarationTargets, investableWonders, minHammers, uniqueOf, upgradeTargets, occupiedTiles, findTile } from '../../engine'
 import { UnitCard } from '../cards/UnitCard'
 import { TileView } from '../TileView'
 import { catalogCard } from '../cards/unitImage'
@@ -144,17 +144,18 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
                     const no = rows.filter((r) => r.block)
                     // 카드 그림으로 보여 준다: 만들 수 있는 카드는 앞에, 만들 수 없는 카드는 이유와 함께 접어 둔다
                     const card = (r: (typeof rows)[number]) => {
-                      const full = !r.unique && heldCount(player, r.def.id) >= MAX_HOLD
+                      const limit = holdLimit(player, r.def.id)
+                      const full = !r.unique && heldCount(player, r.def.id) >= limit
                       return (
                       <div key={`${r.def.id}:${r.unique ?? ''}`} className={`policy-pick prod-card${r.block ? ' blocked' : ''}`}>
                         <UnitCard card={catalogCard(r.def.id, r.unique)} width={120} />
                         {r.unique && <small className="muted">고유 유닛 — 남은 {game.uniqueSupply[r.unique]?.length ?? 0}/3장</small>}
-                        {full && !r.block && <small className="warn">⚠ 이미 {MAX_HOLD}장 보유: 생산하면 1장을 골라 버립니다</small>}
+                        {full && !r.block && <small className="warn">⚠ 이미 {limit}장 보유{limit < 5 ? ' (고유 유닛의 기초 카드는 2장까지)' : ''}: 생산하면 1장을 골라 버립니다</small>}
                         <ConfirmButton
                           className=""
                           disabled={mustPolicy || !!r.block}
                           title={r.block ?? cardText({ defId: r.def.id, unique: r.unique })}
-                          warn={full ? `${josa(r.unique ?? r.def.name, '을', '를')} 이미 ${MAX_HOLD}장 가지고 있습니다. 만들면 1장을 골라 버려야 합니다` : null}
+                          warn={full ? `${josa(r.unique ?? r.def.name, '을', '를')} 이미 ${limit}장 가지고 있습니다. 만들면 1장을 골라 버려야 합니다` : null}
                           onClick={() => dispatch({ type: 'produce', cityId: city.id, defId: r.def.id, unique: r.unique })}
                         >
                           생산 {ICON.hammer}
@@ -199,8 +200,9 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
               <div className="upgrade-opts">
               {options.map((upper) => {
                 const cost = cardCost(player, upper)
-                // 승급하면 상위 카드가 1장 늘어난다: 이미 5장이면 넘친 1장을 골라 버려야 한다 (고유 유닛 승급은 따로 셈)
-                const full = heldCount(player, upper.id) >= MAX_HOLD
+                // 승급하면 상위 카드가 1장 늘어난다: 이미 한도(5장, 고유 유닛의 기초 카드는 2장)면 넘친 1장을 골라 버려야 한다 (고유 유닛 승급은 따로 셈)
+                const limit = holdLimit(player, upper.id)
+                const full = heldCount(player, upper.id) >= limit
                 return (
                   <div key={upper.id} className="row">
                     <span>→</span>
@@ -213,12 +215,12 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
                     <ConfirmButton
                       className=""
                       disabled={mustPolicy || turn.upgraded || turn.yields.gold < cost}
-                      warn={full ? `${josa(upper.name, '을', '를')} 이미 ${MAX_HOLD}장 가지고 있습니다. 승급하면 1장을 골라 버려야 합니다` : null}
+                      warn={full ? `${josa(upper.name, '을', '를')} 이미 ${limit}장 가지고 있습니다. 승급하면 1장을 골라 버려야 합니다` : null}
                       onClick={() => dispatch({ type: 'upgrade', uid: inst.uid, toDefId: upper.id })}
                     >
                       승급
                     </ConfirmButton>
-                    {full && <small className="warn">⚠ {upper.name} 이미 {MAX_HOLD}장 보유: 승급하면 1장을 골라 버립니다</small>}
+                    {full && <small className="warn">⚠ {upper.name} 이미 {limit}장 보유: 승급하면 1장을 골라 버립니다</small>}
                     {civ.uniques
                       .filter((u) => u.base === upper.id && (game.uniqueSupply[u.name]?.length ?? 0) > 0)
                       .map((u) => (

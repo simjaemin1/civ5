@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { MAX_HOLD, AI_TUNE, actorOf, aiCandidates, aiStep, apply, bestSlots, createGame, cardById, cardStats, MILITARY_CARDS, civById, CIVS, happiness, rankTop, totalWorkers, usableInBattle, battleActions, choosePicks, simplePicks, mixedStrategy, arrangeBattle, WONDER_CARDS, declarationTargets, threat } from '..'
+import { holdLimit, AI_TUNE, actorOf, aiCandidates, aiStep, apply, bestSlots, createGame, cardById, cardStats, MILITARY_CARDS, civById, CIVS, happiness, rankTop, totalWorkers, usableInBattle, battleActions, choosePicks, simplePicks, mixedStrategy, arrangeBattle, WONDER_CARDS, declarationTargets, threat } from '..'
 import type { GameState, TileCard } from '..'
 
 /** AI끼리 게임을 끝까지(또는 maxSteps까지) 돌린다. */
@@ -19,7 +19,7 @@ function checkInvariants(s: GameState): void {
   for (const p of s.players) {
     for (const c of MILITARY_CARDS) {
       const over = (p.pendingCardDiscard ?? []).filter((d) => d === c.id).length
-      expect(p.military.filter((m) => m.defId === c.id && !m.unique).length, `${p.civId} ${c.id} 보유`).toBeLessThanOrEqual(MAX_HOLD + over)
+      expect(p.military.filter((m) => m.defId === c.id && !m.unique).length, `${p.civId} ${c.id} 보유`).toBeLessThanOrEqual(holdLimit(p, c.id) + over)
     }
     for (const m of p.military) {
       const st = cardStats(m)
