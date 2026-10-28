@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Action, GameView } from '../engine'
-import { actorOf, civById, culture, happiness, totalWorkers, tourism, turnKey } from '../engine'
+import { TURN_PHASES, actorOf, civById, culture, happiness, totalWorkers, tourism, turnKey } from '../engine'
 import { Board } from '../ui/Board'
 import { BattleReportModal } from '../ui/BattleReportModal'
 import { CivEmblem } from '../ui/CivEmblem'
 import { TechTreeButton } from '../ui/TechTreeButton'
-import { CivPeek } from '../ui/CivInspector'
+import { CivPeek, HomeButton } from '../ui/CivInspector'
+import type { PeekTab } from '../ui/CivInspector'
 import { InfoTabs, LogPanel } from '../ui/InfoTabs'
 import { SidePanel } from '../ui/SidePanel'
 import { TurnSteps } from '../ui/TurnSteps'
@@ -77,6 +78,8 @@ export function OnlineGameScreen({ online, onExit }: Props) {
   const me = game ? game.players[game.viewer] : null
   // 차례 순서에서 고른 문명의 시점 (내 문명이 바뀌면 풀린다)
   const [peek, setPeek] = useState<{ id: number; self: number } | null>(null)
+  // 시점 화면의 영토·기술 고르기: 다른 문명으로 바꾸거나 내정 화면에 다녀와도 그대로 둔다
+  const [peekTab, setPeekTab] = useState<PeekTab>('land')
   const actorName = game ? civById(game.players[actorOf(game)].civId).name : ''
   useTurnTitle(!game ? '접속 중' : over ? '게임 종료' : mine ? '▶ 내 차례' : `${actorName} 차례 기다리는 중`)
   useEnterHotkey()
@@ -248,7 +251,7 @@ export function OnlineGameScreen({ online, onExit }: Props) {
       <div className="game-body">
         <div className="main">
           {peekId !== null ? (
-            <CivPeek game={game} id={peekId} actor={actor} />
+            <CivPeek game={game} id={peekId} actor={actor} me={me.id} tab={peekTab} onTab={setPeekTab} />
           ) : (
             <>
           <div className="stats">
@@ -275,8 +278,9 @@ export function OnlineGameScreen({ online, onExit }: Props) {
             </>
           )}
         </div>
-        <SidePanel game={game} seats={seats} actor={actor} viewer={me.id} onView={(id) => setPeek({ id, self: me.id })} viewing={peekId} onShowBattle={setReplaySeq} />
+        <SidePanel game={game} seats={seats} actor={actor} viewer={me.id} onView={(id) => (id === actor && TURN_PHASES.includes(game.phase) ? setPeek(null) : setPeek({ id, self: me.id }))} viewing={peekId} onShowBattle={setReplaySeq} />
       </div>
+      {peekId !== null && <HomeButton onHome={() => setPeek(null)} myTurn={mine && !over} />}
       <LogPanel game={game} />
     </div>
   )

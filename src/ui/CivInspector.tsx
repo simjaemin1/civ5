@@ -1,5 +1,4 @@
 import { CityTag, Icon } from './icons'
-import { useState } from 'react'
 import type { GameState } from '../engine'
 import { TURN_PHASES, WONDER_CARDS, civById, culture, happiness, totalWorkers, tourism } from '../engine'
 import { Board } from './Board'
@@ -78,21 +77,57 @@ export function CivDetail({ game, id, actor, tab }: { game: GameState; id: numbe
 
 /**
  * 차례 순서에서 고른 문명의 시점: 내 메인 칸 대신 그 문명의 공개 정보를 보여 준다.
- * 영토·기술 중 고른 쪽은 다른 문명으로 바꿔도 그대로 유지하고, 내용만 부드럽게 바뀐다.
- * 내 화면으로는 차례 순서에서 내 문명(또는 보고 있는 문명)을 다시 누르면 돌아간다.
+ * 영토·기술 중 고른 쪽은 다른 문명으로 바꾸거나 내정 화면에 다녀와도 그대로 유지하고(화면 쪽에서 들고 있다), 내용만 부드럽게 바뀐다.
+ * 맨 아래 한 줄에 지금 내정 중인 문명이 무엇을 하는지 보여 주고, 오른쪽 아래 버튼(HomeButton)으로 내 내정 화면에 돌아간다.
  */
-export function CivPeek({ game, id, actor }: { game: GameState; id: number; actor: number }) {
+export function CivPeek({ game, id, actor, me, tab, onTab }: { game: GameState; id: number; actor: number; me: number; tab: PeekTab; onTab: (t: PeekTab) => void }) {
   const p = game.players[id]
-  const [tab, setTab] = useState<PeekTab>('land')
   return (
     <div className="panel peek">
       <div className="peek-bar">
         <h3>👁 {civById(p.civId).name} 시점 <small className="muted">(공개 정보)</small></h3>
-        <PeekTabs game={game} id={id} actor={actor} tab={tab} onTab={setTab} />
+        <PeekTabs game={game} id={id} actor={actor} tab={tab} onTab={onTab} />
       </div>
       <div key={id} className="peek-body">
         <CivDetail game={game} id={id} actor={actor} tab={tab} />
       </div>
+      <ActorStrip game={game} actor={actor} me={me} />
     </div>
+  )
+}
+
+const DOING: Partial<Record<GameState['phase'], string>> = {
+  setup: '첫 도시를 세우는 중',
+  place: '① 일꾼을 배치하는 중',
+  research: '② 기술을 연구하는 중',
+  produce: '③ 생산·투자를 하는 중',
+  declare: '④ 선전포고를 정하는 중',
+  battle: '전투를 정산하는 중',
+}
+
+/** 시점 화면 아래 한 줄: 지금 내정 중인 문명이 무엇을 하는지 (가장 최근 행동까지) */
+function ActorStrip({ game, actor, me }: { game: GameState; actor: number; me: number }) {
+  const doing = DOING[game.phase]
+  if (!doing) return null
+  const name = civById(game.players[actor].civId).name
+  const last = game.phase === 'battle' ? undefined : game.log.filter((l) => l.startsWith(`[R${game.round}] ${name}`)).at(-1)
+  return (
+    <p className="peek-now" aria-live="polite">
+      <b>
+        ▶ 지금 {name}
+        {actor === me ? ' (나)' : ''}
+      </b>{' '}
+      {doing}
+      {last && <span className="muted"> · 최근: {last.replace(/^\[R\d+\] /, '')}</span>}
+    </p>
+  )
+}
+
+/** 시점 화면을 보는 동안 오른쪽 아래에 떠 있는 버튼: 누르면 내 내정 화면으로 돌아간다 */
+export function HomeButton({ onHome, myTurn }: { onHome: () => void; myTurn: boolean }) {
+  return (
+    <button className={`home-fab${myTurn ? ' urgent' : ''}`} onClick={onHome} title="내 내정 화면으로 돌아갑니다">
+      🏠 내정하러 가기{myTurn ? ' (내 차례)' : ''}
+    </button>
   )
 }

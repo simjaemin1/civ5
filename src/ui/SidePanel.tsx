@@ -10,7 +10,7 @@ import { ICON, policyName } from './format'
 const civName = (game: GameState, pid: number) => civById(game.players[pid].civId).name
 const KIND = { normal: '선전포고', retake: '탈환', city: '도시 공격' } as const
 
-/** 이번 라운드 차례 순서: 끝남 · 지금 · 남음. onView를 주면 문명을 눌러 메인 칸을 그 문명 시점으로 바꾼다 */
+/** 이번 라운드 차례 순서: 끝남 · 지금 · 남음. onView를 주면 문명을 눌러 메인 칸을 그 문명 시점으로 바꾼다 (지금 내정 중인 문명은 화면 쪽에서 내정 화면으로 보낸다) */
 export function TurnOrder({ game, seats, actor, onView, viewing }: { game: GameState; seats: { ai: boolean }[]; actor: number; onView?: (id: number) => void; viewing?: number | null }) {
   const live = game.order.filter((id) => !game.players[id].eliminated)
   const inTurns = game.phase !== 'battle' && game.phase !== 'over'
@@ -29,7 +29,7 @@ export function TurnOrder({ game, seats, actor, onView, viewing }: { game: GameS
               onKeyDown={onView && ((e) => (e.key === 'Enter' || e.key === ' ') && onView(id))}
               tabIndex={onView ? 0 : undefined}
               role={onView ? 'button' : undefined}
-              title={onView ? `${civName(game, id)} 현황 보기 (영토·직전 차례 산출·기술). 내 내정 화면으로는 오른쪽 위 문명 기호` : undefined}
+              title={onView ? (state === 'now' ? `${civName(game, id)} — 지금 내정 중: 눌러서 내정 화면 보기` : `${civName(game, id)} 현황 보기 (영토·직전 차례 산출·기술)`) : undefined}
             >
               <span className="who">
                 {state === 'now' ? '▶ ' : state === 'done' ? '✓ ' : ''}
