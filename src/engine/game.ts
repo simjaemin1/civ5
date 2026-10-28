@@ -84,15 +84,27 @@ export function createGame(opts: CreateOptions): GameState {
   return state
 }
 
-/** 시작 손(불모지로 새로 뽑은 타일 포함)에서 엘도라도를 처음 발견하면 문화 +1: 타일 1장을 손에 더 받는다 (도시를 세울 때 영토 효과로 한 장 더) */
+/**
+ * 시작 손(불모지로 새로 뽑은 타일 포함)의 엘도라도:
+ * - 게임에서 처음 발견하면 문화 +1: 타일 1장을 손에 더 받는다.
+ * - 영토로 얻는 문화 +1도 도시를 세우기 전에 미리 손에 받는다 (손의 타일은 모두 영토가 되므로). 그래서 4장 + 2장 = 6장 중에서 도시를 고른다.
+ * 손이 5장을 넘으면 십자(5칸)에 놓지 않은 타일은 추가 타일(영토)로 붙는다.
+ */
 function discoverInStartHand(s: GameState, p: Player): void {
-  for (let i = 0; i < p.hand.length; i++) {
-    const w = p.hand[i].wonder ? WONDERS[p.hand[i].wonder!] : undefined
-    if (!w?.cultureOnDiscover || s.eldoradoFound) continue
-    s.eldoradoFound = true
-    // 도시는 도시 타일 1장 + 사방 4장까지만 십자에 놓이므로, 손이 5장을 넘으면 남는 타일은 추가 타일(영토)로 붙는다
-    p.hand.push(...drawTiles(s, 1))
-    say(s, `${civById(p.civId).name} 엘도라도 발견 (문화 +1)`)
+  for (const card of [...p.hand]) {
+    const w = card.wonder ? WONDERS[card.wonder] : undefined
+    if (!w?.cultureOnDiscover) continue
+    if (!s.eldoradoFound) {
+      s.eldoradoFound = true
+      p.hand.push(...drawTiles(s, w.cultureOnDiscover))
+      say(s, `${civById(p.civId).name} 엘도라도 발견 (문화 +1)`)
+    }
+    if (w.cultureOnClaim && p.startClaim?.tileId !== card.id) {
+      const bonus = drawTiles(s, w.cultureOnClaim)
+      p.hand.push(...bonus)
+      p.startClaim = { tileId: card.id, bonusIds: bonus.map((c) => c.id) }
+      say(s, `${civById(p.civId).name} 엘도라도 영토 효과 (문화 +1, 도시를 세우기 전에 미리 받음)`)
+    }
   }
 }
 
@@ -357,6 +369,14 @@ function wasteland(s: GameState, p: Player, discardTileId: number): GameState {
   if (i < 0) throw new RuleError('손에 없는 타일입니다')
   const [discarded] = p.hand.splice(i, 1)
   returnToDeck(s, discarded)
+  if (p.startClaim?.tileId === discarded.id) {
+    // 엘도라도를 버리면 영토가 되지 않으므로 미리 받은 타일도 덱으로 돌려준다
+    for (const id of p.startClaim.bonusIds) {
+      const k = p.hand.findIndex((c) => c.id === id)
+      if (k >= 0) returnToDeck(s, p.hand.splice(k, 1)[0])
+    }
+    p.startClaim = undefined
+  } else if (p.startClaim) p.startClaim.bonusIds = p.startClaim.bonusIds.filter((id) => id !== discarded.id)
   p.hand.push(...drawTiles(s, 1))
   discoverInStartHand(s, p) // 새로 뽑은 타일이 엘도라도여도 처음 발견이면 문화 +1
   p.wastelandPending = true
@@ -409,7 +429,9 @@ function buildCity(
   const city = foundCity(p.hand, a, 0, 1)
   p.cities.push(city)
   p.hand = []
-  for (const t of city.tiles) if (t.card.wonder) onTileGained(s, p, t.card) // 시작 타일에 자연경관이 있어도 문화 효과를 받는다 (킬리만자로 등)
+  // 시작 타일에 자연경관이 있어도 문화 효과를 받는다 (킬리만자로 등). 엘도라도의 영토 효과는 손에 미리 받았으므로 다시 주지 않는다
+  for (const t of city.tiles) if (t.card.wonder) onTileGained(s, p, t.card, p.startClaim?.tileId === t.card.id)
+  p.startClaim = undefined
   if (p.civId === 'china') p.generals += 1 // 중국: 위대한 장군 1개로 시작
   say(s, `${civById(p.civId).name} 도시 건설 (타일 ${city.tiles.length}장)`)
   s.phase = 'place'
