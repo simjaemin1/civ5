@@ -113,7 +113,7 @@ function beginTurn(s: GameState): void {
   p.turn = null
   p.freshTechs = []
   p.generalWorkers = 0
-  p.generals += p.returningGenerals // 불러들인 장군은 다음 차례에 돌아온다
+  p.generals += p.returningGenerals // 예전 저장 파일에 남은, 돌아오는 중인 장군
   p.returningGenerals = 0
   if (p.cities.length === 0) {
     s.phase = 'setup'
@@ -313,9 +313,8 @@ export function apply(prev: GameState, action: Action): GameState {
       settleAndEnd(s, p)
       return s
     case 'recallGeneral':
-      expectPhase(s, 'produce', 'declare')
+      expectPhase(s, 'place') // 점령 중인 장군을 불러들일지는 일꾼 배치 때 정한다
       recallGeneral(s, p, action)
-      // 불러들인 장군으로 바로 선전포고할 수 있도록 선전포고 단계가 열린다 (생산 단계에서는 생산을 끝낸 뒤)
       return s
     case 'declareWar':
       expectPhase(s, 'declare')

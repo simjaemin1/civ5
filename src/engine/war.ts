@@ -93,13 +93,13 @@ export function occupiedTiles(s: GameState, p: Player): { defenderId: number; ci
   return out
 }
 
-/** 장군 불러들이기: 점령 중인 타일 하나를 풀고 장군을 돌려받는다. 원하는 만큼 몇 개든 풀 수 있다. */
+/** 장군 불러들이기 (일꾼 배치 단계): 점령 중인 타일 하나를 풀고 장군을 돌려받는다. 원하는 만큼 몇 개든 풀 수 있고, 그 차례 선전포고에 바로 쓴다. */
 export function recallGeneral(s: GameState, p: Player, a: { defenderId: number; cityId: number; tileId: number }): void {
   const found = findTile(s.players[a.defenderId], a.cityId, a.tileId)
   if (!found || found.tile.occupiedBy !== p.id) throw new RuleError('내 장군이 점령 중인 타일이 아닙니다')
   found.tile.occupiedBy = undefined
-  p.returningGenerals += 1 // 다음 차례부터 쓸 수 있다
-  say(s, `${civById(p.civId).name} 장군을 불러들임 (점령 해제, 다음 차례부터 사용)`)
+  p.generals += 1 // 이번 차례에 바로 쓸 수 있다
+  say(s, `${civById(p.civId).name} 장군을 불러들임 (점령 해제)`)
 }
 
 export function declareWar(

@@ -6,6 +6,7 @@ import { apply, civById, declarationTargets, totalWorkers, RuleError } from '../
 import { Board } from '../Board'
 import { TileView } from '../TileView'
 import { ScoutBox } from './ScoutBox'
+import { RecallBox } from './RecallBox'
 import { deckSize } from '../gameInfo'
 import { ICON } from '../format'
 import type { PanelProps } from './types'
@@ -224,6 +225,7 @@ export function PlacePanel({ game, player, dispatch }: PanelProps) {
           </p>
         )}
         <ScoutBox game={game} player={player} dispatch={dispatch} canScout={canScout} />
+        <RecallBox game={game} player={player} dispatch={dispatch} />
         {warHint && <p className="war-hint">⚔ {warHint}</p>}
         <div className="row place-confirm">
           {preview.ok ? (

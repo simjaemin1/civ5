@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { apply, computeYields, RuleError, producible, upgradeTargets } from '..'
+import { apply, computeYields, declarationTargets, RuleError, producible, upgradeTargets } from '..'
 import { found, me, play, startGame, tile } from './helpers'
 import type { GameState } from '..'
 
@@ -76,7 +76,7 @@ describe('바뀐 룰: 승급과 장군', () => {
     expect(me(s).turn!.yields.gold).toBe(6) // 15 - 9
   })
 
-  it('점령한 장군은 원하는 만큼 불러들일 수 있고, 풀 때마다 다음 차례에 돌아온다', () => {
+  it('점령한 장군은 일꾼 배치 단계에서 원하는 만큼 불러들이고, 그 차례 선전포고에 바로 쓴다', () => {
     let s = startGame(['korea', 'russia'], [hand(), hand()])
     for (let i = 0; i < 2; i++) {
       s = found(s)
@@ -87,21 +87,25 @@ describe('바뀐 룰: 승급과 장군', () => {
       c.players[1].cities[0].tiles[1].occupiedBy = 0
       c.players[1].cities[0].tiles[2].occupiedBy = 0
     })
-    s = play(s, { type: 'placeWorkers', placements: [] }, { type: 'skipResearch' })
     const g = me(s).generals
     const a = { type: 'recallGeneral' as const, defenderId: 1, cityId: 0, tileId: s.players[1].cities[0].tiles[1].card.id }
     s = apply(s, a)
-    expect(me(s).generals).toBe(g) // 다음 차례부터 쓸 수 있다
-    expect(me(s).returningGenerals).toBe(1)
+    expect(me(s).generals).toBe(g + 1) // 바로 손에 온다
     expect(s.players[1].cities[0].tiles[1].occupiedBy).toBeUndefined()
-    // 같은 차례에 하나 더 풀 수 있다 (예전에는 1개까지였다)
+    // 같은 차례에 하나 더 풀 수 있다
     const b = { ...a, tileId: s.players[1].cities[0].tiles[2].card.id }
     s = apply(s, b)
-    expect(me(s).returningGenerals).toBe(2)
+    expect(me(s).generals).toBe(g + 2)
     expect(s.players[1].cities[0].tiles[2].occupiedBy).toBeUndefined()
-    expect(me(s).generals).toBe(g)
     // 이미 푼 타일을 또 풀 수는 없다
     expect(() => apply(s, b)).toThrow(RuleError)
+    // 불러들인 장군으로 이번 차례에 선전포고할 수 있다
+    s = mod(s, (c) => (c.players[0].cities[0].workers = 2))
+    s = play(s, { type: 'placeWorkers', placements: [] }, { type: 'skipResearch' })
+    expect(declarationTargets(s, me(s)).some((t) => t.kind === 'normal')).toBe(true)
+    // 일꾼 배치가 끝난 뒤에는 불러들일 수 없다
+    s = mod(s, (c) => (c.players[1].cities[0].tiles[3].occupiedBy = 0))
+    expect(() => apply(s, { ...a, tileId: s.players[1].cities[0].tiles[3].card.id })).toThrow(RuleError)
   })
 })
 
