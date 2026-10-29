@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { DeclTarget, GameState, Player, TileCard } from '../../engine'
-import { RESOURCES, WONDERS, cardStats, cityAttackLeaders, civById, declarationTargets, findTile, freeWorkers } from '../../engine'
+import { RESOURCES, WONDERS, cardStats, cityAttackLeaders, civById, declarationTargets, declarationWorkers, findTile } from '../../engine'
 import { Board } from '../Board'
 import { josa } from '../format'
 import { TileView } from '../TileView'
@@ -57,7 +57,8 @@ export function DeclarePanel({ game, player, dispatch }: PanelProps) {
           {player.generalWorkers > 0 && <small className="muted"> (타일에 올린 {player.generalWorkers}개 제외)</small>}
         </span>
         <span>
-          남은 일꾼 <b>{freeWorkers(player)}</b>
+          남은 일꾼 <b>{declarationWorkers(game, player)}</b>
+          {player.scoutReleasedRound === game.round && <small className="muted"> (정찰에서 돌아온 일꾼은 이번 차례에 쓸 수 없음)</small>}
         </span>
         <span className="muted">선전포고하거나 넘기면 바로 식량 정산을 하고 차례가 끝납니다.</span>
       </p>

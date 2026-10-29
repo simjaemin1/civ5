@@ -36,25 +36,26 @@
 <!-- 1장 -->
 <section class="ch newpage" id="ch1">
   <header class="chhead"><span class="num">1</span><h1>게임 소개</h1></header>
-  <p class="lead">각자 한 문명의 지도자가 되어 땅을 넓히고, 일꾼으로 자원을 모아 기술·불가사의를 얻고 군대를 양성해 제국을 번영 시켜야 합니다.</p>
+  <p class="lead">각자 한 문명의 지도자가 되어 땅을 넓히고, 일꾼으로 자원을 모아 기술·불가사의를 얻고 군대를 양성해 제국을 번영시켜야 합니다.</p>
 
   <h3>이기는 방법</h3>
   <ul>
     <li><b>과학 승리</b>: 아폴로 프로젝트를 가장 먼저 연구하면 바로 이깁니다.</li>
     <li><b>마지막 생존</b>: 다른 문명을 모두 탈락시키면 이깁니다. 마지막 상대를 관광으로 탈락시키면 문화 승리, 정복으로 탈락시키면 정복 승리입니다.</li>
+    <li><b>정복 승리</b>: 다른 문명 2개를 정복으로 탈락시키면 이깁니다 (12장).</li>
   </ul>
 
   <h3>구성물</h3>
   <table>
     <thead><tr><th>구성물</th><th>설명</th></tr></thead>
     <tbody>
-      <tr><td><b>문명 카드 24장</b></td><td>내가 맡을 문명: 우선도, 시작 행복, 턴당 보너스, 능력, 고유 유닛이 적혀 있음</td></tr>
+      <tr><td><b>문명 카드 24장</b></td><td>내가 맡을 문명: 우선도, 시작 행복, 차례당 보너스, 능력, 고유 유닛이 적혀 있음</td></tr>
       <tr><td><b>타일 카드 160장</b></td><td>영토가 되는 땅. 일꾼을 올려 생산함</td></tr>
       <tr><td><b>과학 카드</b></td><td>연구할 기술</td></tr>
       <tr><td><b>불가사의 카드</b></td><td>서로 경쟁하여 짓는 건축물</td></tr>
       <tr><td><b>정책 카드</b></td><td>문명이 시행하는 정책</td></tr>
       <tr><td><b>군사 카드</b></td><td>사용하여 전쟁</td></tr>
-      <tr><td><b>토큰</b></td><td>일꾼, 위대한 장군, 생산력(망치), 진척도, 도시</td></tr>
+      <tr><td><b>토큰</b></td><td>일꾼, 위대한 장군, 망치, 진척도, 도시</td></tr>
     </tbody>
   </table>
 
@@ -105,7 +106,7 @@
     <figcaption>첫 도시와 첫 5타일 (십자 모양)</figcaption>
   </figure>
 
-  <h3>턴당 보너스</h3>
+  <h3>차례당 보너스</h3>
   <p>문명 카드의 시작 보너스(식량·망치·과학·금)는 <b>매 차례</b> 받습니다. 예를 들어 "망치 1"이면 매 차례 망치 1을 더 얻습니다.</p>
 
   <h3>불모지 탈출</h3>
@@ -116,7 +117,7 @@
 <!-- 3장 -->
 <section class="ch" id="ch3">
   <header class="chhead"><span class="num">3</span><h1>차례 진행</h1></header>
-  <p class="lead">한 라운드는 <b>우선도가 높은 문명부터 한 명씩 차례</b>를 모두 마친 뒤, 다 같이 <b>정산</b>을 하고 끝납니다.</p>
+  <p class="lead">한 라운드는 <b>우선도가 높은 문명부터 한 명씩 차례</b>를 모두 마친 뒤, 다 같이 <b>라운드 정산</b>을 하고 끝납니다.</p>
 
   <figure class="fig-frame">
     <svg viewBox="0 0 300 92">
@@ -132,7 +133,7 @@
         <line x1="146" y1="33" x2="168" y2="33" stroke="#b3261e" stroke-width="1.6" marker-end="url(#ar3)"/>
       </g>
       <rect x="172" y="14" width="124" height="56" rx="4" fill="#fbf1ec" stroke="#b3261e" stroke-width="1"/>
-      <text x="234" y="27" text-anchor="middle" font-family="NSans" font-size="8" font-weight="800" fill="#b3261e">정산 (다 같이)</text>
+      <text x="234" y="27" text-anchor="middle" font-family="NSans" font-size="8" font-weight="800" fill="#b3261e">라운드 정산 (다 같이)</text>
       <text x="182" y="42" font-family="NSans" font-size="7.2" fill="#2a251f">① 불가사의 진척도 나누기</text>
       <text x="182" y="56" font-family="NSans" font-size="7.2" fill="#2a251f">② 이번 라운드에 걸린 전투</text>
       <text x="150" y="84" text-anchor="middle" font-family="NSans" font-size="7" fill="#6d6458">각 문명은 자기 차례에 아래 내정 ①~⑥을 순서대로 합니다</text>
@@ -149,16 +150,16 @@
     <div class="st"><span class="k">6</span><img src="assets/icon/happy.png"><b>식량 정산</b></div>
   </div>
   <ol class="steps">
-    <li><b>일꾼 배치</b>: 일꾼을 타일 위에 올립니다. 한 타일에는 일꾼 1개만 올릴 수 있고, 도시 타일에는 올릴 수 없습니다. 일꾼을 놓지 않아도 됩니다.</li>
-    <li><b>산출 계산</b>: 도시 타일과 일꾼이 놓인 타일의 산출, 턴당 보너스, 카드 효과를 모두 더합니다. 망치만큼 생산력 토큰을 가져옵니다.</li>
+    <li><b>일꾼 배치</b>: 일꾼을 타일 위에 올립니다. 한 타일에는 일꾼 1개만 올릴 수 있고, 도시 타일에는 올릴 수 없습니다. 일꾼을 놓지 않아도 됩니다. 타일에 올리거나 정찰(9장)에 쓴 일꾼은 그 차례에 <b>사용한 일꾼</b>입니다.</li>
+    <li><b>산출 계산</b>: 도시 타일과 일꾼이 놓인 타일의 산출, 차례당 보너스, 카드 효과를 모두 더합니다. 망치만큼 망치 토큰을 가져옵니다.</li>
     <li><b>기술 연구</b>: 과학 카드 1장을 연구합니다(7장).</li>
     <li><b>생산</b>: 도시마다 <b>1개씩만</b>, 군사 카드를 만들거나 불가사의에 투자합니다(6장).</li>
-    <li><b>선전포고</b>: 원하면 상대 타일 1장을 목표로 선전포고합니다. 위대한 장군과 사용하지 않은 일꾼 1개를 필요로 합니다 (10장).</li>
+    <li><b>선전포고</b>: 원하면 상대 타일 1장을 목표로 선전포고합니다. 위대한 장군 1개와 <b>사용하지 않은 일꾼</b> 1개가 필요합니다. 탈환·전제정치 예외는 10장을 보세요.</li>
     <li><b>식량 정산</b>: 남은 식량을 계산해 일꾼이 늘거나 줄어듭니다(5장).</li>
   </ol>
   <div class="note">도시 타일은 일꾼이 없어도 항상 산출합니다. 다 쓰지 못한 식량·망치·과학·금은 이 차례가 끝나면 사라집니다.</div>
 
-  <h3>정산 (모든 문명의 내정이 끝난 뒤)</h3>
+  <h3>라운드 정산 (모든 문명의 내정이 끝난 뒤)</h3>
   <ol class="steps">
     <li><b>불가사의 진척도</b>를 나눕니다(6장).</li>
     <li>이번 라운드에 걸린 <b>전투</b>를 진행합니다(10장).</li>
@@ -172,7 +173,7 @@
 <section class="ch" id="ch4">
   <header class="chhead"><span class="num">4</span><h1>타일과 산출</h1></header>
   <div class="two" style="grid-template-columns: 1fr 30mm; align-items:center">
-    <p class="lead" style="margin:0">타일은 카드 아래쪽에 그려진 만큼 턴당 식량·망치·금을 만듭니다.</p>
+    <p class="lead" style="margin:0">타일은 카드 아래쪽에 그려진 만큼 차례마다 식량·망치·금을 만듭니다.</p>
     <div class="cards"><div class="cd"><img src="assets/tile/24.webp" style="width:13mm"></div><div class="cd"><img src="assets/tile/74.webp" style="width:13mm"></div></div>
   </div>
 
@@ -281,7 +282,7 @@
       <li>일꾼 2개, 식량 1 → 일꾼이 1개가 됩니다.</li>
       <li>일꾼 2개, 식량 3 → 일꾼이 2개로 유지됩니다.</li>
       <li>일꾼 2개, 식량 4 → 일꾼이 3개가 됩니다 (행복이 3 이상일 때).</li>
-      <li>일꾼 0개 → 반드시 식량이 0 이상이므로 일꾼이 1개가 됩니다.</li>
+      <li>일꾼 0개 → 식량이 0이어도 일꾼 수 × 2(=0) 이상이므로 일꾼이 1개가 됩니다.</li>
     </ul>
   </div>
 </section>

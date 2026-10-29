@@ -2,7 +2,7 @@ import type { BattleHit, BattleState, CardInst, City, Declaration, GameState, Pl
 import { RuleError, SIDES } from './types'
 import { cardById, civById } from './data'
 import { gainCulture, say } from './core'
-import { freeWorkers } from './scouting'
+import { declarationWorkers } from './scouting'
 import { holdLimit, releaseUnique } from './military'
 import { cardStats, isCoastalOnly } from './cardstats'
 import type { CardStats } from './cardstats'
@@ -57,7 +57,8 @@ export function declarationTargets(s: GameState, p: Player): DeclTarget[] {
   const out: DeclTarget[] = []
   if (p.eliminated || s.declarations.some((d) => d.attackerId === p.id)) return out
   // 같은 타일에도 여러 문명이 선전포고할 수 있다. 정산 때 앞선 문명이 타일을 차지해 대상 문명이 바뀌면 뒤의 선전포고는 전투 없이 끝난다 (startNextBattle)
-  if (freeWorkers(p) < 1 && p.policy !== 'despotism') return out // 전제정치 시행 중에는 선전포고에 일꾼이 필요 없다
+  // 전제정치 시행 중에는 선전포고에 일꾼이 필요 없다. 정찰에 쓰고 돌아온 일꾼은 그 차례에 쓸 수 없다
+  if (declarationWorkers(s, p) < 1 && p.policy !== 'despotism') return out
   for (const city of p.cities) {
     for (const t of city.tiles) {
       if (t.occupiedBy !== undefined && t.occupiedBy !== p.id && !s.players[t.occupiedBy].eliminated) {

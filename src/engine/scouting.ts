@@ -47,11 +47,17 @@ export function holdScouted(s: GameState, p: Player): void {
   say(s, `${civById(p.civId).name} 타일 맡아두기`)
 }
 
+/** 선전포고에 걸 수 있는 일꾼 수: 정찰에 쓴 일꾼은 맡아둔 타일을 돌려보내 돌아와도 그 차례에는 선전포고에 쓸 수 없다 (규칙서 9장) */
+export function declarationWorkers(s: GameState, p: Player): number {
+  return freeWorkers(p) - (p.scoutReleasedRound === s.round ? 1 : 0)
+}
+
 export function releaseHeld(s: GameState, p: Player): void {
   if (!p.held) throw new RuleError('맡아둔 타일이 없습니다')
   returnToDeck(s, p.held)
   p.held = null
-  p.scouting = false // 일꾼이 돌아온다
+  p.scouting = false // 일꾼이 돌아온다 (이번 차례에는 선전포고에 쓸 수 없다)
+  p.scoutReleasedRound = s.round
   p.scoutCity = undefined
 }
 

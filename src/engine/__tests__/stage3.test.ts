@@ -1239,6 +1239,28 @@ describe('정찰과 나침반', () => {
     expect(freeWorkers(me(s))).toBe(1)
   })
 
+  it('정찰에 쓴 일꾼은 사용한 일꾼이라, 맡아둔 타일을 돌려보내 돌아와도 그 차례에는 선전포고에 쓸 수 없다 (다음 차례에는 쓸 수 있다)', () => {
+    const base = () =>
+      mod(round2(), (c) => {
+        const p = c.players[0]
+        p.techs.push('compass')
+        p.generals = 1
+        p.cities[0].workers = 1
+      })
+    const canDeclare = (s: GameState) => declarationTargets(s, s.players[0]).some((t) => t.kind === 'normal')
+    // 정찰하지 않으면 남은 일꾼 1개로 선전포고할 수 있다
+    expect(canDeclare(base())).toBe(true)
+    // 정찰 → 맡아두기 → 돌려보내기: 일꾼은 돌아오지만 이번 차례에는 사용한 일꾼
+    let s = apply(apply(apply(base(), { type: 'scout' }), { type: 'holdScouted' }), { type: 'releaseHeld' })
+    expect(freeWorkers(me(s))).toBe(1)
+    expect(canDeclare(s)).toBe(false)
+    s = apply(s, { type: 'placeWorkers', placements: [] })
+    expect(canDeclare(s)).toBe(false)
+    // 다음 라운드에는 다시 쓸 수 있다
+    s = mod(s, (c) => (c.round += 1))
+    expect(canDeclare(s)).toBe(true)
+  })
+
   it('한 차례에 1장만 본다: 맡아둔 타일을 돌려보내도 그 차례에는 다시 정찰할 수 없고, 다음 차례에는 할 수 있다', () => {
     let s = mod(start(), (c) => {
       c.players[0].techs.push('compass')
