@@ -81,7 +81,6 @@ export function autoSkipAction(game: GameState, p: Player): { action: Action; re
     if (p.military.some((c) => c.defId === 'atomic_bomb') && bombTargets) return null
     const enemyGenerals = p.cities.some((c) => c.tiles.some((t) => t.occupiedBy !== undefined && t.occupiedBy !== p.id))
     if (p.wonders.includes('great_wall') && !p.greatWallUsed && enemyGenerals) return null
-    if (p.held) return null // 맡아둔 타일을 돌려보내 일꾼을 선전포고에 쓸 수 있다
     if (p.civId === 'india' && p.military.length > 0) return null
     return { action: { type: 'endProduction' }, reason: '망치·금으로 할 수 있는 일이 없어 생산을 넘겼습니다.' }
   }
