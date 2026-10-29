@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { SIDES, actorOf, apply, defaultTileCity, extraHoles, gainCulture, cardById, culture, ctxOf, RuleError, MILITARY_CARDS, declarationTargets, freeWorkers, tileYield, isCoastalCity, happiness } from '..'
 import type { GameState, TileCard } from '..'
 import { found, me, play, startGame, tile } from './helpers'
+import { flushPendingTiles } from '../core'
 
 const hand4 = (): TileCard[] => [tile(['평지']), tile(['숲']), tile(['언덕']), tile(['해안'])]
 const inland = (): TileCard[] => [tile(['평지']), tile(['숲']), tile(['언덕']), tile(['사막'])]
@@ -1202,6 +1203,21 @@ describe('정찰과 나침반', () => {
     s = apply(s, { type: 'scout' })
     expect(culture(me(s))).toBe(before + 1)
     expect(s.eldoradoFound).toBe(true)
+  })
+
+  it('엘도라도를 정찰 없이 바로 영토로 처음 뽑으면 발견 +1과 영토 +1을 함께 받는다 (이미 발견됐으면 영토 +1만)', () => {
+    const gain = (found: boolean) => {
+      let s = mod(start(), (c) => {
+        c.deck.unshift(eldorado())
+        c.eldoradoFound = found
+      })
+      const before = culture(me(s))
+      s = mod(s, (c) => gainCulture(c, c.players[0], 1))
+      s = mod(s, (c) => flushPendingTiles(c, c.players[0]))
+      return { gained: culture(me(s)) - before, found: s.eldoradoFound }
+    }
+    expect(gain(false)).toEqual({ gained: 3, found: true }) // 뽑은 엘도라도 1 + 발견 1 + 영토 1
+    expect(gain(true)).toEqual({ gained: 2, found: true }) // 뽑은 엘도라도 1 + 영토 1
   })
 
   it('나침반이 없으면 맡아둘 수 없고, 있으면 맡아둔 타일을 다음 문화 타일로 가져온다', () => {
