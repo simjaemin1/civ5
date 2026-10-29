@@ -232,7 +232,7 @@ export function apply(prev: GameState, action: Action): GameState {
       holdScouted(s, p)
       return s
     case 'releaseHeld':
-      expectPhase(s, 'place', 'research', 'produce')
+      expectPhase(s, 'place') // 맡아둔 타일을 돌려보낼지는 일꾼 배치(산출) 때 정한다
       releaseHeld(s, p)
       return s
     case 'placeWorkers': return placeWorkers(s, p, action.placements)

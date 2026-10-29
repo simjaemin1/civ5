@@ -4,8 +4,8 @@ import { CityTag } from '../icons'
 import type { PanelProps } from './types'
 
 /**
- * 정찰한 타일과 맡아둔 타일. 정찰은 배치 단계에서만 하지만, 맡아두기·돌려보내기는 연구·생산 단계에서도 된다.
- * 돌려보내면 일꾼이 돌아오지만, 그 차례에는 선전포고에 쓸 수 없다 (규칙서 9장).
+ * 정찰한 타일과 맡아둔 타일. 정찰·돌려보내기는 배치 단계에서만 하고, 맡아두기는 연구·생산 단계에서도 된다.
+ * 돌려보내면 일꾼이 돌아와 그 차례에도 쓸 수 있다 (규칙서 9장).
  */
 export function ScoutBox({
   game,
@@ -71,9 +71,11 @@ export function ScoutBox({
           <div style={{ width: 120 }}>
             <TileView card={player.held} player={player} />
           </div>
-          <button onClick={() => dispatch({ type: 'releaseHeld' })} title="덱에 돌려넣고 일꾼을 돌려받습니다. 돌아온 일꾼은 이번 차례에 선전포고에 쓸 수 없습니다.">
-            돌려보내기 (일꾼 1개 돌아옴)
-          </button>
+          {placePhase && (
+            <button onClick={() => dispatch({ type: 'releaseHeld' })} title="덱에 돌려넣고 일꾼을 돌려받습니다. 돌아온 일꾼은 이번 차례에도 쓸 수 있습니다.">
+              돌려보내기 (일꾼 1개 돌아옴)
+            </button>
+          )}
         </span>
       )}
     </div>

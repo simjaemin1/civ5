@@ -1261,6 +1261,31 @@ describe('정찰과 나침반', () => {
     expect(canDeclare(s)).toBe(true)
   })
 
+  it('맡아둔 타일은 일꾼 배치(산출) 때 돌려보내고, 돌아온 일꾼은 그 차례에도 쓸 수 있다 (재정찰 포함). 배치가 끝난 뒤에는 돌려보낼 수 없다', () => {
+    const held = () =>
+      mod(round2(), (c) => {
+        const p = c.players[0]
+        p.techs.push('compass')
+        p.generals = 1
+        p.cities[0].workers = 1
+        p.held = c.deck.shift()!
+        p.scoutCity = 0
+        p.scoutedRound = c.round - 1
+      })
+    const canDeclare = (s: GameState) => declarationTargets(s, s.players[0]).some((t) => t.kind === 'normal')
+    // 배치 전에 돌려보내기: 이번 차례에도 쓸 수 있다
+    let s = apply(held(), { type: 'releaseHeld' })
+    expect(freeWorkers(me(s))).toBe(1)
+    s = apply(s, { type: 'placeWorkers', placements: [] })
+    expect(canDeclare(s)).toBe(true)
+    // 배치 전에 돌려보내면 다시 정찰할 수도 있다
+    s = apply(apply(held(), { type: 'releaseHeld' }), { type: 'scout' })
+    expect(me(s).scouted).toBeTruthy()
+    // 배치가 끝난 뒤에는 돌려보낼 수 없다
+    s = apply(held(), { type: 'placeWorkers', placements: [] })
+    expect(() => apply(s, { type: 'releaseHeld' })).toThrow()
+  })
+
   it('한 차례에 1장만 본다: 맡아둔 타일을 돌려보내도 그 차례에는 다시 정찰할 수 없고, 다음 차례에는 할 수 있다', () => {
     let s = mod(start(), (c) => {
       c.players[0].techs.push('compass')
