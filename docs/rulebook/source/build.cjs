@@ -33,7 +33,7 @@ async function render(html, file) {
   // 장 제목이 있는 쪽 찾기
   const n = parseInt(execSync(`pdfinfo "${pdf}"`).toString().match(/Pages:\s+(\d+)/)[1])
   const pages = {}
-  const titles = ['게임 소개', '게임 준비', '차례 진행', '타일과 산출', '일꾼, 행복, 성장', '생산', '과학과 기술', '문화와 정책', '정찰과 나침반', '전쟁', '두 번째 도시', '탈락과 승리', '참조표']
+  const titles = ['게임 소개', '게임 준비', '차례 진행', '타일과 산출', '일꾼, 행복, 성장', '과학과 기술', '생산', '문화와 정책', '정찰과 나침반', '전쟁', '두 번째 도시', '탈락과 승리', '참조표']
   for (let i = 3; i <= n; i++) {
     const t = execSync(`pdftotext -f ${i} -l ${i} -layout "${pdf}" -`).toString()
     const lines = t.split('\n').map((s) => s.trim().replace(/\s+/g, ' ')).filter(Boolean)
