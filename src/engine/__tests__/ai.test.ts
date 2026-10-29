@@ -501,6 +501,21 @@ describe('AI 전쟁 판단 (승률 추정·쏠림 방지·수비·실질 위협�
     expect(ids).not.toContain(hill.card.id)
   })
 
+  it('장군이 없어도 불러들여서 칠 더 좋은 곳이 없으면 점령을 풀지 않는다 (풀었다가 같은 타일·같은 값의 타일을 다시 치지 않는다)', () => {
+    const s = atPhase('place', ['korea', 'egypt'])
+    s.players[0].generals = 0
+    s.players[0].returningGenerals = 0
+    give(s, 0, 'rifleman', 4)
+    give(s, 1, 'warrior', 1)
+    flatten(s, 1)
+    s.players[1].cities[0].tiles.find((t) => t.role === 'side')!.occupiedBy = 0
+    const tune = { harass: false, coalition: false }
+    expect(withTune(tune, () => recalls(s))).toEqual([])
+    // 훨씬 좋은 타일이 생기면 불러들여 그쪽으로 옮긴다
+    addExtra(s, 1, { terrains: ['호수'], wonder: 'lake_victoria' })
+    expect(withTune(tune, () => recalls(s)).length).toBe(1)
+  })
+
   describe('견제형 점령 (정복 없이 장군 한두 개로 방해)', () => {
     it('점령은 오래 들고 있는 것이 기본이다 (더 좋은 타일이 없으면 장군을 불러들이지 않는다)', () => {
       const s = atPhase('place', ['korea', 'egypt'])
