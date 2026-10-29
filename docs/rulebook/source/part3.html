@@ -30,7 +30,7 @@
     </svg>
     <figcaption>선전포고 비용</figcaption>
   </figure>
-  <div class="key"><span class="tag">언제 싸우나</span>전투는 <b>라운드 정산</b> 때 합니다. 선전포고를 받은 쪽은 자기 차례에 군사 카드를 만들어 대비할 수 있습니다.</div>
+  <div class="key"><span class="tag">언제 싸우나</span>전투는 <b>라운드 정산</b> 때 합니다. 선전포고가 여러 개 나왔다면 공격하는 문명의 우선도가 높은 순서대로 전투합니다.</div>
 
   <h3>전투하기</h3>
   <div class="two" style="grid-template-columns: 58mm 1fr; align-items:center">
@@ -59,100 +59,86 @@
   <ol class="steps">
     <li>서로 안 보이게 1~4번 자리에 카드를 놓습니다 (빈자리 가능).</li>
     <li>동시에 공개합니다.</li>
-    <li>대상을 고르는 카드는 우선도가 높은 쪽부터 고릅니다 (코사크는 맨 나중).</li>
-    <li>모든 카드가 동시에 공격합니다 (공격은 필수).</li>
-    <li>받은 대미지가 체력 이상인 카드는 파괴되어 공용 덱에 섞입니다.</li>
+    <li>공격 대상을 고르는 카드는 문명 우선도가 높은 쪽부터 고릅니다.</li>
+    <li>받은 대미지가 체력 이상인 카드는 파괴되어 공용 덱으로 돌아갑니다.</li>
     <li><b>남은 카드가 많은 쪽</b>이 이깁니다. 같으면 수비 측이 이깁니다.</li>
   </ol>
 
   <h3>공격 방향</h3>
-  <p>서로 마주 보고 놓으므로 내 1번은 상대 4번과 마주 봅니다.</p>
-  <table class="small">
-    <thead><tr><th>마주 보는 상대 자리</th><th class="c">4번</th><th class="c">3번</th><th class="c">2번</th><th class="c">1번</th></tr></thead>
-    <tbody><tr><td>내 자리</td><td class="c">1번</td><td class="c">2번</td><td class="c">3번</td><td class="c">4번</td></tr></tbody>
-  </table>
   <p>카드 위쪽 전투력 마크 위치가 공격 방향입니다. 가운데는 마주 보는 칸, 왼쪽·오른쪽은 그 양옆이며, 마크가 여러 개면 모두 공격합니다.</p>
-  <figure class="fig-frame">
-    <div class="two" style="grid-template-columns: 1fr 24mm; align-items:center">
-      <svg viewBox="0 0 196 104">
-        <defs><marker id="ar10" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="4.5" markerHeight="4.5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#c1121f"/></marker></defs>
-        <g font-family="NSans">
-          <text x="18" y="31" text-anchor="middle" font-size="9" fill="#6d6458">상대</text>
-          <text x="18" y="76" text-anchor="middle" font-size="9" fill="#6d6458">나</text>
-          <g fill="#e9ecef" stroke="#343a40" stroke-width="1.6">
-            <rect x="36" y="8" width="36" height="38"/><rect x="76" y="8" width="36" height="38"/><rect x="116" y="8" width="36" height="38"/><rect x="156" y="8" width="36" height="38"/>
-            <rect x="36" y="56" width="36" height="38"/><rect x="76" y="56" width="36" height="38" fill="#fbe3e1"/><rect x="116" y="56" width="36" height="38"/><rect x="156" y="56" width="36" height="38"/>
-          </g>
-          <g font-size="15" font-weight="800" text-anchor="middle" fill="#212529">
-            <text x="54" y="33">4</text><text x="94" y="33">3</text><text x="134" y="33">2</text><text x="174" y="33">1</text>
-            <text x="54" y="81">1</text><text x="94" y="81">2</text><text x="134" y="81">3</text><text x="174" y="81">4</text>
-          </g>
-          <g stroke="#c1121f" stroke-width="3.2" fill="none" marker-end="url(#ar10)">
-            <line x1="88" y1="60" x2="62" y2="40"/>
-            <line x1="94" y1="60" x2="94" y2="38"/>
-            <line x1="100" y1="60" x2="126" y2="40"/>
-          </g>
-          <g font-size="6.5" font-weight="700" fill="#c1121f" text-anchor="middle">
-            <text x="60" y="54">왼쪽</text><text x="94" y="53" fill="#fff" stroke="#fff" stroke-width="2.5">가운데</text><text x="94" y="53">가운데</text><text x="130" y="54">오른쪽</text>
-          </g>
-        </g>
-      </svg>
-      <div class="cards"><div class="cd"><img src="assets/unit/chu_ko_nu.LR.webp" style="width:22mm">마크 2개(왼쪽·오른쪽)</div></div>
-    </div>
-    <figcaption>내 2번 자리의 공격 방향 · 마크가 왼쪽·오른쪽 2개인 카드는 상대 4번과 2번을 함께 공격합니다</figcaption>
-  </figure>
 
   <h3>대미지와 반격</h3>
+  <p class="u" style="font-weight:700; font-size:10pt">공격을 안 할 수는 없습니다.</p>
   <ul>
     <li>공격한 카드는 대상에게 전투력만큼 대미지를 줍니다.</li>
-    <li>공격한 카드는 공격한 대상들의 방어력 합만큼 반격을 받습니다.</li>
+    <li>공격한 카드는 공격한 대상들의 <b>방어력 합만큼 반격</b>을 받습니다.</li>
     <li>빈칸을 공격하면 대미지도 반격도 없습니다.</li>
-    <li>"반격 대미지를 받지 않는다"가 적힌 카드는 반격을 받지 않습니다.</li>
     <li>조건이 붙은 효과는 대미지 계산 결과를 보고 판정합니다.</li>
     <li>대미지는 전투가 끝나면 사라지고, 살아남은 카드는 다시 씁니다.</li>
   </ul>
   <figure class="fig-frame">
-    <svg viewBox="0 0 260 108">
-      <defs>
-        <marker id="arR" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="4.5" markerHeight="4.5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#c1121f"/></marker>
-        <marker id="arB" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="4.5" markerHeight="4.5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#2f5d8a"/></marker>
-      </defs>
+    <svg viewBox="0 0 300 152">
+      <defs><marker id="arC" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="4" markerHeight="4" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#c1121f"/></marker></defs>
       <g font-family="NSans" text-anchor="middle">
-        <image href="assets/unit/archer.C.webp" x="30" y="6" width="62" height="88"/>
-        <text x="61" y="104" font-size="8" font-weight="700" fill="#2a251f">내 2번 · 궁수</text>
-        <image href="assets/unit/spearman.C.webp" x="168" y="6" width="62" height="88"/>
-        <text x="199" y="104" font-size="8" font-weight="700" fill="#2a251f">상대 3번 · 창병</text>
-        <line x1="96" y1="34" x2="162" y2="34" stroke="#c1121f" stroke-width="2.6" marker-end="url(#arR)"/>
-        <text x="130" y="29" font-size="7.5" font-weight="800" fill="#c1121f">공격 1</text>
-        <line x1="164" y1="52" x2="98" y2="52" stroke="#2f5d8a" stroke-width="2.6" marker-end="url(#arB)"/>
-        <text x="130" y="47" font-size="7.5" font-weight="800" fill="#2f5d8a">공격 1</text>
-        <path d="M 164 70 C 140 84, 122 84, 98 70" fill="none" stroke="#c1121f" stroke-width="1.6" stroke-dasharray="3 2" marker-end="url(#arR)"/>
-        <text x="130" y="92" font-size="7" font-weight="700" fill="#c1121f">반격 1 (창병 방어력)</text>
+        <g font-size="7" fill="#6d6458"><text x="50" y="9">[상대 4번 자리 카드]</text><text x="150" y="9">[상대 3번 자리 카드]</text><text x="250" y="9">[상대 2번 자리 카드]</text></g>
+        <svg x="8" y="13" width="84" height="21" viewBox="0 400 340 85" preserveAspectRatio="xMidYMid slice"><image href="assets/unit/spearman.C.webp" width="340" height="485"/></svg><svg x="108" y="13" width="84" height="21" viewBox="0 400 340 85" preserveAspectRatio="xMidYMid slice"><image href="assets/unit/spearman.C.webp" width="340" height="485"/></svg><svg x="208" y="13" width="84" height="21" viewBox="0 400 340 85" preserveAspectRatio="xMidYMid slice"><image href="assets/unit/spearman.C.webp" width="340" height="485"/></svg>
+        <g fill="none" stroke="#c1121f" stroke-width="1.6"><circle cx="57.5" cy="23.5" r="7"/><circle cx="157.5" cy="23.5" r="7"/><circle cx="257.5" cy="23.5" r="7"/></g>
+        <image href="assets/unit/example_robot.png" x="62" y="56" width="100" height="91"/>
+        <g stroke="#c1121f" stroke-width="2.6" fill="none" marker-end="url(#arC)">
+          <line x1="58" y1="32" x2="74" y2="56"/><line x1="156" y1="32" x2="114" y2="57"/><line x1="254" y1="32" x2="153" y2="58"/>
+        </g>
+        <text x="32" y="96" font-size="9" font-weight="800" fill="#c1121f">반격 3</text>
+        <text x="32" y="108" font-size="7" fill="#2a251f">(1+1+1)</text>
+        <g transform="translate(184,72)">
+          <g fill="#e9ecef" stroke="#343a40" stroke-width="1.2">
+            <rect x="0" y="0" width="25" height="30"/><rect x="28" y="0" width="25" height="30"/><rect x="56" y="0" width="25" height="30"/><rect x="84" y="0" width="25" height="30"/>
+            <rect x="0" y="40" width="25" height="30"/><rect x="28" y="40" width="25" height="30" fill="#fbe3e1"/><rect x="56" y="40" width="25" height="30"/><rect x="84" y="40" width="25" height="30"/>
+          </g>
+          <g font-size="11" font-weight="800" fill="#212529"><text x="12.5" y="19">4</text><text x="40.5" y="19">3</text><text x="68.5" y="19">2</text><text x="96.5" y="19">1</text><text x="12.5" y="59">1</text><text x="40.5" y="59">2</text><text x="68.5" y="59">3</text><text x="96.5" y="59">4</text></g>
+          <g stroke="#c1121f" stroke-width="2.4" fill="none" marker-end="url(#arC)"><line x1="36" y1="46" x2="18" y2="27"/><line x1="40.5" y1="46" x2="40.5" y2="25"/><line x1="45" y1="46" x2="63" y2="27"/></g>
+          <g font-size="6.3" fill="#6d6458"><text x="-8" y="19">상대</text><text x="-8" y="59">나</text></g>
+        </g>
       </g>
     </svg>
-    <table class="small" style="margin:1.5mm 0 1mm">
-      <thead><tr><th></th><th class="c">받은 공격</th><th class="c">받은 반격</th><th class="c">받은 대미지 / 체력</th><th class="c">결과</th></tr></thead>
-      <tbody>
-        <tr><td>내 궁수</td><td class="c">1</td><td class="c">1 (창병 방어력)</td><td class="c"><b>2</b> / 2</td><td class="c red"><b>파괴</b></td></tr>
-        <tr><td>상대 창병</td><td class="c">1</td><td class="c">0 (궁수 방어력)</td><td class="c"><b>1</b> / 2</td><td class="c">생존</td></tr>
-      </tbody>
-    </table>
-    <p style="font-size:7.8pt; margin:0">궁수는 공격 1과 반격 1(창병 방어력)을 받아 체력 2가 다 닳아 파괴됩니다.</p>
-    <figcaption>예: 마주 본 궁수와 창병 · 받은 대미지 = 받은 공격 + 받은 반격</figcaption>
+    <figcaption>내 2번 자리의 마크 3개 카드는 상대 4·3·2번을 모두 공격하고, 세 카드의 방어력 합(1+1+1)만큼 반격 3을 받습니다</figcaption>
   </figure>
+
+  <h3>대미지 계산 이후</h3>
+  <div class="two" style="grid-template-columns: 1fr 42mm; align-items:center">
+    <div>
+      <p>카드 아래쪽 <b>체력</b>과 비교해, 이번 전투에서 받은 대미지 합계가 <b>체력과 같거나 많으면</b> 그 카드는 파괴되어 공용 덱으로 돌아갑니다.</p>
+      <div class="example" style="margin:0"><span class="tag">[예시]</span><br>내 파이크병은 왼쪽을 공격했지만 빈칸이라 헛방입니다. 상대 전사는 가운데로 파이크병을 공격합니다.<br>파이크병은 대미지 1을 받습니다 (체력 3, 생존).<br>전사는 파이크병의 방어력만큼 반격 3을 받습니다 (체력 3, <b class="red">파괴</b>).</div>
+    </div>
+    <svg viewBox="0 0 140 200">
+      <defs>
+        <marker id="arD" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="4" markerHeight="4" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#c1121f"/></marker>
+        <marker id="arP" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="4" markerHeight="4" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#d9a7e0"/></marker>
+      </defs>
+      <g font-family="NSans" text-anchor="middle">
+        <image href="assets/unit/warrior.C.webp" x="34" y="2" width="60" height="86" transform="rotate(180 64 45)"/>
+        <image href="assets/unit/pikeman.L.webp" x="34" y="110" width="60" height="86"/>
+        <line x1="64" y1="90" x2="64" y2="108" stroke="#c1121f" stroke-width="3" marker-end="url(#arD)"/>
+        <path d="M 72 190 C 118 180, 118 20, 72 9" fill="none" stroke="#c1121f" stroke-width="2.4" marker-end="url(#arD)"/>
+        <line x1="36" y1="114" x2="10" y2="96" stroke="#d9a7e0" stroke-width="2.6" marker-end="url(#arP)"/>
+        <text x="14" y="90" font-size="8" font-weight="800" fill="#9b59a8">헛방</text>
+        <text x="128" y="104" font-size="8" font-weight="800" fill="#c1121f">반격 3</text>
+        <text x="46" y="102" font-size="8" font-weight="800" fill="#c1121f">공격 1</text>
+      </g>
+    </svg>
+  </div>
 
   <h3>점령</h3>
   <ul>
     <li>이기면 장군을 목표 타일에 올려 <b>점령</b>합니다. 상대는 그 타일에 일꾼을 올릴 수 없습니다.</li>
     <li>지면 장군과 일꾼이 돌아옵니다. 탈환에 이기면 상대 장군을 돌려보냅니다.</li>
-    <li>점령 중인 장군은 자기 차례에 원하는 만큼 불러들일 수 있습니다 (점령이 풀리고, 다음 차례부터 다시 씀).</li>
+    <li>점령 중인 장군은 <b>일꾼 배치 단계</b>에서 원하는 만큼 불러들일 수 있습니다. 점령이 풀리고, 불러들인 장군은 그 차례 선전포고에 바로 쓸 수 있습니다.</li>
     <li>같은 타일에 여러 문명이 선전포고하면 우선도 순으로 싸웁니다. 앞 문명이 점령하면 뒤 문명의 선전포고는 전투 없이 끝납니다.</li>
   </ul>
 
   <h3>도시 공격</h3>
   <ol class="steps">
     <li>도시의 상하좌우 <b>4칸 모두</b> 장군으로 점령합니다 (타일이 없는 칸은 점령된 것으로 칩니다).</li>
-    <li>그 4칸에 장군이 가장 많은 문명(공동이면 모두)만 도시 타일에 선전포고할 수 있습니다 (장군 1개, 사용하지 않은 일꾼 1개).</li>
+    <li>그 4칸에 장군이 가장 많은 문명(공동이면 모두)만 도시 타일에 선전포고할 수 있습니다 (장군 1개, 사용하지 않은 일꾼 1개 필요).</li>
     <li>공성 카드(대포·야포·공성추)가 <b>살아남은 채</b> 이기면 도시를 파괴합니다. 아니면 이겨도 얻는 것이 없습니다. 도시 타일은 점령할 수 없습니다.</li>
     <li>파괴된 도시의 일꾼과 타일은 사라지고, 그 위의 장군은 주인에게 돌아갑니다. 두 번째 도시가 파괴돼도 군사 카드와 불가사의는 남습니다.</li>
     <li>첫 도시가 파괴되면 탈락하고, 파괴한 문명이 탈락자의 장군을 모두 가집니다 (점령 중인 장군은 점령한 채로).</li>
@@ -184,7 +170,7 @@
     </div>
     <figcaption>도시 공격을 선언할 수 있는 문명</figcaption>
   </figure>
-  <div class="key"><span class="tag">주의</span>두 번째 도시가 있으면 그 도시를 먼저 파괴해야 첫 도시 타일을 공격할 수 있습니다. 첫 도시 주변 타일은 점령할 수 있습니다.</div>
+  <div class="key"><span class="tag">주의</span>두 번째 도시가 있으면 그 도시를 먼저 파괴해야 첫 도시의 도시 타일에 선전포고할 수 있습니다. 첫 도시의 영토 타일은 점령할 수 있습니다.</div>
 
   <h3>특수 카드</h3>
   <ul>
@@ -232,7 +218,7 @@
   <h3>탈락</h3>
   <ul>
     <li><b>문화 패배</b>: 어느 상대의 차례당 관광이 내 문화(타일 수)보다 많으면, 라운드 정산 끝에 탈락합니다. 인터넷 검열시스템이 있으면 당하지 않습니다.</li>
-    <li><b>정복 패배</b>: 첫 도시가 파괴되면 탈락합니다. 두 번째 도시가 있으면 그 도시를 먼저 파괴해야 첫 도시를 공격할 수 있습니다.</li>
+    <li><b>정복 패배</b>: 첫 도시가 파괴되면 탈락합니다. 두 번째 도시가 있으면 그 도시를 먼저 파괴해야 첫 도시의 도시 타일에 선전포고할 수 있습니다.</li>
   </ul>
 
   <h3>관광 얻는 법</h3>

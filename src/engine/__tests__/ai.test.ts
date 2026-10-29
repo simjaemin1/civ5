@@ -487,7 +487,7 @@ describe('AI 전쟁 판단 (승률 추정·쏠림 방지·수비·실질 위협�
   })
 
   it('전쟁광은 장군이 모자라도 탈락시킬 상대의 망치 타일 점령은 풀지 않는다', () => {
-    const s = atPhase('produce', ['huns', 'korea'])
+    const s = atPhase('place', ['huns', 'korea'])
     const p = s.players[0]
     p.generals = 0
     p.returningGenerals = 0
@@ -501,9 +501,24 @@ describe('AI 전쟁 판단 (승률 추정·쏠림 방지·수비·실질 위협�
     expect(ids).not.toContain(hill.card.id)
   })
 
+  it('장군이 없어도 불러들여서 칠 더 좋은 곳이 없으면 점령을 풀지 않는다 (풀었다가 같은 타일·같은 값의 타일을 다시 치지 않는다)', () => {
+    const s = atPhase('place', ['korea', 'egypt'])
+    s.players[0].generals = 0
+    s.players[0].returningGenerals = 0
+    give(s, 0, 'rifleman', 4)
+    give(s, 1, 'warrior', 1)
+    flatten(s, 1)
+    s.players[1].cities[0].tiles.find((t) => t.role === 'side')!.occupiedBy = 0
+    const tune = { harass: false, coalition: false }
+    expect(withTune(tune, () => recalls(s))).toEqual([])
+    // 훨씬 좋은 타일이 생기면 불러들여 그쪽으로 옮긴다
+    addExtra(s, 1, { terrains: ['호수'], wonder: 'lake_victoria' })
+    expect(withTune(tune, () => recalls(s)).length).toBe(1)
+  })
+
   describe('견제형 점령 (정복 없이 장군 한두 개로 방해)', () => {
     it('점령은 오래 들고 있는 것이 기본이다 (더 좋은 타일이 없으면 장군을 불러들이지 않는다)', () => {
-      const s = atPhase('produce', ['korea', 'egypt'])
+      const s = atPhase('place', ['korea', 'egypt'])
       s.players[0].generals = 0
       s.players[0].returningGenerals = 0
       give(s, 0, 'rifleman', 4)
@@ -515,8 +530,8 @@ describe('AI 전쟁 판단 (승률 추정·쏠림 방지·수비·실질 위협�
       expect(withTune({ harass: false }, () => recalls(s)).length).toBeGreaterThan(0)
     })
 
-    it('상대가 훨씬 좋은 타일을 얻으면 가장 덜 중요한 점령의 장군을 불러들이고, 다음 차례 그 타일에 선전포고한다', () => {
-      let s = atPhase('produce', ['korea', 'egypt'])
+    it('상대가 훨씬 좋은 타일을 얻으면 가장 덜 중요한 점령의 장군을 불러들이고, 그 차례에 그 타일에 선전포고한다', () => {
+      let s = atPhase('place', ['korea', 'egypt'])
       s.players[0].generals = 0
       s.players[0].returningGenerals = 0
       give(s, 0, 'rifleman', 4)
@@ -525,7 +540,7 @@ describe('AI 전쟁 판단 (승률 추정·쏠림 방지·수비·실질 위협�
       const held = addExtra(s, 1, { terrains: ['평지'] }, 0)
       const lake = addExtra(s, 1, { terrains: ['호수'], wonder: 'lake_victoria' })
       expect(recalls(s)).toEqual([expect.objectContaining({ defenderId: 1, tileId: held.card.id })])
-      // 장군이 돌아온 다음 차례: 선전포고 대상의 첫 번째가 그 타일이다
+      // 장군을 불러들인 그 차례의 선전포고: 대상의 첫 번째가 그 타일이다
       s = structuredClone(s)
       s.phase = 'declare'
       delete s.players[1].cities[0].tiles.find((t) => t.card.id === held.card.id)!.occupiedBy
@@ -534,7 +549,7 @@ describe('AI 전쟁 판단 (승률 추정·쏠림 방지·수비·실질 위협�
     })
 
     it('3명 이상에서 1등이 바뀌면 옛 상대의 점령을 풀어 새 1등을 노린다', () => {
-      const s = atPhase('produce', ['korea', 'egypt', 'china'])
+      const s = atPhase('place', ['korea', 'egypt', 'china'])
       s.players[0].generals = 0
       s.players[0].returningGenerals = 0
       // 1번이 확실한 1등
@@ -551,7 +566,7 @@ describe('AI 전쟁 판단 (승률 추정·쏠림 방지·수비·실질 위협�
     })
 
     it('옮겨 갈 타일에서 이길 가망이 없으면 장군을 놀리지 않고 지금 점령을 그대로 둔다', () => {
-      const s = atPhase('produce', ['korea', 'egypt', 'china'])
+      const s = atPhase('place', ['korea', 'egypt', 'china'])
       s.players[0].generals = 0
       s.players[0].returningGenerals = 0
       s.players[1].techs.push('agriculture', 'writing', 'sailing', 'mining', 'archery', 'calendar', 'masonry', 'bronze_working')

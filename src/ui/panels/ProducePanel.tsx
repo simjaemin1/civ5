@@ -1,8 +1,7 @@
 import { CityTag } from '../icons'
 import { useState } from 'react'
-import { holdLimit, heldCount, MILITARY_CARDS, cardById, cardCost, civById, declarationTargets, investableWonders, minHammers, uniqueOf, upgradeTargets, occupiedTiles, findTile } from '../../engine'
+import { holdLimit, heldCount, MILITARY_CARDS, cardById, cardCost, civById, declarationTargets, investableWonders, minHammers, uniqueOf, upgradeTargets } from '../../engine'
 import { UnitCard } from '../cards/UnitCard'
-import { TileView } from '../TileView'
 import { catalogCard } from '../cards/unitImage'
 import { WonderCard } from '../cards/WonderCard'
 import { cardText, conditionText, ICON, josa, wonderEffectText } from '../format'
@@ -10,7 +9,7 @@ import type { PanelProps } from './types'
 import { ConfirmButton } from '../ConfirmButton'
 import { Help } from '../prefs'
 import { cityCanProduce } from '../autoSkip'
-import { battleCards, declCoastal, declTileName, produceBlock, roundBids, tileName } from '../gameInfo'
+import { battleCards, declCoastal, declTileName, produceBlock, roundBids } from '../gameInfo'
 
 export function ProducePanel({ game, player, dispatch }: PanelProps) {
   const turn = player.turn!
@@ -251,33 +250,6 @@ export function ProducePanel({ game, player, dispatch }: PanelProps) {
                 )}
               </div>
             ))}
-          </div>
-        </details>
-      )}
-
-      {occupiedTiles(game, player).length > 0 && (
-        <details>
-          <summary>점령 중인 장군 불러들이기 (원하는 만큼)</summary>
-          <div className="list">
-            {occupiedTiles(game, player).map((o) => {
-              const owner = game.players[o.defenderId]
-              const found = findTile(owner, o.cityId, o.tileId)
-              return (
-              <div key={`${o.defenderId}:${o.cityId}:${o.tileId}`} className="row recall-row">
-                {found && (
-                  <div style={{ width: 96 }}>
-                    <TileView card={found.tile.card} player={owner} badge={{ occupiedBy: civById(player.civId).name }} />
-                  </div>
-                )}
-                <span>
-                  {civById(owner.civId).name} 도시 {o.cityId + 1} · <b>{found ? tileName(found.city, o.tileId) : '?'}</b>
-                </span>
-                <button onClick={() => dispatch({ type: 'recallGeneral', ...o })}>
-                  불러들이기 (점령 해제, 장군은 다음 차례에 돌아옴)
-                </button>
-              </div>
-              )
-            })}
           </div>
         </details>
       )}

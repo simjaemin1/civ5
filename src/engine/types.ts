@@ -84,7 +84,6 @@ export interface TurnData {
    * 그 타일의 이번 차례 산출은 그대로 두고, 남은(쉬는) 일꾼 수에서는 빼지 않는다 (선전포고에 쓸 일꾼을 지킨다)
    */
   retiredWorked?: Record<number, number>
-  /** 이번 차례에 장군을 점령지에서 불러들였는가 (차례당 1개) */
 }
 
 export interface PlayerChoices {
@@ -133,7 +132,7 @@ export interface Player {
   generalWorkers: number
   /** 정복(첫 도시 파괴)으로 탈락시킨 문명 수: 2가 되면 정복 승리 (없으면 0) */
   conquests?: number
-  /** 불러들였지만 다음 차례에 도착하는 장군 */
+  /** 예전 규칙(불러들인 장군은 다음 차례에 도착)의 저장 파일 호환용. 지금은 불러들이면 바로 손에 온다 */
   returningGenerals: number
   /** 선전포고에 걸려 아직 쓸 수 없는 일꾼 수 (정산 때 풀림) */
   busyWorkers: number

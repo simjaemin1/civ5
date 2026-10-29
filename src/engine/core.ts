@@ -109,6 +109,11 @@ export function flushPendingTiles(s: GameState, p: Player): void {
 export function onTileGained(s: GameState, p: Player, card: TileCard, skipClaim = false): void {
   if (card.wonder) {
     const w = WONDERS[card.wonder]
+    // 엘도라도를 정찰로 보지 않고 바로 영토로 뽑아도 게임에서 처음 찾은 것이면 발견 보너스도 받는다
+    if (w.cultureOnDiscover && !s.eldoradoFound) {
+      s.eldoradoFound = true
+      gainCulture(s, p, w.cultureOnDiscover)
+    }
     if (w.cultureOnClaim && !skipClaim) gainCulture(s, p, w.cultureOnClaim)
     if (p.civId === 'spain') gainCulture(s, p, 1)
   }

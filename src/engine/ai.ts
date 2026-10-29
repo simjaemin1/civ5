@@ -563,7 +563,7 @@ function bestOpenTile(s: GameState, o: Player): { cityId: number; tileId: number
  * 1) 점령 중인 상대가 더는 노릴 상대(1등)가 아니면 그 장군부터 불러들여 새 1등으로 옮긴다.
  * 2) 노릴 상대가 문화·기술로 훨씬 좋은 타일을 얻었으면 가장 덜 중요한 점령을 풀어 그 타일로 옮긴다.
  * 어느 쪽이든 옮겨 갈 타일에서 이길 가망이 없으면 장군을 놀리지 않고 지금 점령을 그대로 둔다.
- * 회수한 장군은 다음 차례부터 쓸 수 있고, 다음 차례 선전포고가 그 타일을 고른다 (판 사이 기억 없이 매 차례 다시 계산한다).
+ * 회수는 일꾼 배치 단계에서 하고, 회수한 장군은 그 차례 선전포고가 바로 그 타일을 고른다 (판 사이 기억 없이 매 차례 다시 계산한다).
  */
 function harassRecalls(s: GameState, p: Player): Action[] {
   if (p.generals - p.generalWorkers + p.returningGenerals >= 1) return []
@@ -884,6 +884,58 @@ function wonderBids(s: GameState, p: Player, wonders: WonderCardDef[], h: number
   return out
 }
 
+/**
+ * 장군 불러들이기 (일꾼 배치 단계에서만, 불러들인 장군은 그 차례 선전포고에 바로 쓴다).
+ * 장군이 없고 군대가 있으면 점령 중인 장군 1개를 불러들여 다시 전쟁에 쓴다.
+ * 다만 상대에게 중요한 타일(좋은 산출·자원·자연경관)을 점령 중이면 그대로 들고 있는다. 상대의 성장을 누르는 편이 낫다.
+ * 견제형 문명은 점령을 오래 들고 있고, 1등이 바뀌었거나 상대가 훨씬 좋은 타일을 얻었을 때만 장군을 옮긴다 (harassRecalls).
+ */
+function recallCandidates(s: GameState, p: Player): Action[] {
+  const raw = isHarasser(s, p) ? harassRecalls(s, p) : plainRecalls(s, p)
+  // 불러들인 장군으로 정말 더 나은 곳을 치는지 미리 본다: 방금 푼 타일을 다시 치거나 더 못한 타일로 가면 점령을 그대로 둔다
+  // (같은 타일을 풀었다 다시 치면 일꾼만 쓰고 질 위험만 진다). 승률 추정이 비싸 앞의 둘만 본다
+  for (const a of raw.slice(0, 2)) if (a.type === 'recallGeneral' && worthRecall(s, p, a)) return [a]
+  return []
+}
+
+function plainRecalls(s: GameState, p: Player): Action[] {
+  const army = p.military.filter((c) => cardStats(c).hp !== undefined).length
+  if (p.generals + p.returningGenerals >= 1 || army < 2) return []
+  const victim = isWarlord(p) && AI_TUNE.warlordHammer > 0 ? warlordVictim(s, p) : null
+  return occupiedTiles(s, p)
+    .map((t) => ({ t, v: tileImportance(s, t.defenderId, t.cityId, t.tileId) }))
+    .filter((x) => x.v < KEEP_OCCUPIED)
+    .filter((x) => !keepForConquest(s, p, x.t))
+    // 전쟁광은 탈락시키려는 상대의 망치 타일을 풀지 않는다 (반격할 군사 카드를 못 뽑게 계속 누른다)
+    .filter((x) => !(x.t.defenderId === victim && tileHammers(s, x.t.defenderId, x.t.cityId, x.t.tileId) >= HAMMER_HOLD))
+    .sort((a, b) => a.v - b.v)
+    .map(({ t }) => ({ type: 'recallGeneral' as const, ...t }))
+}
+
+/** 불러들인 뒤 이번 차례에 칠 곳이 푼 타일과 다르고, 탈환·도시 공격이거나 푼 타일보다 중요한 타일이어야 불러들인다 */
+function worthRecall(s: GameState, p: Player, a: { defenderId: number; cityId: number; tileId: number }): boolean {
+  const released = tileImportance(s, a.defenderId, a.cityId, a.tileId)
+  let after: GameState
+  try {
+    after = apply(s, { type: 'recallGeneral', ...a })
+  } catch (e) {
+    if (e instanceof RuleError) return false
+    throw e
+  }
+  const next = declareCandidates(after, after.players[p.id]).find((x) => x.type === 'declareWar')
+  if (!next || next.type !== 'declareWar') return false
+  if (next.defenderId === a.defenderId && next.cityId === a.cityId && next.tileId === a.tileId) return false
+  const t = declarationTargets(after, after.players[p.id]).find((x) => x.defenderId === next.defenderId && x.cityId === next.cityId && x.tileId === next.tileId)
+  if (t && t.kind !== 'normal') return true
+  // 도시 공격의 발판(도시 옆 4칸)으로 옮기는 것은 산출이 같아도 의미가 있다
+  const side = (pl: GameState, x: { defenderId: number; cityId: number; tileId: number }) => {
+    const o = pl.players[x.defenderId]
+    return x.cityId === conquestCity(o).id && findTile(o, x.cityId, x.tileId)?.tile.role === 'side'
+  }
+  if (side(after, next) && !side(s, a)) return true
+  return tileImportance(after, next.defenderId, next.cityId, next.tileId) > released
+}
+
 function produceCandidates(s: GameState, p: Player): Action[] {
   const out: Action[] = []
   const turn = p.turn!
@@ -932,21 +984,6 @@ function produceCandidates(s: GameState, p: Player): Action[] {
       }
     }
     for (const c of p.military) for (const t of upgradeTargets(p, c).filter((x) => heldCount(p, x.id) < holdLimit(p, x.id) && cardCost(p, x) <= gold)) out.push({ type: 'upgrade', uid: c.uid, toDefId: t.id })
-  }
-  // 4) 장군이 없고(돌아오는 중인 것도 없고) 군대가 있으면 점령 중인 장군 1개를 불러들여 다시 전쟁에 쓴다.
-  //    다만 상대에게 중요한 타일(좋은 산출·자원·자연경관)을 점령 중이면 그대로 들고 있는다. 상대의 성장을 누르는 편이 낫다.
-  //    견제형 문명은 점령을 오래 들고 있고, 1등이 바뀌었거나 상대가 훨씬 좋은 타일을 얻었을 때만 장군을 옮긴다 (harassRecalls).
-  if (isHarasser(s, p)) out.push(...harassRecalls(s, p))
-  else if (p.generals + p.returningGenerals < 1 && army >= 2) {
-    const victim = isWarlord(p) && AI_TUNE.warlordHammer > 0 ? warlordVictim(s, p) : null
-    const cheap = occupiedTiles(s, p)
-      .map((t) => ({ t, v: tileImportance(s, t.defenderId, t.cityId, t.tileId) }))
-      .filter((x) => x.v < KEEP_OCCUPIED)
-      .filter((x) => !keepForConquest(s, p, x.t))
-      // 전쟁광은 탈락시키려는 상대의 망치 타일을 풀지 않는다 (반격할 군사 카드를 못 뽑게 계속 누른다)
-      .filter((x) => !(x.t.defenderId === victim && tileHammers(s, x.t.defenderId, x.t.cityId, x.t.tileId) >= HAMMER_HOLD))
-      .sort((a, b) => a.v - b.v)
-    for (const { t } of cheap) out.push({ type: 'recallGeneral', ...t })
   }
   return out
 }
@@ -1114,6 +1151,7 @@ export function aiCandidates(s: GameState): Action[] {
       const reserve = p.generals > 0 && p.military.length >= 2 ? 1 : 0
       const planned = plannedPlacements(s, p, reserve)
       return [
+        ...recallCandidates(s, p),
         ...scoutCandidates(s, p),
         ...(planned ? [{ type: 'placeWorkers' as const, placements: planned }] : []),
         { type: 'placeWorkers', placements: placements(p, reserve) },

@@ -21,10 +21,10 @@
     <li><span class="n">3</span><span class="t">차례 진행</span><span class="p">{{p3}}</span></li>
     <li><span class="n">4</span><span class="t">타일과 산출</span><span class="p">{{p4}}</span></li>
     <li><span class="n">5</span><span class="t">일꾼, 행복, 성장</span><span class="p">{{p5}}</span></li>
-    <li><span class="n">6</span><span class="t">생산</span><span class="p">{{p6}}</span></li>
-    <li><span class="n">7</span><span class="t">과학과 기술</span><span class="p">{{p7}}</span></li>
-    <li><span class="n">8</span><span class="t">문화와 정책</span><span class="p">{{p8}}</span></li>
-    <li><span class="n">9</span><span class="t">정찰과 나침반</span><span class="p">{{p9}}</span></li>
+    <li><span class="n">6</span><span class="t">과학과 기술</span><span class="p">{{p6}}</span></li>
+    <li><span class="n">7</span><span class="t">문화와 정책</span><span class="p">{{p7}}</span></li>
+    <li><span class="n">8</span><span class="t">정찰과 나침반</span><span class="p">{{p8}}</span></li>
+    <li><span class="n">9</span><span class="t">생산</span><span class="p">{{p9}}</span></li>
     <li><span class="n">10</span><span class="t">전쟁</span><span class="p">{{p10}}</span></li>
     <li><span class="n">11</span><span class="t">두 번째 도시</span><span class="p">{{p11}}</span></li>
     <li><span class="n">12</span><span class="t">탈락과 승리</span><span class="p">{{p12}}</span></li>
@@ -51,9 +51,9 @@
     <tbody>
       <tr><td><b>문명 카드 24장</b></td><td>내가 맡을 문명: 우선도, 시작 행복, 차례당 보너스, 능력, 고유 유닛이 적혀 있음</td></tr>
       <tr><td><b>타일 카드 160장</b></td><td>영토가 되는 땅. 일꾼을 올려 생산함</td></tr>
-      <tr><td><b>과학 카드</b></td><td>연구할 기술</td></tr>
+      <tr><td><b>과학 카드</b></td><td>연구할 기술. 게임을 진행시킴</td></tr>
       <tr><td><b>불가사의 카드</b></td><td>서로 경쟁하여 짓는 건축물</td></tr>
-      <tr><td><b>정책 카드</b></td><td>문명이 시행하는 정책</td></tr>
+      <tr><td><b>정책 카드</b></td><td>일회성 혹은 지속성 효과를 줌</td></tr>
       <tr><td><b>군사 카드</b></td><td>사용하여 전쟁</td></tr>
       <tr><td><b>토큰</b></td><td>일꾼, 위대한 장군, 망치, 진척도, 도시</td></tr>
     </tbody>
@@ -150,10 +150,10 @@
     <div class="st"><span class="k">6</span><img src="assets/icon/happy.png"><b>식량 정산</b></div>
   </div>
   <ol class="steps">
-    <li><b>일꾼 배치</b>: 일꾼을 타일에 1개씩 올립니다 (도시 타일 제외, 안 올려도 됨). 타일에 올리거나 정찰에 쓴 일꾼은 그 차례에 <b>사용한 일꾼</b>입니다. 맡아둔 타일을 돌려보낼지도 이때 정합니다 (9장).</li>
+    <li><b>일꾼 배치</b>: 일꾼을 타일에 1개씩 올립니다 (도시 타일 제외, 안 올려도 됨). 타일에 올리거나 정찰에 쓴 일꾼은 그 차례에 <b>사용한 일꾼</b>입니다. 맡아둔 타일을 돌려보낼지(8장), 점령 중인 장군을 불러들일지(10장)도 이때 정합니다.</li>
     <li><b>산출 계산</b>: 도시 타일, 일꾼이 놓인 타일, 보너스, 카드 효과를 더하고, 망치만큼 망치 토큰을 가져옵니다.</li>
-    <li><b>기술 연구</b>: 기술 1개를 연구합니다 (7장).</li>
-    <li><b>생산</b>: 도시마다 1개씩, 군사 카드를 만들거나 불가사의에 투자합니다 (6장).</li>
+    <li><b>기술 연구</b>: 기술 1개를 연구합니다 (6장).</li>
+    <li><b>생산</b>: 도시마다 1개씩, 군사 카드를 만들거나 불가사의에 투자합니다 (9장).</li>
     <li><b>선전포고</b>: 장군 1개와 <b>사용하지 않은 일꾼</b> 1개로 상대 타일 1장에 선전포고할 수 있습니다 (10장).</li>
     <li><b>식량 정산</b>: 남은 식량에 따라 일꾼이 늘거나 줄어듭니다 (5장).</li>
   </ol>
@@ -161,7 +161,7 @@
 
   <h3>라운드 정산</h3>
   <ol class="steps">
-    <li>불가사의 진척도를 나눕니다 (6장).</li>
+    <li>불가사의 진척도를 나눕니다 (9장).</li>
     <li>이번 라운드의 전투를 합니다 (10장).</li>
   </ol>
 
@@ -190,7 +190,7 @@
   </table>
 
   <h3>사치자원과 행복</h3>
-  <p>카드에 <b>금 3</b>이 그려진 자원이 사치자원입니다. 해당 기술을 연구하면 <b>종류마다 행복 +1</b>입니다 (같은 종류를 여러 장 가져도 +1). 행복을 주는 기술은 아래 표에서 찾을 수 있습니다.</p>
+  <p style="break-after:avoid">카드에 <b>금 3</b>이 그려진 자원이 사치자원입니다. 특정 기술을 연구하면 <b>종류마다 행복 +1</b>입니다 (같은 종류를 여러 장 가져도 +1). 행복을 주는 기술은 아래 표에서 찾을 수 있습니다.</p>
   <table class="keep">
     <thead><tr><th>기술</th><th>사치자원</th></tr></thead>
     <tbody>
@@ -207,8 +207,6 @@
   <ul>
     <li>문화 1을 얻을 때마다 타일 덱에서 1장을 뽑아 내 영토에 붙입니다. 첫 5타일이 차면 원하는 곳에 붙입니다.</li>
     <li>덱에서 카드를 뽑거나 돌려넣을 때마다 덱을 섞습니다.</li>
-    <li><b>사적지</b>: 고고학을 연구하면 가지고 있는 사적지 1장당 문화 1을 얻습니다. 그 뒤에 얻은 사적지는 문화를 주지 않습니다.</li>
-    <li><b>자연경관</b>은 카드에 적힌 산출과 효과를 가집니다(13장 참조표).</li>
   </ul>
 </section>
 
@@ -222,13 +220,13 @@
   <ul>
     <li>시작 행복: 문명 고유 행복</li>
     <li>사치자원 종류마다 +1 (해당 기술 필요, 4장 참조)</li>
+    <li>과학기술: 다이너마이트 +2</li>
     <li>불가사의: 마우솔레움 +1, 치첸이사 +2, 에펠탑 +1</li>
     <li>자연경관: 올드 페이스풀을 영토로 얻으면 +1</li>
-    <li>과학기술: 다이너마이트 +2</li>
   </ul>
 
   <h3>식량 정산</h3>
-  <p>내정 마지막에, 연구에 쓰고 남은 식량을 일꾼 수와 비교합니다.</p>
+  <p style="break-after:avoid">내정 마지막에, 연구에 쓰고 남은 식량을 일꾼 수와 비교합니다.</p>
   <table>
     <thead><tr><th>남은 식량</th><th>결과</th></tr></thead>
     <tbody>
