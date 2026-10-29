@@ -138,3 +138,4 @@ figcaption { font-family: 'NSans'; font-size: 7.4pt; color: var(--muted); text-a
 .vic .c span { font-size: 7.8pt; line-height: 1.45; display: block; }
 
 table.tight td, table.tight th { padding-top: 0.6mm; padding-bottom: 0.6mm; }
+.chhead + .lead { break-after: avoid; break-inside: avoid; }

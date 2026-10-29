@@ -58,7 +58,7 @@ export function DeclarePanel({ game, player, dispatch }: PanelProps) {
         </span>
         <span>
           남은 일꾼 <b>{declarationWorkers(game, player)}</b>
-          {player.scoutReleasedRound === game.round && <small className="muted"> (정찰에서 돌아온 일꾼은 이번 차례에 쓸 수 없음)</small>}
+          {player.scoutReleasedRound === game.round && <small className="muted"> (이번 차례에 정찰에 쓴 일꾼은 쓸 수 없음)</small>}
         </span>
         <span className="muted">선전포고하거나 넘기면 바로 식량 정산을 하고 차례가 끝납니다.</span>
       </p>
