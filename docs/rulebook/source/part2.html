@@ -80,7 +80,53 @@
 
 <!-- 8장 -->
 <section class="ch" id="ch8">
-  <header class="chhead"><span class="num">8</span><h1>생산</h1></header>
+  <header class="chhead"><span class="num">8</span><h1>정찰과 나침반</h1></header>
+  <p class="lead">일꾼 1개로 타일 덱 맨 위 1장을 봅니다. 나침반이 있으면 그 카드를 맡아둘 수 있습니다.</p>
+
+  <figure class="fig-frame">
+    <svg viewBox="0 0 300 120">
+      <defs><marker id="ar9" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#6d6458"/></marker></defs>
+      <g font-family="NSans" font-size="7" fill="#2a251f" text-anchor="middle">
+        <rect x="4" y="38" width="62" height="44" rx="4" fill="#fff" stroke="#b9ae9c"/>
+        <image href="assets/icon/worker.png" x="25" y="42" width="20" height="20"/>
+        <text x="35" y="71" font-weight="700">일꾼 1개</text><text x="35" y="79" font-size="6">(사용하지 않은 일꾼)</text>
+        <line x1="68" y1="60" x2="86" y2="60" stroke="#6d6458" stroke-width="1.3" marker-end="url(#ar9)"/>
+        <rect x="90" y="38" width="62" height="44" rx="4" fill="#fff" stroke="#b9ae9c"/>
+        <rect x="108" y="42" width="15" height="21" rx="1.5" fill="#d9cdb7" stroke="#8a8073"/><rect x="112" y="44" width="15" height="21" rx="1.5" fill="#ede3d0" stroke="#8a8073"/>
+        <text x="121" y="71" font-weight="700">덱 맨 위 1장 보기</text><text x="121" y="79" font-size="6">한 차례에 1장</text>
+        <path d="M154 54 C 168 54, 168 24, 182 24" fill="none" stroke="#6d6458" stroke-width="1.3" marker-end="url(#ar9)"/>
+        <path d="M154 66 C 168 66, 168 96, 182 96" fill="none" stroke="#b3261e" stroke-width="1.5" marker-end="url(#ar9)"/>
+        <rect x="186" y="6" width="110" height="36" rx="4" fill="#fff" stroke="#b9ae9c"/>
+        <text x="241" y="20" font-weight="700">기본: 바로 덱에 돌려넣고 섞기</text>
+        <text x="241" y="32" font-size="6.3">그 차례 선전포고에 못 씀</text>
+        <rect x="186" y="74" width="110" height="44" rx="4" fill="#fbf1ec" stroke="#b3261e"/>
+        <text x="241" y="87" font-weight="800" fill="#b3261e">나침반: 일꾼을 올린 채 맡아두기</text>
+        <text x="241" y="99" font-size="6.3">1장까지 · 그동안 정찰 불가</text>
+        <text x="241" y="110" font-size="6.3">다음 새 타일로 가져올 수 있음</text>
+      </g>
+    </svg>
+    <figcaption>정찰과 맡아두기의 흐름</figcaption>
+  </figure>
+
+  <h3>정찰</h3>
+  <ol class="steps">
+    <li>일꾼 배치 때 사용하지 않은 일꾼 1개를 정찰에 씁니다. 정찰한 일꾼은 사용한 일꾼이라 그 차례에 선전포고에 쓸 수 없습니다.</li>
+    <li>덱 맨 위 1장을 봅니다 (한 차례에 1장).</li>
+    <li>본 카드는 덱에 돌려넣고 섞습니다.</li>
+  </ol>
+  <div class="note">엘도라도를 게임에서 처음 찾은 문명은 문화 1을 얻습니다 (정찰로 보든 영토로 뽑든 같음). 영토로 얻으면 문화 1을 더 얻으므로, 처음부터 영토로 뽑으면 문화 2입니다.</div>
+
+  <h3>나침반으로 맡아두기</h3>
+  <ul>
+    <li>나침반을 연구하면 본 카드를 돌려넣지 않고, 일꾼을 올린 채 1장까지 맡아둘 수 있습니다. 맡아두는 동안은 정찰할 수 없습니다.</li>
+    <li>다음에 새 타일을 얻을 때 덱 대신 맡아둔 카드를 가져올 수 있습니다.</li>
+    <li>일꾼 배치 때 맡아둔 카드를 덱에 돌려보낼 수 있습니다. 돌아온 일꾼은 그 차례에도 쓸 수 있습니다 (재정찰 포함).</li>
+  </ul>
+</section>
+
+<!-- 9장 -->
+<section class="ch" id="ch9">
+  <header class="chhead"><span class="num">9</span><h1>생산</h1></header>
   <p class="lead">망치는 군사 카드와 불가사의에만 씁니다. 도시마다 한 차례에 <b>1개</b>만 생산합니다.</p>
 
   <h3>군사 카드</h3>
@@ -178,50 +224,4 @@
     </svg>
     <figcaption>불가사의 경쟁: 가장 많이 투자한 한 명만 진척도를 얻습니다</figcaption>
   </figure>
-</section>
-
-<!-- 9장 -->
-<section class="ch" id="ch9">
-  <header class="chhead"><span class="num">9</span><h1>정찰과 나침반</h1></header>
-  <p class="lead">일꾼 1개로 타일 덱 맨 위 1장을 봅니다. 나침반이 있으면 그 카드를 맡아둘 수 있습니다.</p>
-
-  <figure class="fig-frame">
-    <svg viewBox="0 0 300 120">
-      <defs><marker id="ar9" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#6d6458"/></marker></defs>
-      <g font-family="NSans" font-size="7" fill="#2a251f" text-anchor="middle">
-        <rect x="4" y="38" width="62" height="44" rx="4" fill="#fff" stroke="#b9ae9c"/>
-        <image href="assets/icon/worker.png" x="25" y="42" width="20" height="20"/>
-        <text x="35" y="71" font-weight="700">일꾼 1개</text><text x="35" y="79" font-size="6">(사용하지 않은 일꾼)</text>
-        <line x1="68" y1="60" x2="86" y2="60" stroke="#6d6458" stroke-width="1.3" marker-end="url(#ar9)"/>
-        <rect x="90" y="38" width="62" height="44" rx="4" fill="#fff" stroke="#b9ae9c"/>
-        <rect x="108" y="42" width="15" height="21" rx="1.5" fill="#d9cdb7" stroke="#8a8073"/><rect x="112" y="44" width="15" height="21" rx="1.5" fill="#ede3d0" stroke="#8a8073"/>
-        <text x="121" y="71" font-weight="700">덱 맨 위 1장 보기</text><text x="121" y="79" font-size="6">한 차례에 1장</text>
-        <path d="M154 54 C 168 54, 168 24, 182 24" fill="none" stroke="#6d6458" stroke-width="1.3" marker-end="url(#ar9)"/>
-        <path d="M154 66 C 168 66, 168 96, 182 96" fill="none" stroke="#b3261e" stroke-width="1.5" marker-end="url(#ar9)"/>
-        <rect x="186" y="6" width="110" height="36" rx="4" fill="#fff" stroke="#b9ae9c"/>
-        <text x="241" y="20" font-weight="700">기본: 바로 덱에 돌려넣고 섞기</text>
-        <text x="241" y="32" font-size="6.3">그 차례 선전포고에 못 씀</text>
-        <rect x="186" y="74" width="110" height="44" rx="4" fill="#fbf1ec" stroke="#b3261e"/>
-        <text x="241" y="87" font-weight="800" fill="#b3261e">나침반: 일꾼을 올린 채 맡아두기</text>
-        <text x="241" y="99" font-size="6.3">1장까지 · 그동안 정찰 불가</text>
-        <text x="241" y="110" font-size="6.3">다음 새 타일로 가져올 수 있음</text>
-      </g>
-    </svg>
-    <figcaption>정찰과 맡아두기의 흐름</figcaption>
-  </figure>
-
-  <h3>정찰</h3>
-  <ol class="steps">
-    <li>일꾼 배치 때 사용하지 않은 일꾼 1개를 정찰에 씁니다. 정찰한 일꾼은 사용한 일꾼이라 그 차례에 선전포고에 쓸 수 없습니다.</li>
-    <li>덱 맨 위 1장을 봅니다 (한 차례에 1장).</li>
-    <li>본 카드는 덱에 돌려넣고 섞습니다.</li>
-  </ol>
-  <div class="note">엘도라도를 게임에서 처음 찾은 문명은 문화 1을 얻습니다 (정찰로 보든 영토로 뽑든 같음). 영토로 얻으면 문화 1을 더 얻으므로, 처음부터 영토로 뽑으면 문화 2입니다.</div>
-
-  <h3>나침반으로 맡아두기</h3>
-  <ul>
-    <li>나침반을 연구하면 본 카드를 돌려넣지 않고, 일꾼을 올린 채 1장까지 맡아둘 수 있습니다. 맡아두는 동안은 정찰할 수 없습니다.</li>
-    <li>다음에 새 타일을 얻을 때 덱 대신 맡아둔 카드를 가져올 수 있습니다.</li>
-    <li>일꾼 배치 때 맡아둔 카드를 덱에 돌려보낼 수 있습니다. 돌아온 일꾼은 그 차례에도 쓸 수 있습니다 (재정찰 포함).</li>
-  </ul>
 </section>
