@@ -834,7 +834,7 @@
     "id": "battering_ram",
     "base": "spearman",
     "cost": 3,
-    "hp": 2,
+    "hp": 6,
     "def": 1,
     "siege": true,
     "text": "도시 선전포고 시 이 카드가 파괴되지 않고 승리했다면 도시를 파괴한다"
