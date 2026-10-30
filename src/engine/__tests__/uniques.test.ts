@@ -238,7 +238,7 @@ describe('고유 유닛 전투 효과', () => {
   })
 
   it('테르시오: 기사·기병대가 아닌 상대에게는 전투력 2, 방어력 1', () => {
-    // 테르시오가 주는 대미지: 낙타궁수(기사 취급)에게는 전투력 3, 기마병에게는 2
+    // 테르시오가 주는 대미지: 낙타궁수(기사 취급)에게는 전투력 4, 기마병에게는 2
     const hitBy = (name: 'knight' | 'horse') => {
       let tercio = 0, a = 0, dummy = 0
       let s = battle(['russia', 'spain'], (c) => {
@@ -252,7 +252,7 @@ describe('고유 유닛 전투 효과', () => {
       const report = s.battleReports[s.battleReports.length - 1]
       return Math.max(0, ...report.hits.filter((h) => h.from.pid === 1 && h.to.pid === 0).map((h) => h.power))
     }
-    expect(hitBy('knight')).toBe(3)
+    expect(hitBy('knight')).toBe(4)
     expect(hitBy('horse')).toBe(2)
 
     // 반격 대미지(방어력): 기병대는 5, 전차(탱크)는 1
