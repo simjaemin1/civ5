@@ -67,10 +67,11 @@ describe('고유 유닛 데이터', () => {
     for (const [name, supply] of Object.entries(s.uniqueSupply)) expect(supply, name).toHaveLength(3)
   })
 
-  it('카드에 적힌 능력치를 쓴다 (장갑보병, 케식텐, 프라싱야, 화차, 재규어)', () => {
+  it('카드에 적힌 능력치를 쓴다 (장갑보병, 케식텐, 낙타궁수, 프라싱야, 화차, 재규어)', () => {
     const st = (name: string) => cardStats({ uid: 0, defId: UNIQUES[name].def.base, unique: name, dirs: ['C'] })
     expect(st('장갑보병')).toMatchObject({ hp: 3, def: 2, marks: [{ dir: 'C', power: 2 }], baseId: 'spearman' })
-    expect(st('케식텐')).toMatchObject({ hp: 4, def: 0, choose: 2, noCounter: true, baseId: 'knight' })
+    expect(st('케식텐')).toMatchObject({ hp: 5, def: 1, choose: 2, noCounter: true, baseId: 'knight' })
+    expect(st('낙타궁수')).toMatchObject({ hp: 4, def: 2, choose: 2, noCounter: true, baseId: 'knight' })
     expect(st('프라싱야')).toMatchObject({ hp: 6, def: 3, baseId: 'infantry' })
     expect(st('화차')).toMatchObject({ hp: 2, def: 3, noCounter: true, baseId: 'hwacha' })
     expect(st('재규어')).toMatchObject({ hp: 3, def: 0, marks: [{ dir: 'C', power: 1 }], baseId: 'warrior' }) // 체력 4 → 3 (사용자 결정)
@@ -237,8 +238,8 @@ describe('고유 유닛 전투 효과', () => {
   })
 
   it('테르시오: 기사·기병대가 아닌 상대에게는 전투력 2, 방어력 1', () => {
-    // 낙타궁수(기사 취급, 체력 3)는 전투력 3에 파괴되고, 기마병(체력 3)은 전투력 2라 산다
-    const attackedBy = (name: 'knight' | 'horse') => {
+    // 테르시오가 주는 대미지: 낙타궁수(기사 취급)에게는 전투력 3, 기마병에게는 2
+    const hitBy = (name: 'knight' | 'horse') => {
       let tercio = 0, a = 0, dummy = 0
       let s = battle(['russia', 'spain'], (c) => {
         tercio = unique(c, 1, '테르시오', 'C')
@@ -248,10 +249,11 @@ describe('고유 유닛 전투 효과', () => {
       s = arrange(s, 0, [null, null, a, null])
       s = arrange(s, 1, [null, tercio, null, dummy])
       s = pick(s, 0, { [a]: dummy }) // 테르시오가 아닌 카드를 공격해 반격을 받지 않게 한다
-      return alive(s, 0, a)
+      const report = s.battleReports[s.battleReports.length - 1]
+      return Math.max(0, ...report.hits.filter((h) => h.from.pid === 1 && h.to.pid === 0).map((h) => h.power))
     }
-    expect(attackedBy('knight')).toBe(false)
-    expect(attackedBy('horse')).toBe(true)
+    expect(hitBy('knight')).toBe(3)
+    expect(hitBy('horse')).toBe(2)
 
     // 반격 대미지(방어력): 기병대는 5, 전차(탱크)는 1
     const counter = (name: 'cavalry' | 'tank') => {
