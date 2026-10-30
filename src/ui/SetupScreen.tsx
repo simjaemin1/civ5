@@ -13,10 +13,12 @@ interface Props {
   onOnline?: () => void
   /** 모의 전투 랩 */
   onLab?: () => void
+  /** 타일 뽑기 랩 */
+  onTileLab?: () => void
 }
 
 /** 시작 화면: 문명과 사람/AI를 고른다 (2~6명) */
-export function SetupScreen({ onStart, onResume, onOnline, onLab }: Props) {
+export function SetupScreen({ onStart, onResume, onOnline, onLab, onTileLab }: Props) {
   const [seats, setSeats] = useState<Seat[]>([
     { civId: 'korea', ai: false },
     { civId: 'russia', ai: true },
@@ -41,6 +43,11 @@ export function SetupScreen({ onStart, onResume, onOnline, onLab }: Props) {
       {onLab && (
         <p>
           <button onClick={onLab}>⚔ 모의 전투 랩 (카드를 골라 전투만 해 보기)</button>
+        </p>
+      )}
+      {onTileLab && (
+        <p>
+          <button onClick={onTileLab}>🃏 타일 뽑기 랩 (4장 뽑고 고른 만큼 다시 뽑기)</button>
         </p>
       )}
       <div className="scroll">

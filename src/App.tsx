@@ -6,6 +6,7 @@ import { SetupScreen } from './ui/SetupScreen'
 import type { Seat } from './ui/SetupScreen'
 import { OnlineApp } from './online/OnlineApp'
 import { BattleLab } from './ui/lab/BattleLab'
+import { TileLab } from './ui/lab/TileLab'
 
 const SAVE_KEY = 'civ5-save-v1'
 
@@ -25,9 +26,18 @@ function loadSave(): { game: GameState; seats: Seat[] } | null {
 export default function App() {
   const [run, setRun] = useState<{ game: GameState; seats: Seat[]; id: number } | null>(null)
   const [online, setOnline] = useState<string | null>(() => new URLSearchParams(location.search).get('room'))
-  const [lab, setLab] = useState(() => new URLSearchParams(location.search).has('lab'))
+  // ?lab = 모의 전투 랩, ?lab=tile = 타일 뽑기 랩
+  const [lab, setLab] = useState<'battle' | 'tile' | null>(() => {
+    const q = new URLSearchParams(location.search)
+    return q.has('lab') ? (q.get('lab') === 'tile' ? 'tile' : 'battle') : null
+  })
   const saved = loadSave()
-  if (lab) return <BattleLab onBack={() => { history.replaceState(null, '', '/'); setLab(false) }} />
+  const leaveLab = () => {
+    history.replaceState(null, '', '/')
+    setLab(null)
+  }
+  if (lab === 'battle') return <BattleLab onBack={leaveLab} />
+  if (lab === 'tile') return <TileLab onBack={leaveLab} />
   if (online !== null) return <OnlineApp initialRoom={online} onBack={() => { history.replaceState(null, '', '/'); setOnline(null) }} />
   return run ? (
     <GameScreen key={run.id} initial={run.game} seats={run.seats} onExit={() => setRun(null)} />
@@ -36,7 +46,8 @@ export default function App() {
       onStart={(seats, seed) => setRun({ game: createGame({ seed, civIds: seats.map((s) => s.civId), roundLimit: seats.some((s) => !s.ai) ? null : undefined }), seats, id: Date.now() })}
       onResume={saved ? () => setRun({ ...saved, id: Date.now() }) : undefined}
       onOnline={() => setOnline('')}
-      onLab={() => setLab(true)}
+      onLab={() => setLab('battle')}
+      onTileLab={() => setLab('tile')}
     />
   )
 }
