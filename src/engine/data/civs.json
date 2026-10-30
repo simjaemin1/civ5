@@ -16,7 +16,7 @@
     "id": "hwacha",
     "base": "hwacha",
     "cost": 6,
-    "hp": 2,
+    "hp": 3,
     "def": 3,
     "power": 2,
     "variants": [

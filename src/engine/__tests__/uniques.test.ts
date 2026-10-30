@@ -73,7 +73,7 @@ describe('고유 유닛 데이터', () => {
     expect(st('케식텐')).toMatchObject({ hp: 5, def: 1, choose: 2, noCounter: true, baseId: 'knight' })
     expect(st('낙타궁수')).toMatchObject({ hp: 4, def: 2, choose: 2, noCounter: true, baseId: 'knight' })
     expect(st('프라싱야')).toMatchObject({ hp: 6, def: 3, baseId: 'infantry' })
-    expect(st('화차')).toMatchObject({ hp: 2, def: 3, noCounter: true, baseId: 'hwacha' })
+    expect(st('화차')).toMatchObject({ hp: 3, def: 3, noCounter: true, baseId: 'hwacha' })
     expect(st('재규어')).toMatchObject({ hp: 3, def: 0, marks: [{ dir: 'C', power: 1 }], baseId: 'warrior' }) // 체력 4 → 3 (사용자 결정)
     expect(st('제고이센')).toMatchObject({ hp: 6, def: 2, coastalOnly: true })
   })
