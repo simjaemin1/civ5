@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { TILE_DECK_SIZE } from '../../engine'
-import { HAND_SIZE, newTileDraw, redrawTiles } from '../lab/tileLab'
+import { HAND_SIZE, newTileDraw, redrawTiles } from '../lab/tileDraw'
 
 describe('타일 뽑기 랩', () => {
   it('실제 덱에서 4장을 뽑는다 (덱과 손을 합치면 160장)', () => {
