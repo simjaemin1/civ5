@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { createGame } from '../../engine'
 import { TileView } from '../TileView'
-import { HAND_SIZE, newTileDraw, redrawTiles } from './tileLab'
+import { HAND_SIZE, newTileDraw, redrawTiles } from './tileDraw'
 
 const newSeed = () => Math.floor(Math.random() * 1_000_000)
 
