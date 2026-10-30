@@ -634,7 +634,7 @@
     "id": "jaguar",
     "base": "warrior",
     "cost": 3,
-    "hp": 4,
+    "hp": 3,
     "def": 0,
     "power": 1,
     "variants": [
