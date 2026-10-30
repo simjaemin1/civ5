@@ -67,12 +67,13 @@ describe('고유 유닛 데이터', () => {
     for (const [name, supply] of Object.entries(s.uniqueSupply)) expect(supply, name).toHaveLength(3)
   })
 
-  it('카드에 적힌 능력치를 쓴다 (장갑보병, 케식텐, 프라싱야, 화차)', () => {
+  it('카드에 적힌 능력치를 쓴다 (장갑보병, 케식텐, 프라싱야, 화차, 재규어)', () => {
     const st = (name: string) => cardStats({ uid: 0, defId: UNIQUES[name].def.base, unique: name, dirs: ['C'] })
     expect(st('장갑보병')).toMatchObject({ hp: 3, def: 2, marks: [{ dir: 'C', power: 2 }], baseId: 'spearman' })
     expect(st('케식텐')).toMatchObject({ hp: 4, def: 0, choose: 2, noCounter: true, baseId: 'knight' })
     expect(st('프라싱야')).toMatchObject({ hp: 6, def: 3, baseId: 'infantry' })
     expect(st('화차')).toMatchObject({ hp: 2, def: 3, noCounter: true, baseId: 'hwacha' })
+    expect(st('재규어')).toMatchObject({ hp: 3, def: 0, marks: [{ dir: 'C', power: 1 }], baseId: 'warrior' }) // 체력 4 → 3 (사용자 결정)
     expect(st('제고이센')).toMatchObject({ hp: 6, def: 2, coastalOnly: true })
   })
 
