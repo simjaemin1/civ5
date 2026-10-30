@@ -845,7 +845,7 @@
     "base": "chariot",
     "cost": 3,
     "hp": 3,
-    "def": 0,
+    "def": 1,
     "choose": 2,
     "noCounter": true,
     "text": "상대 1-4번 위치 중 1개를 골라 전투력 2로 공격하며, 반격 대미지를 받지 않는다"
