@@ -32,6 +32,8 @@ export const AI_TUNE = {
   harassEdge: 1.3,
   /** 장군을 불러들여 옮길 만한 차이: 노릴 타일의 중요도가 점령 중인 타일보다 이만큼 이상 커야 한다 (왔다 갔다 방지) */
   harassMargin: 3,
+  /** 견제형(고유 유닛을 든 문명 등)이 노리는 상대 타일의 망치 1당 가산점: 상대의 고생산 타일을 점령해 군사·불가사의 생산을 누른다 */
+  harassHammer: 6,
 }
 
 const weight = (y: { food: number; hammer: number; science: number; gold: number }) =>
@@ -527,6 +529,9 @@ function tileHammers(s: GameState, ownerId: number, cityId: number, tileId: numb
 }
 /** 전쟁광이 탈락시키려는 상대의 망치 타일 (망치 2 이상): 계속 점령해 그 상대가 반격할 군사 카드를 못 뽑게 한다 */
 const HAMMER_HOLD = 2
+/** 견제형이 보는 상대 타일의 가치: 중요도에 망치를 크게 더한다 (고생산 타일 강제 점거) */
+const harassValue = (s: GameState, ownerId: number, cityId: number, tileId: number): number =>
+  tileImportance(s, ownerId, cityId, tileId) + AI_TUNE.harassHammer * tileHammers(s, ownerId, cityId, tileId)
 
 /**
  * 견제형 문명: 정복(도시 공격)은 하지 않지만, 고유 유닛을 들고 있거나 같은 시대 상대들보다 군사력이 충분히 앞서
@@ -552,7 +557,7 @@ function bestOpenTile(s: GameState, o: Player): { cityId: number; tileId: number
   for (const c of o.cities) {
     for (const t of c.tiles) {
       if (t.role === 'city' || t.occupiedBy !== undefined) continue
-      const v = tileImportance(s, o.id, c.id, t.card.id)
+      const v = harassValue(s, o.id, c.id, t.card.id)
       if (!best || v > best.v) best = { cityId: c.id, tileId: t.card.id, v }
     }
   }
@@ -569,7 +574,7 @@ function harassRecalls(s: GameState, p: Player): Action[] {
   if (p.generals - p.generalWorkers + p.returningGenerals >= 1) return []
   const target = harassTarget(s, p)
   if (!target) return []
-  const occ = occupiedTiles(s, p).map((t) => ({ t, v: tileImportance(s, t.defenderId, t.cityId, t.tileId) }))
+  const occ = occupiedTiles(s, p).map((t) => ({ t, v: harassValue(s, t.defenderId, t.cityId, t.tileId) }))
   if (!occ.length) return []
   const best = bestOpenTile(s, target)
   if (!best) return []
@@ -914,7 +919,8 @@ function plainRecalls(s: GameState, p: Player): Action[] {
 
 /** 불러들인 뒤 이번 차례에 칠 곳이 푼 타일과 다르고, 탈환·도시 공격이거나 푼 타일보다 중요한 타일이어야 불러들인다 */
 function worthRecall(s: GameState, p: Player, a: { defenderId: number; cityId: number; tileId: number }): boolean {
-  const released = tileImportance(s, a.defenderId, a.cityId, a.tileId)
+  const value = isHarasser(s, p) ? harassValue : tileImportance
+  const released = value(s, a.defenderId, a.cityId, a.tileId)
   let after: GameState
   try {
     after = apply(s, { type: 'recallGeneral', ...a })
@@ -933,7 +939,7 @@ function worthRecall(s: GameState, p: Player, a: { defenderId: number; cityId: n
     return x.cityId === conquestCity(o).id && findTile(o, x.cityId, x.tileId)?.tile.role === 'side'
   }
   if (side(after, next) && !side(s, a)) return true
-  return tileImportance(after, next.defenderId, next.cityId, next.tileId) > released
+  return value(after, next.defenderId, next.cityId, next.tileId) > released
 }
 
 function produceCandidates(s: GameState, p: Player): Action[] {
@@ -1094,8 +1100,16 @@ function declareCandidates(s: GameState, p: Player): Action[] {
         return tileImportance(s, t.defenderId, t.cityId, t.tileId) + AI_TUNE.warlordHammer * tileHammers(s, t.defenderId, t.cityId, t.tileId) + (side ? 8 : 0)
       }
     } else if (isHarasser(s, p)) {
-      // 견제형은 도시를 치지 않고, 노리는 상대의 가장 중요한 타일(산출·자원·자연경관)을 점령한다
-      rate = (t) => (t.kind === 'retake' ? 1000 : t.kind === 'city' ? -1 : tileImportance(s, t.defenderId, t.cityId, t.tileId))
+      // 견제형(고유 유닛을 든 문명 등): 군대만 뽑거나 전제정치로 가지 않고, 가진 장군으로 상대의 고생산(망치) 타일을 강제 점거한다.
+      // 셋 이상이면 1등 도시의 사면도 노린다: 장군이 1개씩뿐이어도 여럿이 함께 사면을 채우면, 공성 카드를 가진 문명이 도시를 칠 수 있다
+      const coalition = !!top && aim === top.leader.id
+      rate = (t) => {
+        if (t.kind === 'retake') return 1000
+        if (t.kind === 'city') return hasSiege(p) ? 500 : -1
+        const o = s.players[t.defenderId]
+        const side = coalition && t.cityId === conquestCity(o).id && findTile(o, t.cityId, t.tileId)?.tile.role === 'side'
+        return harassValue(s, t.defenderId, t.cityId, t.tileId) + (side ? 8 : 0)
+      }
     }
     const targets = declarationTargets(s, p)
       .filter((t) => aim === null || t.kind === 'retake' || t.defenderId === aim || (isWarlord(p) && t.kind === 'city'))
