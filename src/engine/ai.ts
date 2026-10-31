@@ -1,6 +1,6 @@
 import type { Action, GameState, Player, Side, TileCard } from './types'
 import { RuleError, SIDES } from './types'
-import { MILITARY_CARDS, RESOURCES, TECHS, WONDERS, cardById, civById, wonderCardById } from './data'
+import { MILITARY_CARDS, RESOURCES, TECHS, WONDERS, cardById, civById, techById, wonderCardById } from './data'
 import { cardStats } from './cardstats'
 import type { TechDef, WonderCardDef } from './data'
 import { apply, researchableTechs } from './game'
@@ -34,6 +34,28 @@ export const AI_TUNE = {
   harassMargin: 3,
   /** 견제형(고유 유닛을 든 문명 등)이 노리는 상대 타일의 망치 1당 가산점: 상대의 고생산 타일을 점령해 군사·불가사의 생산을 누른다 */
   harassHammer: 6,
+  /** 해안 견제(영국): 이 중요도 미만인 내 타일은 탈환하지 않는다 (0이면 모두 탈환) */
+  raidRetakeMin: 0,
+  /** 해안 견제: 수비에 필요한 군대(이웃 군대 수 기준)보다 이만큼 더 갖춘다 */
+  raidDefenseExtra: 0,
+  /** 해안 견제: 상대 해안·석유 타일을 먼저 치는지 (끄면 탈환만 한다) */
+  raidOffense: true,
+  /** 해안 견제: 군대를 최소로만 만든다 (끄면 다른 문명처럼 남는 망치로 군사 카드를 만든다). 400판: 켜면 21.0%, 끄면 27.0% (피라미드 갈아타기와 함께) */
+  raidLeanArmy: false,
+  /** 탐험형(식량 보너스가 없는 문명 중 EXPLORERS): 첫 정책은 전통, 나침반→신학을 서두르고, 매 차례 정찰해 식량 좋은 타일을 맡아 둔다 */
+  explorer: false,
+  /** 탐험형이 맡아둔 타일을 받아 오려고 정책·문화 기술로 달린다 (끄면 정찰·맡아두기만 한다) */
+  explorerChase: true,
+  /** 정책 갈아타기: 피라미드(→자유)·과학이론(→합리주의)으로 정책이 바뀌기 직전에 정책 기술을 열어 전통(문화 2)을 고른다 */
+  policyGambit: true,
+  /** 갈아타기 중 피라미드(→자유) 쪽 */
+  gambitPyramids: true,
+  /** 갈아타기 중 과학이론(→합리주의) 쪽 */
+  gambitScience: false,
+  /** 과학이론 갈아타기를 기다리며 정책 기술을 아껴 둔다 (끄면 아껴 두지 않고, 마침 열 수 있는 정책 기술이 있을 때만 갈아탄다) */
+  gambitScienceHold: true,
+  /** 정책 기술을 일찍부터 아껴 둔다 (끄면 갈아타기 직전 한 차례만: 피라미드 진척도가 하나 남았을 때, 과학이론을 바로 열 수 있을 때) */
+  gambitHoldEarly: false,
 }
 
 const weight = (y: { food: number; hammer: number; science: number; gold: number }) =>
@@ -385,6 +407,33 @@ const rushingCulture = (_p: Player): boolean => plan === 'culture'
 
 /** 번성형 기술 순서: 나침반 → 과학·식량 산출을 키우는 기술과 행복(일꾼 상한) 기술 → 인쇄기술(두 번째 도시) → 나머지는 싼 것부터 넓게 */
 const COMPASS_CHAIN = new Set(['sailing', 'optics', 'compass'])
+/**
+ * 탐험형 문명: 시작 식량 보너스가 없어 성장이 늦으므로, 전통으로 문화를 당겨 받고 나침반→신학을 빨리 열어
+ * 매 차례 정찰로 식량이 좋은 타일을 골라 맡아 둔다 (나쁜 타일은 맡았다가 바로 돌려보내 일꾼을 그 차례에 그대로 쓴다).
+ */
+const EXPLORERS = new Set(['england'])
+const isExplorer = (p: Player): boolean => AI_TUNE.explorer && EXPLORERS.has(p.civId) && !civById(p.civId).bonus.food
+/** 문화를 주는 기술 (정책 선택권 또는 문화) */
+const CULTURE_TECHS = TECHS.filter((t) => t.effects.some((e) => e.kind === 'policy' || e.kind === 'culture')).map((t) => t.id)
+/**
+ * 탐험형이 좋은 타일을 맡아 두었으면 문화를 받아 오는 것이 최우선이다: 정책·문화를 주는 기술 중 남은 비용이 가장 싼 길.
+ * 맡아둔 타일이 없으면 빈 집합.
+ */
+function cultureChase(p: Player): Set<string> {
+  if (!isExplorer(p) || !p.held || !AI_TUNE.explorerChase) return new Set()
+  let best: Set<string> = new Set()
+  let bestCost = Infinity
+  for (const g of CULTURE_TECHS) {
+    if (p.techs.includes(g)) continue
+    const path = missingFor(p, [g])
+    const cost = [...path].reduce((n, id) => n + (TECHS.find((t) => t.id === id)?.cost ?? 0), 0)
+    if (cost < bestCost) {
+      bestCost = cost
+      best = path
+    }
+  }
+  return best
+}
 /** 해금 기술이 산출을 올려 주는 자원 (자원 카드에 적힌 boosts 기준) */
 function boostTechValue(p: Player, techId: string): number {
   let v = 0
@@ -408,6 +457,7 @@ function buildPriority(p: Player, t: TechDef): number {
   // 망치를 쓸 곳이 없으면 군사 카드를 여는 비용 0 기술(농업·궁술·청동기술·목축업)을 나침반보다 먼저 연다
   if (idleHammers && t.cost === 0 && unlocksCard(t.id)) return 350
   if (p.techs.includes('compass') === false && COMPASS_CHAIN.has(t.id)) return 300
+  if (isExplorer(p) && t.id === 'theology') return 290
   let v = boostTechValue(p, t.id)
   const mountainFirstCity = !!p.cities[0]?.tiles.some((x) => (x.role === 'city' || x.role === 'side') && x.card.terrains.includes('산'))
   if (t.id === 'writing') v += 90 // 식량을 과학으로 바꿀 수 있다
@@ -423,9 +473,11 @@ function buildPriority(p: Player, t: TechDef): number {
   return v
 }
 
-function techPriority(t: TechDef, rush?: Set<string>, p?: Player): number {
+function techPriority(t: TechDef, rush?: Set<string>, p?: Player, chase?: Set<string>): number {
   // 평소에는 싼 기술부터 넓게 (고점을 보고 번성), 아폴로 질주 때는 선행 기술을 우선
   let v = (rush ? t.cost : -t.cost) + (rush?.has(t.id) ? 500 : 0) + (p && !rush ? buildPriority(p, t) : 0)
+  // 탐험형이 맡아둔 타일을 받아 올 정책·문화 기술 길이 무엇보다 먼저다
+  if (chase?.has(t.id)) v += 2000
   for (const e of t.effects) {
     if (e.kind === 'foodToScience') v += 5
     else if (e.kind === 'secondCity') v += 8
@@ -455,12 +507,25 @@ function researchCandidates(s: GameState, p: Player): Action[] {
         ? missingFor(p, ['acoustics']) // 문화가 급하면 음향학(문화 +1)부터
         : undefined
   idleHammers = [...hammerUse(s, p).values()].every((costs) => costs.length === 0)
-  const techs = researchableTechs(s).sort((a, b) => techPriority(b, rush, p) - techPriority(a, rush, p))
+  const chase = cultureChase(p)
+  // 정책 갈아타기: 기다리는 동안은 정책 기술을 열지 않고, 때가 되면 정책 기술을 먼저 연다. 전통을 고른 뒤에는 과학이론을 바로 연다
+  const hold = holdPolicyTechs(s, p)
+  const now = !hold && gambitNow(s, p)
+  const sciNext = sciPlan(p) && p.policy === 'tradition'
+  const gambitBonus = (t: TechDef) => (now && POLICY_TECHS.has(t.id) ? 3000 : 0) + (sciNext && t.id === SCI_THEORY ? 3000 : 0)
+  const techs = researchableTechs(s)
+    .filter((t) => !(hold && POLICY_TECHS.has(t.id)))
+    .sort((a, b) => techPriority(b, rush, p, chase) + gambitBonus(b) - techPriority(a, rush, p, chase) - gambitBonus(a))
   for (const t of techs) {
     let need = t.cost - turn.yields.science
     let foodConv = 0
     let hammerConv = 0
-    if (need > 0 && p.techs.includes('writing')) {
+    // 맡아둔 타일을 받아 올 기술은 일꾼 하나를 잃더라도(식량을 모두 과학으로) 이번 차례에 연다
+    const chasing = chase.has(t.id) && need > 0 && need <= food + (canHammerScience(p) ? Math.min(2, hammers) : 0)
+    if (need > 0 && p.techs.includes('writing') && chasing) {
+      foodConv = Math.min(need, food)
+      need -= foodConv
+    } else if (need > 0 && p.techs.includes('writing')) {
 // 자유 정책에서는 일꾼을 굶겨도 잃지 않으므로 식량을 전부 과학으로 돌릴 수 있다
       // 전쟁광이 공성 카드(대포)를 여는 화학은 일꾼 몇 명을 잃더라도 식량을 모두 과학으로 돌려 연구한다
       const spare = p.policy === 'liberty' || (isWarlord(p) && warFoundation(p) && t.id === 'chemistry' && !hasSiege(p) && siegeRoute(p).has(t.id)) ? food : food - totalWorkers(p)
@@ -602,9 +667,9 @@ function threatRank(s: GameState, id: number): number {
   return alive.findIndex((x) => x.id === id)
 }
 /** 해안 견제의 선전포고 점수: 탈환 > 해안·석유 타일 (위협도가 높은 상대일수록 앞). 그 밖의 타일과 도시는 노리지 않는다 */
-function raidRate(s: GameState, _p: Player, t: ReturnType<typeof declarationTargets>[number]): number {
-  if (t.kind === 'retake') return 1000
-  if (t.kind === 'city' || !raidTile(s, t.defenderId, t.cityId, t.tileId)) return -1
+function raidRate(s: GameState, p: Player, t: ReturnType<typeof declarationTargets>[number]): number {
+  if (t.kind === 'retake') return tileImportance(s, p.id, t.cityId, t.tileId) >= AI_TUNE.raidRetakeMin ? 1000 : -1
+  if (!AI_TUNE.raidOffense || t.kind === 'city' || !raidTile(s, t.defenderId, t.cityId, t.tileId)) return -1
   return raidValue(s, t.defenderId, t.cityId, t.tileId)
 }
 /** 해안 견제가 보는 상대 타일의 가치: 중요도에 상대의 위협도 순위를 더한다 (1등의 타일일수록 크다) */
@@ -748,6 +813,7 @@ function cultureFirst(p: Player): boolean {
 export const aiDebug = { policyReason: '' }
 
 function policyOrder(s: GameState, p: Player): Policy[] {
+  aiDebug.policyReason = ''
   const turn = p.turn
   const food = turn ? turn.yields.cities.reduce((n, c) => n + c.food, 0) : 0
   const base = turn ? turn.yields.science - (p.policy === 'rationalism' ? rationalismScience(p.civId) : 0) : 0
@@ -756,10 +822,21 @@ function policyOrder(s: GameState, p: Player): Policy[] {
   const withNone = base + (writing ? Math.max(0, food - totalWorkers(p)) : 0)
   // 앞으로 만날 비용 10대 기술을 감당할 수 있는지 (번성 뒤에도 막히지 않도록 여유 있게)
   const need = Math.max(cheapest, AI_TUNE.policyNeed)
+  // 정책 갈아타기: 곧 피라미드(→자유)나 과학이론(→합리주의)으로 정책이 바뀌므로 전통으로 문화 2를 챙긴다
+  if (gambitNow(s, p)) {
+    aiDebug.policyReason = '갈아타기'
+    return ['tradition', 'aesthetics', ...POLICY_PREFERENCE]
+  }
   // 맨 처음 고르는 정책은 전통 아니면 미학으로 고정한다: 당장 남는 식량(식량 − 일꾼)이 없으면 미학, 있으면 전통.
   if ((p.policyPicks ?? 0) === 0) {
     aiDebug.policyReason = '첫 정책'
+    if (isExplorer(p)) return ['tradition', 'aesthetics', ...POLICY_PREFERENCE]
     return food - totalWorkers(p) > 0 ? ['tradition', 'aesthetics', ...POLICY_PREFERENCE] : ['aesthetics', 'tradition', ...POLICY_PREFERENCE]
+  }
+  // 탐험형이 좋은 타일을 맡아 두었으면 문화를 주는 정책(미학)으로 바로 받아 온다
+  if (isExplorer(p) && AI_TUNE.explorerChase && p.held && !rushingApollo(p) && !rushingCulture(p)) {
+    aiDebug.policyReason = '맡아둔 타일'
+    return ['aesthetics', 'tradition', ...POLICY_PREFERENCE]
   }
   // 평등 한 번으로 관광이 상대의 문화를 넘어 탈락시킬 수 있으면 (아폴로 질주 중이어도) 평등
   if (p.policy !== 'equality') {
@@ -856,7 +933,7 @@ function pendingCandidates(s: GameState, p: Player): Action[] {
     // 과학이론: 지금 정책보다 합리주의를 더 좋게 보면 바꾼다
     const order = policyOrder(s, p)
     const now = p.policy ? order.indexOf(p.policy) : -1
-    const want = now < 0 || order.indexOf(p.policyOffer) < now
+    const want = now < 0 || order.indexOf(p.policyOffer) < now || (AI_TUNE.policyGambit && p.policy === 'tradition')
     out.push({ type: 'policyOffer', accept: want }, { type: 'policyOffer', accept: !want })
   }
   if (p.pendingFreeCards > 0) {
@@ -876,6 +953,8 @@ function holdValue(p: Player, card: TileCard): number {
   if (r?.luxuryTech && !owned.has(card.resource!)) v += 8
   if (card.resource === 'aluminum') v += 6
   if (card.wonder && (WONDERS[card.wonder].happinessOnClaim ?? 0) > 0) v += 9
+  // 탐험형은 식량이 많은 타일(성장 발판)을 더 쳐 준다
+  if (isExplorer(p)) v += 2 * tileYield(card, ctxOf(p)).food
   return v + tileScore(p, card) * 0.5
 }
 const HOLD_THRESHOLD = 7
@@ -883,6 +962,13 @@ const HOLD_THRESHOLD = 7
 /** 정찰은 3라운드에 한 번만 (일꾼 1개가 그 차례 쉬므로) */
 function scoutCandidates(s: GameState, p: Player): Action[] {
   if (aiStyle === 'hammer' || !p.techs.includes('compass') || rushingApollo(p) || rushingCulture(p)) return []
+  if (isExplorer(p)) {
+    // 탐험형: 이번 차례에 정찰한 카드는 바로 맡아 보고, 좋지 않으면 그 자리에서 돌려보내 일꾼을 되찾는다
+    if (p.scouted) return [{ type: 'holdScouted' }]
+    // 좋은 타일을 맡아 두었으면 문화(정책·문화 기술)로 받아 올 때까지 붙든다 (cultureChase가 그 기술로 달린다)
+    if (p.held) return holdValue(p, p.held) < HOLD_THRESHOLD ? [{ type: 'releaseHeld' }] : []
+    return p.scoutedRound === s.round ? [] : [{ type: 'scout' }]
+  }
   if (p.held || p.scouting || p.scouted || totalWorkers(p) < 4 || s.round % 3 !== 0) return []
   return [{ type: 'scout' }]
 }
@@ -929,6 +1015,54 @@ function hammerCeiling(o: Player): Map<number, number> {
   })
   return out
 }
+
+// ───── 정책 갈아타기 (전통 → 자유·합리주의) ─────
+// 피라미드는 완성하는 순간 정책을 자유로, 과학이론은 합리주의로 바꿀 기회를 준다. 그래서 그 직전에 정책 기술을 열어
+// 전통(일꾼 3을 버리고 문화 2)을 고르면, 전통의 손해(그 차례 식량 정산 생략)만 보고 바로 자유·합리주의로 넘어간다.
+// 그때까지 정책 기술(철학·화폐·신학·공학)은 바로 앞까지만 배우고 열지 않고 아껴 둔다.
+const POLICY_TECHS = new Set(TECHS.filter((t) => t.effects.some((e) => e.kind === 'policy')).map((t) => t.id))
+const PYRAMIDS = 'pyramids'
+const SCI_THEORY = 'scientific_theory'
+const bestCeiling = (o: Player): number => Math.max(0, ...hammerCeiling(o).values())
+/** 피라미드를 가져갈 문명: 진척도가 가장 앞서거나, 진척도가 같으면 망치 상한이 가장 높다. 이미 자유면 피라미드로 얻을 게 없다 */
+function pyramidPlan(s: GameState, p: Player): boolean {
+  if (!AI_TUNE.policyGambit || !AI_TUNE.gambitPyramids || isWarlord(p) || s.wonderOwners[PYRAMIDS] !== undefined || p.policy === 'liberty') return false
+  const w = wonderCardById(PYRAMIDS)
+  if (!p.techs.includes(w.tech)) return false
+  const prog = s.wonderProgress[PYRAMIDS] ?? {}
+  const mine = prog[p.id] ?? 0
+  const rival = Math.max(0, ...Object.entries(prog).filter(([id]) => Number(id) !== p.id).map(([, v]) => v))
+  if (!AI_TUNE.gambitHoldEarly && mine < w.progressNeeded - 1) return false
+  if (mine !== rival) return mine > rival
+  const rivals = s.players.filter((o) => o.id !== p.id && !o.eliminated && o.cities.length > 0 && o.techs.includes(w.tech))
+  return bestCeiling(p) > Math.max(0, ...rivals.map(bestCeiling))
+}
+/** 이번 차례 투자로 피라미드가 거의 확실히 완성된다: 진척도가 하나 남았고, 앞사람보다 많이 내며 뒤 문명의 망치 상한도 넘는다 */
+function pyramidSure(s: GameState, p: Player): boolean {
+  if (!p.turn || !pyramidPlan(s, p)) return false
+  const w = wonderCardById(PYRAMIDS)
+  if ((s.wonderProgress[PYRAMIDS]?.[p.id] ?? 0) < w.progressNeeded - 1) return false
+  return p.cities.some((c) => {
+    const h = p.turn!.yields.cities.find((y) => y.cityId === c.id)?.hammer ?? 0
+    return !p.turn!.produced.includes(c.id) && conditionMet(p, c, w) && h >= minHammers(p, w) && wonderBids(s, p, [w], h).sure.length > 0
+  })
+}
+/** 과학이론이 가까워 정책 기술을 아껴 둔다 (과학이론까지 남은 기술 2개 이하, 아직 합리주의가 아니다) */
+function sciPlan(p: Player): boolean {
+  return AI_TUNE.policyGambit && AI_TUNE.gambitScience && !isWarlord(p) && !p.techs.includes(SCI_THEORY) && p.policy !== 'rationalism' && missingFor(p, [SCI_THEORY]).size <= (AI_TUNE.gambitHoldEarly ? 2 : 1)
+}
+/** 다음 차례에 과학이론을 열 수 있다: 지금 정책 기술로 전통을 고를 때다 (이미 전통이면 이제 과학이론을 연다) */
+function sciReady(p: Player): boolean {
+  if (!sciPlan(p) || p.policy === 'tradition' || missingFor(p, [SCI_THEORY]).size !== 1 || !p.turn) return false
+  const food = p.turn.yields.cities.reduce((n, c) => n + c.food, 0)
+  const hammers = p.turn.yields.cities.reduce((n, c) => n + c.hammer, 0)
+  const science = p.turn.yields.science + (p.techs.includes('writing') ? Math.max(0, food - totalWorkers(p)) : 0) + (canHammerScience(p) ? Math.min(2, hammers) : 0)
+  return science >= techById(SCI_THEORY).cost
+}
+/** 지금 정책 기술을 열어 전통을 고를 때 */
+const gambitNow = (s: GameState, p: Player): boolean => pyramidSure(s, p) || sciReady(p)
+/** 정책 기술을 아껴 둘 때 (갈아타기를 기다린다) */
+const holdPolicyTechs = (s: GameState, p: Player): boolean => (pyramidPlan(s, p) || (AI_TUNE.gambitScienceHold && sciPlan(p))) && !gambitNow(s, p)
 
 /**
  * 불가사의 경매 읽기 (순차 공개 전액지불 경매: 최다 투자 한 명만 진척도, 동률이면 아무도 못 얻고, 망치는 모두 사라진다).
@@ -1035,7 +1169,14 @@ function produceCandidates(s: GameState, p: Player): Action[] {
       // 과학 정책(합리주의·자유)을 평등 등으로 덮어쓰는 불가사의는 피한다
       .filter((w) => !(['rationalism', 'liberty'].includes(p.policy ?? '') && w.effects.some((e) => e.kind === 'setPolicy' && e.policy !== 'liberty')))
       .sort((a, b) => (isWarlord(p) ? Number(b.id === 'statue_of_zeus') - Number(a.id === 'statue_of_zeus') : 0) || (cultureFirst(p) ? Number(b.id === 'sistine_chapel') - Number(a.id === 'sistine_chapel') : 0) || b.minHammers - a.minHammers)
+    // 피라미드를 가져갈 문명은 피라미드에 계속 올린다
+    if (pyramidPlan(s, p)) wonders.sort((a, b) => Number(b.id === PYRAMIDS) - Number(a.id === PYRAMIDS))
     const bids = wonderBids(s, p, wonders, h)
+    // 이미 자유면 피라미드(→자유)로 얻을 게 없다: 상대의 완성을 막을 때(spoil)만 올린다
+    if (AI_TUNE.policyGambit && p.policy === 'liberty') {
+      bids.sure = bids.sure.filter((w) => w.id !== PYRAMIDS)
+      bids.risky = bids.risky.filter((w) => w.id !== PYRAMIDS)
+    }
     const wonderActions: Action[] = bids.sure.map((w) => ({ type: 'invest', cityId: city.id, wonderId: w.id, hammers: h }))
     const spoilActions: Action[] = bids.spoil.map((w) => ({ type: 'invest', cityId: city.id, wonderId: w.id, hammers: h }))
     const riskyActions: Action[] = bids.risky.map((w) => ({ type: 'invest', cityId: city.id, wonderId: w.id, hammers: h }))
@@ -1059,15 +1200,15 @@ function produceCandidates(s: GameState, p: Player): Action[] {
     // 해안 견제(영국)는 쓸모없는 군대를 늘리지 않는다: 군대가 2장 미만이거나 수비가 모자랄 때만 만들고,
     // 장궁병을 만들 수 있는 동안(중반)은 장궁병만 만든다. 나머지 망치는 불가사의 경쟁에 쓴다
     const raider = isCoastalRaider(p)
-    if (raider) {
-      const wanted = army < 2 || needDefense
+    if (raider && AI_TUNE.raidLeanArmy) {
+      const wanted = army < 2 || needDefense || army < defenseTarget(s, p) + AI_TUNE.raidDefenseExtra
       const longbowEra = p.techs.includes('machinery') && !isObsolete(p, cardById('crossbowman'))
       const keep = !wanted ? [] : longbowEra ? cardActions.filter((a) => a.type === 'produce' && a.unique) : cardActions
       cardActions.splice(0, cardActions.length, ...keep)
     }
     // 완성 직전인 상대를 동률로 막는 투자가 가장 먼저, 뒤 문명이 넘길 수 있는 투자는 군사 카드 뒤로
     out.push(...spoilActions)
-    const cardsFirst = raider ? needDefense || army < 2 : army < 3 || needDefense || rush || aiStyle === 'hammer'
+    const cardsFirst = raider && AI_TUNE.raidLeanArmy ? needDefense || army < 2 || army < defenseTarget(s, p) + AI_TUNE.raidDefenseExtra : army < 3 || needDefense || rush || aiStyle === 'hammer'
     out.push(...(cardsFirst ? [...cardActions, ...wonderActions] : [...wonderActions, ...cardActions]))
     out.push(...riskyActions)
   }
