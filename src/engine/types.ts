@@ -120,6 +120,7 @@ export interface Player {
   /**
    * 시작 손의 엘도라도: 영토 효과(문화 +1)로 받을 타일을 도시를 세우기 전에 미리 손에 받았다 (그 타일까지 보고 도시를 고른다).
    * tileId는 엘도라도 타일, bonusIds는 미리 받은 타일. 도시를 세우면 지운다.
+   * 예전 규칙의 저장 파일용: 지금은 영토 효과를 도시를 세운 뒤에 받으므로 새로 생기지 않는다.
    */
   startClaim?: { tileId: number; bonusIds: number[] }
   /** 인쇄기술로 얻은 두 번째 도시용 타일 4장 (도시를 세울 때까지) */
@@ -263,7 +264,7 @@ export interface Placement {
 
 export type Action =
   | { type: 'buildCity'; cityTileId: number; sideTiles: Partial<Record<Side, number>> }
-  /** 불모지 탈출: 타일을 1~2장 버리고 같은 수만큼 새로 뽑는다 (discardTileId는 1장일 때의 옛 형식) */
+  /** 불모지 탈출: 타일을 원하는 만큼(1장 이상) 버리고 같은 수만큼 새로 뽑는다 (discardTileId는 1장일 때의 옛 형식) */
   | { type: 'wasteland'; discardTileId?: number; discardTileIds?: number[] }
   | { type: 'placeWorkers'; placements: Placement[] }
   | { type: 'research'; techId: string; foodToScience?: number; hammerToScience?: number; foodByCity?: Record<number, number>; hammerByCity?: Record<number, number> }

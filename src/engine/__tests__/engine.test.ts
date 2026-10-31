@@ -96,16 +96,15 @@ describe('게임 준비', () => {
     expect(s.phase).toBe('place')
   })
 
-  it('불모지 탈출로 타일을 2장까지 바꿀 수 있다 (3장·같은 타일 두 번은 안 된다)', () => {
+  it('불모지 탈출로 타일을 원하는 만큼 바꿀 수 있다 (0장·같은 타일 두 번은 안 된다)', () => {
     let s = startGame(['denmark'], [hand4()])
-    const [a, b, c] = me(s).hand
-    expect(() => apply(s, { type: 'wasteland', discardTileIds: [a.id, b.id, c.id] })).toThrow(RuleError)
+    const [a, b, c, d] = me(s).hand
     expect(() => apply(s, { type: 'wasteland', discardTileIds: [a.id, a.id] })).toThrow(RuleError)
     expect(() => apply(s, { type: 'wasteland', discardTileIds: [] })).toThrow(RuleError)
-    s = apply(s, { type: 'wasteland', discardTileIds: [a.id, b.id] })
+    s = apply(s, { type: 'wasteland', discardTileIds: [a.id, b.id, c.id] })
     expect(me(s).hand).toHaveLength(4)
-    expect(me(s).hand.some((x) => x.id === a.id || x.id === b.id)).toBe(false)
-    expect(me(s).hand.some((x) => x.id === c.id)).toBe(true)
+    expect(me(s).hand.some((x) => [a.id, b.id, c.id].includes(x.id))).toBe(false)
+    expect(me(s).hand.some((x) => x.id === d.id)).toBe(true)
     s = found(s)
     expect(s.phase).toBe('place')
   })

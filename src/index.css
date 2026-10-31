@@ -511,9 +511,9 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
 .build-row .cross.with-waste { flex: 1 1 auto; grid-template-columns: repeat(3, min(118px, calc((100vw - 96px) / 4))) minmax(0, 1fr); grid-template-areas: '. n . .' 'w c e z' '. s . z'; }
 .cross .wasteland-area { grid-area: z; align-self: start; justify-self: center; }
 .wasteland-area .wasteland-cell { width: calc(2 * min(118px, calc((100vw - 96px) / 4)) + 8px); }
-/* 불모지 탈출 칸 2개 (2장까지 바꿀 수 있다): 나란히 */
-.wasteland-pair { display: flex; gap: 8px; }
-.wasteland-pair > div { flex: 1 1 0; min-width: 0; }
+/* 불모지 탈출 칸 (원하는 만큼 바꿀 수 있다): 한 줄에 2칸씩, 넣을수록 다음 칸이 열린다 */
+.wasteland-pair { display: flex; flex-wrap: wrap; gap: 8px; }
+.wasteland-pair > div { flex: 0 0 calc(50% - 4px); min-width: 0; }
 /* 오른쪽 칸 맨 위: 내 문명 카드 */
 .side-civ > .civ-card { width: 100% !important; max-width: 100%; }
 /* 고유 유닛 탭: 문명 기호를 눌러 고른다 */

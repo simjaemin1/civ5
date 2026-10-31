@@ -12,14 +12,13 @@ interface Props {
   label: string
   onBuild: (cityTileId: number, sideTiles: Partial<Record<Side, number>>) => void
   extra?: React.ReactNode
-  /** 불모지 탈출: 타일을 "불모지 탈출" 칸(최대 2칸)에 끌어다 놓고 버튼을 누르면 그 타일을 버리고 같은 수만큼 새로 뽑는다 */
+  /** 불모지 탈출: 타일을 "불모지 탈출" 칸에 끌어다 놓고(원하는 만큼) 버튼을 누르면 그 타일을 버리고 같은 수만큼 새로 뽑는다 */
   wasteland?: { onDiscard: (tileIds: number[]) => void; warn: string }
 }
 
-/** 'w'·'w2' = 불모지 탈출 칸 (도시 칸이 아니다, 2장까지 바꿀 수 있다) */
-type Cell = 'city' | Side | `x${number}` | 'w' | 'w2'
-const WASTE_CELLS = ['w', 'w2'] as const
-const isWaste = (k: Cell): boolean => k === 'w' || k === 'w2'
+/** `d0`, `d1`… = 불모지 탈출 칸 (도시 칸이 아니다, 손의 타일 수만큼 있어 원하는 만큼 바꿀 수 있다) */
+type Cell = 'city' | Side | `x${number}` | `d${number}`
+const isWaste = (k: Cell): boolean => k.startsWith('d')
 /** 십자 5칸 + 손이 5장을 넘으면 넘는 만큼의 추가 타일 칸 */
 const cellsFor = (n: number): Cell[] => ['city', ...SIDES, ...Array.from({ length: Math.max(0, n - 5) }, (_, i) => `x${i}` as const)]
 const cellLabel = (k: Cell): string => (k === 'city' ? '도시' : isWaste(k) ? '불모지 탈출' : k.startsWith('x') ? '추가 타일' : SIDE_LABEL[k as Side])
@@ -28,10 +27,11 @@ const cellLabel = (k: Cell): string => (k === 'city' ? '도시' : isWaste(k) ? '
  * 손에 든 타일로 도시를 세운다: 십자 모양 자리에 바로 놓는다.
  * 타일(또는 놓인 칸)을 눌러 집고 → 칸을 누르면 놓이고, 칸에 있던 타일과 자리를 바꾼다.
  * 손이 5장을 넘으면(엘도라도 발견 등) 넘는 타일은 "추가 타일" 칸에 둔다: 영토로 붙는다.
- * 타일은 끌어다 놓아도 된다. 불모지 탈출을 할 수 있으면 "불모지 탈출" 칸이 2개 있다: 바꿀 타일(1~2장)을 거기에 넣고 버튼을 누른다.
+ * 타일은 끌어다 놓아도 된다. 불모지 탈출을 할 수 있으면 "불모지 탈출" 칸이 손의 타일 수만큼 있다: 바꿀 타일을 거기에 넣고 버튼을 누른다.
  */
 export function CityBuilder({ hand, player, label, onBuild, extra, wasteland }: Props) {
   const CELLS = cellsFor(hand.length)
+  const WASTE_CELLS: Cell[] = hand.map((_, i) => `d${i}` as const)
   // 처음 배치: 1장째가 도시, 나머지는 위·오른쪽·아래·왼쪽, 그다음 추가 타일 순서
   const [at, setAt] = useState<Partial<Record<Cell, number>>>(() => {
     const init: Partial<Record<Cell, number>> = {}
@@ -119,14 +119,16 @@ export function CityBuilder({ hand, player, label, onBuild, extra, wasteland }: 
             <div className="wasteland-area">
               <div className="wasteland-cell">
                 <div className="wasteland-pair">
-                  {renderCell('w')}
-                  {renderCell('w2')}
+                  {/* 채운 칸 + 빈 칸 하나만 보인다 (바꿀 타일을 하나 넣으면 다음 칸이 열린다) */}
+                  {WASTE_CELLS.filter((k) => at[k] !== undefined || k === WASTE_CELLS.find((x) => at[x] === undefined)).map((k) => (
+                    <div key={k}>{renderCell(k)}</div>
+                  ))}
                 </div>
                 <ConfirmButton className="" disabled={!wasteIds.length} warn={wasteland.warn} onClick={() => wasteIds.length && wasteland.onDiscard(wasteIds)}>
                   불모지 탈출{wasteIds.length ? ` (${wasteIds.length}장)` : ''}
                 </ConfirmButton>
                 <small className="muted waste-note">
-                  <span>넣은 타일(최대 2장)을 버리고 같은 수만큼 새로 뽑습니다.</span> <span>이번 차례는 끝납니다.</span>
+                  <span>넣은 타일을 모두 버리고 같은 수만큼 새로 뽑습니다.</span> <span>이번 차례는 끝납니다.</span>
                 </small>
               </div>
             </div>
