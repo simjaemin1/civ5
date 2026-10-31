@@ -929,8 +929,9 @@
    "terrains": [
     "해안"
    ],
+   "resource": "fish",
    "printed": {
-    "food": 1
+    "food": 2
    }
   },
   {
@@ -945,8 +946,10 @@
    "terrains": [
     "해안"
    ],
+   "resource": "crab",
    "printed": {
-    "food": 1
+    "food": 1,
+    "gold": 3
    }
   },
   {
@@ -961,8 +964,10 @@
    "terrains": [
     "해안"
    ],
+   "resource": "pearls",
    "printed": {
-    "food": 1
+    "food": 1,
+    "gold": 3
    }
   },
   {
