@@ -45,6 +45,14 @@
   "printed": {
    "food": 1
   },
+  "boosts": [
+   {
+    "tech": "optics",
+    "yield": {
+     "hammer": 1
+    }
+   }
+  ],
   "terrains": [
    "호수",
    "해안"

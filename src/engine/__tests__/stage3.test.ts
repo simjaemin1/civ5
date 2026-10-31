@@ -1398,6 +1398,18 @@ describe('문명 능력 (전쟁·군사 관련)', () => {
     ).toThrow(RuleError)
   })
 
+  it('광학을 연구하면 물고기 타일 망치 +1 (해안·호수 모두)', () => {
+    const p0 = found(startGame(['korea'], [hand4()])).players[0]
+    const withOptics = { ...p0, techs: [...p0.techs, 'optics'] }
+    for (const terr of ['해안', '호수'] as const) {
+      const fish = tile([terr], { resource: 'fish' })
+      expect(tileYield(fish, ctxOf(withOptics)).hammer - tileYield(fish, ctxOf(p0)).hammer, terr).toBe(1)
+    }
+    // 물고기가 아닌 해안은 그대로
+    const coast = tile(['해안'])
+    expect(tileYield(coast, ctxOf(withOptics)).hammer).toBe(tileYield(coast, ctxOf(p0)).hammer)
+  })
+
   it('일본: 물고기 타일은 식량 +1 (망치는 그대로)', () => {
     const fish = tile(['해안'], { resource: 'fish' })
     const jp = tileYield(fish, ctxOf(found(startGame(['japan'], [hand4()])).players[0]))
