@@ -34,6 +34,14 @@ export const AI_TUNE = {
   harassMargin: 3,
   /** 견제형(고유 유닛을 든 문명 등)이 노리는 상대 타일의 망치 1당 가산점: 상대의 고생산 타일을 점령해 군사·불가사의 생산을 누른다 */
   harassHammer: 6,
+  /** 해안 견제(영국): 이 중요도 미만인 내 타일은 탈환하지 않는다 (0이면 모두 탈환) */
+  raidRetakeMin: 0,
+  /** 해안 견제: 수비에 필요한 군대(이웃 군대 수 기준)보다 이만큼 더 갖춘다 */
+  raidDefenseExtra: 0,
+  /** 해안 견제: 상대 해안·석유 타일을 먼저 치는지 (끄면 탈환만 한다) */
+  raidOffense: true,
+  /** 해안 견제: 군대를 최소로만 만든다 (끄면 다른 문명처럼 남는 망치로 군사 카드를 만든다) */
+  raidLeanArmy: true,
 }
 
 const weight = (y: { food: number; hammer: number; science: number; gold: number }) =>
@@ -602,9 +610,9 @@ function threatRank(s: GameState, id: number): number {
   return alive.findIndex((x) => x.id === id)
 }
 /** 해안 견제의 선전포고 점수: 탈환 > 해안·석유 타일 (위협도가 높은 상대일수록 앞). 그 밖의 타일과 도시는 노리지 않는다 */
-function raidRate(s: GameState, _p: Player, t: ReturnType<typeof declarationTargets>[number]): number {
-  if (t.kind === 'retake') return 1000
-  if (t.kind === 'city' || !raidTile(s, t.defenderId, t.cityId, t.tileId)) return -1
+function raidRate(s: GameState, p: Player, t: ReturnType<typeof declarationTargets>[number]): number {
+  if (t.kind === 'retake') return tileImportance(s, p.id, t.cityId, t.tileId) >= AI_TUNE.raidRetakeMin ? 1000 : -1
+  if (!AI_TUNE.raidOffense || t.kind === 'city' || !raidTile(s, t.defenderId, t.cityId, t.tileId)) return -1
   return raidValue(s, t.defenderId, t.cityId, t.tileId)
 }
 /** 해안 견제가 보는 상대 타일의 가치: 중요도에 상대의 위협도 순위를 더한다 (1등의 타일일수록 크다) */
@@ -1059,15 +1067,15 @@ function produceCandidates(s: GameState, p: Player): Action[] {
     // 해안 견제(영국)는 쓸모없는 군대를 늘리지 않는다: 군대가 2장 미만이거나 수비가 모자랄 때만 만들고,
     // 장궁병을 만들 수 있는 동안(중반)은 장궁병만 만든다. 나머지 망치는 불가사의 경쟁에 쓴다
     const raider = isCoastalRaider(p)
-    if (raider) {
-      const wanted = army < 2 || needDefense
+    if (raider && AI_TUNE.raidLeanArmy) {
+      const wanted = army < 2 || needDefense || army < defenseTarget(s, p) + AI_TUNE.raidDefenseExtra
       const longbowEra = p.techs.includes('machinery') && !isObsolete(p, cardById('crossbowman'))
       const keep = !wanted ? [] : longbowEra ? cardActions.filter((a) => a.type === 'produce' && a.unique) : cardActions
       cardActions.splice(0, cardActions.length, ...keep)
     }
     // 완성 직전인 상대를 동률로 막는 투자가 가장 먼저, 뒤 문명이 넘길 수 있는 투자는 군사 카드 뒤로
     out.push(...spoilActions)
-    const cardsFirst = raider ? needDefense || army < 2 : army < 3 || needDefense || rush || aiStyle === 'hammer'
+    const cardsFirst = raider && AI_TUNE.raidLeanArmy ? needDefense || army < 2 || army < defenseTarget(s, p) + AI_TUNE.raidDefenseExtra : army < 3 || needDefense || rush || aiStyle === 'hammer'
     out.push(...(cardsFirst ? [...cardActions, ...wonderActions] : [...wonderActions, ...cardActions]))
     out.push(...riskyActions)
   }
