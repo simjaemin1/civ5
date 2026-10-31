@@ -510,7 +510,10 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
 .build-row .cross { margin-left: clamp(0px, 3vw, 32px); }
 .build-row .cross.with-waste { flex: 1 1 auto; grid-template-columns: repeat(3, min(118px, calc((100vw - 96px) / 4))) minmax(0, 1fr); grid-template-areas: '. n . .' 'w c e z' '. s . z'; }
 .cross .wasteland-area { grid-area: z; align-self: start; justify-self: center; }
-.wasteland-area .wasteland-cell { width: min(118px, calc((100vw - 96px) / 4)); }
+.wasteland-area .wasteland-cell { width: calc(2 * min(118px, calc((100vw - 96px) / 4)) + 8px); }
+/* 불모지 탈출 칸 2개 (2장까지 바꿀 수 있다): 나란히 */
+.wasteland-pair { display: flex; gap: 8px; }
+.wasteland-pair > div { flex: 1 1 0; min-width: 0; }
 /* 오른쪽 칸 맨 위: 내 문명 카드 */
 .side-civ > .civ-card { width: 100% !important; max-width: 100%; }
 /* 고유 유닛 탭: 문명 기호를 눌러 고른다 */
@@ -540,7 +543,7 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
 @media (max-width: 600px) {
   .build-row .cross.with-waste { grid-template-columns: repeat(3, min(118px, calc((100vw - 96px) / 3))); grid-template-areas: '. n .' 'w c e' '. s .' 'z z z'; }
   .cross .wasteland-area { margin-top: 10px; }
-  .wasteland-area .wasteland-cell { width: min(118px, calc((100vw - 96px) / 3)); }
+  .wasteland-area .wasteland-cell { width: calc(2 * min(118px, calc((100vw - 96px) / 3)) + 8px); }
   .wasteland-cell .confirm { width: min(300px, calc(100vw - 72px)); }
 }
 /* 장군(점령·스웨덴)이 올라간 타일은 빨간 테두리 (일꾼이 올라가면 주황이 가린다) */

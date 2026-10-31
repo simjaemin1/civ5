@@ -263,7 +263,8 @@ export interface Placement {
 
 export type Action =
   | { type: 'buildCity'; cityTileId: number; sideTiles: Partial<Record<Side, number>> }
-  | { type: 'wasteland'; discardTileId: number }
+  /** 불모지 탈출: 타일을 1~2장 버리고 같은 수만큼 새로 뽑는다 (discardTileId는 1장일 때의 옛 형식) */
+  | { type: 'wasteland'; discardTileId?: number; discardTileIds?: number[] }
   | { type: 'placeWorkers'; placements: Placement[] }
   | { type: 'research'; techId: string; foodToScience?: number; hammerToScience?: number; foodByCity?: Record<number, number>; hammerByCity?: Record<number, number> }
   | { type: 'setChoices'; useHeld?: boolean; cultureCity?: number | null }

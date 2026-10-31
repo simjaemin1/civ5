@@ -221,7 +221,7 @@ export function apply(prev: GameState, action: Action): GameState {
   const p = currentPlayer(s)
   if (p.pendingCardDiscard?.length && action.type !== 'discardCard') throw new RuleError('넘친 군사 카드를 먼저 골라 버리세요')
   switch (action.type) {
-    case 'wasteland': return wasteland(s, p, action.discardTileId)
+    case 'wasteland': return wasteland(s, p, action.discardTileIds ?? (action.discardTileId !== undefined ? [action.discardTileId] : []))
     case 'buildCity': return buildCity(s, p, action)
     case 'scout':
       expectPhase(s, 'place')
@@ -361,25 +361,33 @@ function expectPhase(s: GameState, ...phases: GameState['phase'][]): void {
   if (!phases.includes(s.phase)) throw new RuleError(`지금은 ${s.phase} 단계입니다`)
 }
 
-function wasteland(s: GameState, p: Player, discardTileId: number): GameState {
+/** 불모지 탈출로 바꿀 수 있는 타일 수 */
+export const WASTELAND_MAX = 2
+
+function wasteland(s: GameState, p: Player, discardTileIds: number[]): GameState {
   expectPhase(s, 'setup')
   if (s.round !== 1 || p.wastelandPending) throw new RuleError('불모지 탈출은 첫 차례에 한 번만 가능합니다')
-  const i = p.hand.findIndex((c) => c.id === discardTileId)
-  if (i < 0) throw new RuleError('손에 없는 타일입니다')
-  const [discarded] = p.hand.splice(i, 1)
-  returnToDeck(s, discarded)
-  if (p.startClaim?.tileId === discarded.id) {
-    // 엘도라도를 버리면 영토가 되지 않으므로 미리 받은 타일도 덱으로 돌려준다
-    for (const id of p.startClaim.bonusIds) {
-      const k = p.hand.findIndex((c) => c.id === id)
-      if (k >= 0) returnToDeck(s, p.hand.splice(k, 1)[0])
-    }
-    p.startClaim = undefined
-  } else if (p.startClaim) p.startClaim.bonusIds = p.startClaim.bonusIds.filter((id) => id !== discarded.id)
-  p.hand.push(...drawTiles(s, 1))
+  const ids = [...new Set(discardTileIds)]
+  if (ids.length < 1 || ids.length > WASTELAND_MAX || ids.length !== discardTileIds.length) throw new RuleError(`불모지 탈출로 바꿀 타일은 1~${WASTELAND_MAX}장입니다`)
+  if (ids.some((id) => !p.hand.some((c) => c.id === id))) throw new RuleError('손에 없는 타일입니다')
+  for (const id of ids) {
+    const i = p.hand.findIndex((c) => c.id === id)
+    if (i < 0) continue // 엘도라도와 함께 덱으로 돌아간 타일
+    const [discarded] = p.hand.splice(i, 1)
+    returnToDeck(s, discarded)
+    if (p.startClaim?.tileId === discarded.id) {
+      // 엘도라도를 버리면 영토가 되지 않으므로 미리 받은 타일도 덱으로 돌려준다
+      for (const bid of p.startClaim.bonusIds) {
+        const k = p.hand.findIndex((c) => c.id === bid)
+        if (k >= 0) returnToDeck(s, p.hand.splice(k, 1)[0])
+      }
+      p.startClaim = undefined
+    } else if (p.startClaim) p.startClaim.bonusIds = p.startClaim.bonusIds.filter((bid) => bid !== discarded.id)
+  }
+  p.hand.push(...drawTiles(s, ids.length))
   discoverInStartHand(s, p) // 새로 뽑은 타일이 엘도라도여도 처음 발견이면 문화 +1
   p.wastelandPending = true
-  say(s, `${civById(p.civId).name} 불모지 탈출 (이번 차례 종료)`)
+  say(s, `${civById(p.civId).name} 불모지 탈출: 타일 ${ids.length}장 교체 (이번 차례 종료)`)
   endTurn(s)
   return s
 }
