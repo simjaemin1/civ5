@@ -51,9 +51,11 @@ export const AI_TUNE = {
   /** 갈아타기 중 피라미드(→자유) 쪽 */
   gambitPyramids: true,
   /** 갈아타기 중 과학이론(→합리주의) 쪽 */
-  gambitScience: true,
+  gambitScience: false,
+  /** 과학이론 갈아타기를 기다리며 정책 기술을 아껴 둔다 (끄면 아껴 두지 않고, 마침 열 수 있는 정책 기술이 있을 때만 갈아탄다) */
+  gambitScienceHold: true,
   /** 정책 기술을 일찍부터 아껴 둔다 (끄면 갈아타기 직전 한 차례만: 피라미드 진척도가 하나 남았을 때, 과학이론을 바로 열 수 있을 때) */
-  gambitHoldEarly: true,
+  gambitHoldEarly: false,
 }
 
 const weight = (y: { food: number; hammer: number; science: number; gold: number }) =>
@@ -1060,7 +1062,7 @@ function sciReady(p: Player): boolean {
 /** 지금 정책 기술을 열어 전통을 고를 때 */
 const gambitNow = (s: GameState, p: Player): boolean => pyramidSure(s, p) || sciReady(p)
 /** 정책 기술을 아껴 둘 때 (갈아타기를 기다린다) */
-const holdPolicyTechs = (s: GameState, p: Player): boolean => (pyramidPlan(s, p) || sciPlan(p)) && !gambitNow(s, p)
+const holdPolicyTechs = (s: GameState, p: Player): boolean => (pyramidPlan(s, p) || (AI_TUNE.gambitScienceHold && sciPlan(p))) && !gambitNow(s, p)
 
 /**
  * 불가사의 경매 읽기 (순차 공개 전액지불 경매: 최다 투자 한 명만 진척도, 동률이면 아무도 못 얻고, 망치는 모두 사라진다).

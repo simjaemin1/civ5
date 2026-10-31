@@ -611,10 +611,13 @@ describe('AI 전쟁 판단 (승률 추정·쏠림 방지·수비·실질 위협�
     }
     const researched = (s: GameState) => aiCandidates(s).flatMap((a) => (a.type === 'research' ? [a.techId] : []))
 
-    it('피라미드를 가져갈 문명은 완성이 확실해질 때까지 정책 기술(철학)을 열지 않는다', () => {
-      const s = atResearch(1)
+    it('피라미드 완성이 한 번 남았으면, 완성이 확실해질 때까지 정책 기술(철학)을 열지 않는다', () => {
+      const s = atResearch(2)
+      for (const y of s.players[0].turn!.yields.cities) y.hammer = 4 // 이번 차례에는 최소 망치(5)를 못 내 완성이 확실하지 않다
       expect(researched(s)).not.toContain('philosophy')
       expect(withTune({ policyGambit: false }, () => researched(s))).toContain('philosophy')
+      // 진척도가 더 남았으면 아직 아껴 두지 않는다 (정책 선택이 막히지 않게)
+      expect(researched(atResearch(1))).toContain('philosophy')
     })
 
     it('피라미드 완성이 확실한 차례에는 정책 기술을 먼저 열고 전통을 고른다', () => {
