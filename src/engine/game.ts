@@ -432,7 +432,10 @@ function buildCity(
   // 엘도라도의 영토 효과는 손에 미리 받았으므로 다시 주지 않는다
   for (const t of city.tiles) onTileGained(s, p, t.card, p.startClaim?.tileId === t.card.id)
   p.startClaim = undefined
-  if (p.civId === 'china') p.generals += 1 // 중국: 위대한 장군 1개로 시작
+  // 문명 카드에 장군 그림이 있으면 위대한 장군을 받고 시작한다 (독일·중국·줄루·몽골·훈족).
+  // 독일의 무료 군사 카드도 붙지만, 그 시점에 생산가능한 카드가 없으므로 받지 못한다
+  const startGenerals = civById(p.civId).startGenerals ?? 0
+  if (startGenerals) gainGeneral(s, p, startGenerals)
   say(s, `${civById(p.civId).name} 도시 건설 (타일 ${city.tiles.length}장)`)
   s.phase = 'place'
   return s
@@ -590,7 +593,7 @@ function research(
 
   for (const e of tech.effects) {
     if (e.kind === 'culture') gainCulture(s, p, e.amount)
-    else if (e.kind === 'general') gainGeneral(p, e.amount)
+    else if (e.kind === 'general') gainGeneral(s, p, e.amount)
     else if (e.kind === 'policy') p.pendingPolicies++
     else if (e.kind === 'policyChance') {
       if (p.policy !== e.policy) p.policyOffer = e.policy // 이미 그 정책이면 바꿀 것이 없다

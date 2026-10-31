@@ -49,7 +49,7 @@ export function choosePolicy(
       gainCulture(s, p, 1)
       break
     case 'despotism':
-      gainGeneral(p, 1)
+      gainGeneral(s, p, p.civId === 'zulu' ? 2 : 1) // 줄루: 전제정치를 고를 때마다 장군 1개 더
       break
     case 'regime': {
       turn.skipFoodSettle = true
@@ -67,8 +67,10 @@ export function choosePolicy(
       if (gain > 0) say(s, `${name} 체제: 일꾼 ${gain}개 추가`)
       break
     }
-    case 'diplomacy': // 시행 중 행복 +2 (yields.happiness)
     case 'liberty':
+      if (p.civId === 'china') gainGeneral(s, p, 1) // 중국: 자유를 고를 때마다 장군 1개
+      break
+    case 'diplomacy': // 시행 중 행복 +2 (yields.happiness)
     case 'rationalism':
     case 'equality':
       break

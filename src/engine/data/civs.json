@@ -46,7 +46,8 @@
    "gold": 3
   },
   "startCulture": 0,
-  "ability": "장군을 얻을 때마다 생산가능한 군사 카드 1장을 망치 없이 얻음",
+  "startGenerals": 1,
+  "ability": "장군을 얻을 때마다 그 시점에 생산가능한 군사 카드 1장을 망치 없이 얻음",
   "unique": "팬저 (탱크)",
   "uniques": [
    {
@@ -102,7 +103,8 @@
    "gold": 2
   },
   "startCulture": 0,
-  "ability": "위대한 장군 1개로 시작",
+  "startGenerals": 1,
+  "ability": "'자유' 정책을 고를 때마다 위대한 장군 1개",
   "unique": "연노병 (석궁병)",
   "uniques": [
    {
@@ -792,7 +794,8 @@
   "happiness": 4,
   "bonus": {},
   "startCulture": 0,
-  "ability": "자기 원래 영토가 대상인 전투에서는 임피 사용 불가",
+  "startGenerals": 1,
+  "ability": "'전제정치' 정책을 고를 때마다 위대한 장군 1개 더 · 자기 원래 영토가 대상인 전투에서는 임피 사용 불가",
   "unique": "임피 (파이크병)",
   "uniques": [
    {
@@ -826,6 +829,7 @@
   "happiness": 4,
   "bonus": {},
   "startCulture": 1,
+  "startGenerals": 1,
   "ability": "고유 유닛 2장",
   "unique": "공성추 (창병), 궁기병 (전차)",
   "uniques": [
@@ -859,6 +863,7 @@
   "happiness": 3,
   "bonus": {},
   "startCulture": 1,
+  "startGenerals": 1,
   "ability": "내 장군이 올라간 상대 타일에 일꾼을 올려 산출",
   "unique": "케식텐 (기사)",
   "uniques": [
