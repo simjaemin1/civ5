@@ -14,7 +14,7 @@ export function SetupPanel({ game, player, dispatch }: PanelProps) {
         canWasteland
           ? {
               warn: '이번 차례에는 도시를 세우지 않고 연구·산출·성장도 하지 못합니다. 다음 차례에 도시를 세웁니다.',
-              onDiscard: (discardTileId) => dispatch({ type: 'wasteland', discardTileId }),
+              onDiscard: (discardTileIds) => dispatch({ type: 'wasteland', discardTileIds }),
             }
           : undefined
       }

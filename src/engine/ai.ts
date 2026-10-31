@@ -48,6 +48,9 @@ export const AI_TUNE = {
   explorerChase: true,
   /** 정책 갈아타기: 피라미드(→자유)·과학이론(→합리주의)으로 정책이 바뀌기 직전에 정책 기술을 열어 전통(문화 2)을 고른다 */
   policyGambit: true,
+  /** 불모지 탈출: 시작 패에서 점수가 이 값 이하인 타일(식량 1 이하 등)이 wastelandMinBad장 이상이면 그 타일을 모두 바꾼다 (0이면 쓰지 않는다) */
+  wastelandScore: 1.6,
+  wastelandMinBad: 2,
   /** 갈아타기 중 피라미드(→자유) 쪽 */
   gambitPyramids: true,
   /** 갈아타기 중 과학이론(→합리주의) 쪽 */
@@ -91,6 +94,15 @@ function tileScore(p: Player, card: TileCard): number {
   const y = tileYield(card, ctxOf(p))
   const w = yieldWeights(p)
   return y.food * w.food + y.hammer * w.hammer + y.science * w.science + y.gold * w.gold
+}
+
+/** 불모지 탈출 (첫 차례에 한 번): 나쁜 타일이 여럿이면 한 차례를 쉬더라도 나쁜 타일을 모두 바꾼다 */
+function wastelandCandidates(s: GameState, p: Player): Action[] {
+  // 엘도라도로 타일을 더 받은 시작 패는 이미 넉넉하다. 자연경관은 버리지 않는다
+  if (s.round !== 1 || p.wastelandPending || AI_TUNE.wastelandScore <= 0 || p.hand.length > 4 + civById(p.civId).startCulture || p.hand.some((c) => c.wonder)) return []
+  const bad = p.hand.filter((c) => !c.wonder && tileScore(p, c) <= AI_TUNE.wastelandScore).sort((a, b) => tileScore(p, a) - tileScore(p, b))
+  if (bad.length < AI_TUNE.wastelandMinBad) return []
+  return [{ type: 'wasteland', discardTileIds: bad.map((c) => c.id) }]
 }
 
 function foundAction(p: Player, hand: TileCard[]): Action {
@@ -1399,7 +1411,7 @@ export function aiCandidates(s: GameState): Action[] {
   plan = p.cities.length ? lateGame(p, s) : null
   switch (s.phase) {
     case 'setup':
-      return [foundAction(p, p.hand)]
+      return [...wastelandCandidates(s, p), foundAction(p, p.hand)]
     case 'place': {
       const baseScience = civById(p.civId).bonus.science ?? 0
       defending = armyOf(p) < defenseTarget(s, p) || underAttack(s, p)

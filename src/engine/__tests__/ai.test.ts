@@ -718,6 +718,24 @@ describe('AI 전쟁 판단 (승률 추정·쏠림 방지·수비·실질 위협�
   })
 })
 
+describe('AI 불모지 탈출', () => {
+  it('시작 패에 나쁜 타일(산·설원 등)이 2장 이상이면 가장 나쁜 2장을 바꾸고, 1장이면 그냥 도시를 세운다', () => {
+    const s = createGame({ seed: 3, civIds: ['korea', 'egypt'] })
+    const p = s.players[actorOf(s)]
+    const ids = p.hand.map((c) => c.id)
+    p.hand = [
+      { id: ids[0], terrains: ['평지'] },
+      { id: ids[1], terrains: ['산'] },
+      { id: ids[2], terrains: ['숲'] },
+      { id: ids[3], terrains: ['설원'] },
+    ]
+    p.startClaim = undefined
+    expect(aiCandidates(s)[0]).toEqual({ type: 'wasteland', discardTileIds: expect.arrayContaining([ids[1], ids[3]]) })
+    p.hand[3] = { id: ids[3], terrains: ['언덕'] }
+    expect(aiCandidates(s)[0].type).toBe('buildCity')
+  })
+})
+
 describe('AI 전투: 줄루의 임피 + 폭격기', () => {
   /** 0번 줄루가 1번에게 건 일반 선전포고의 배치 단계 */
   const setup = (mine: string[], theirs: string[]) => {
