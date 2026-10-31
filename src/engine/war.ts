@@ -122,12 +122,10 @@ export function declareWar(
 
 const instOf = (p: Player, uid: number): CardInst | undefined => p.military.find((c) => c.uid === uid)
 
-/** 전투에 낼 수 있는 카드인지: 원자폭탄 제외, 해안 전용 카드는 해안 타일 전투에서만, 줄루는 자기 원래 영토 전투에서 임피 불가. */
-export function usableInBattle(s: GameState, b: BattleState, p: Player, c: CardInst): boolean {
+/** 전투에 낼 수 있는 카드인지: 원자폭탄 제외, 해안 전용 카드는 해안 타일 전투에서만 (줄루의 옛 임피 제한은 카드 수정으로 없어졌다). */
+export function usableInBattle(_s: GameState, b: BattleState, _p: Player, c: CardInst): boolean {
   if (cardById(c.defId).notBattle || cardStats(c).hp === undefined) return false
   if (isCoastalOnly(c) && !b.coastal) return false
-  const tileOwner = b.decl.kind === 'retake' ? b.decl.attackerId : b.decl.defenderId
-  if (c.unique === '임피' && s.players[tileOwner].civId === 'zulu' && p.civId === 'zulu') return false
   return true
 }
 

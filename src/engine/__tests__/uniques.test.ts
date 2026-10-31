@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { apply, cardById, cardStats, CIVS, culture, dirsKey, grantCard, holdLimit, producible, heldCount, TECHS, UNIQUES } from '..'
+import { apply, cardById, cardStats, CIVS, createGame, culture, dirsKey, grantCard, holdLimit, producible, heldCount, TECHS, UNIQUES, usableInBattle } from '..'
 import type { CardInst, GameState, TileCard } from '..'
 import { found, play, startGame, tile } from './helpers'
 
@@ -289,6 +289,17 @@ describe('고유 유닛 전투 효과', () => {
     }
     expect(run(true)).toBe(true)
     expect(run(false)).toBe(false) // 전차가 전사(체력 3)를 공격해 파괴
+  })
+
+  it('임피: 줄루가 자기 원래 영토를 지키거나 되찾는 전투에서도 쓸 수 있다 (옛 제한은 카드 수정으로 없어짐)', () => {
+    const s = structuredClone(createGame({ seed: 1, civIds: ['korea', 'zulu'] }))
+    const zulu = s.players[1]
+    const impi = { uid: s.nextUid++, defId: 'pikeman', unique: '임피', dirs: ['C' as const] }
+    zulu.military.push(impi)
+    const decl = (kind: 'normal' | 'retake', attackerId: number, defenderId: number) =>
+      ({ decl: { attackerId, defenderId, cityId: 0, tileId: -1, kind }, slots: { 0: null, 1: null }, chooseQueue: [], picks: {}, step: 'arrange' as const, coastal: false })
+    expect(usableInBattle(s, decl('normal', 0, 1), zulu, impi)).toBe(true) // 줄루 땅을 지킬 때
+    expect(usableInBattle(s, decl('retake', 1, 0), zulu, impi)).toBe(true) // 줄루가 되찾을 때
   })
 
   it('스키 보병: 툰드라·설원·언덕 타일을 대상으로 전투할 때 전투력 +2, 체력 +2', () => {

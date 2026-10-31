@@ -389,6 +389,7 @@
   "happiness": 3,
   "bonus": {},
   "startCulture": 1,
+  "startGenerals": 1,
   "ability": "고유 유닛 2장",
   "unique": "장갑보병 (창병), 헤타이로이 (기마병)",
   "uniques": [
@@ -740,6 +741,7 @@
    "gold": 2
   },
   "startCulture": 0,
+  "startGenerals": 1,
   "ability": "없음",
   "unique": "광전사 (장검사), 스키 보병 (소총병)",
   "uniques": [
@@ -795,7 +797,7 @@
   "bonus": {},
   "startCulture": 0,
   "startGenerals": 1,
-  "ability": "'전제정치' 정책을 고를 때마다 위대한 장군 1개 더 · 자기 원래 영토가 대상인 전투에서는 임피 사용 불가",
+  "ability": "'전제정치' 정책을 고를 때마다 위대한 장군 1개 더",
   "unique": "임피 (파이크병)",
   "uniques": [
    {
