@@ -68,7 +68,7 @@ export function choosePolicy(
       break
     }
     case 'liberty':
-      if (p.civId === 'china') gainGeneral(s, p, 1) // 중국: 자유를 고를 때마다 장군 1개
+      if (p.civId === 'china') gainCulture(s, p, 1) // 중국: 자유를 고를 때마다 문화 1
       break
     case 'diplomacy': // 시행 중 행복 +2 (yields.happiness)
     case 'rationalism':
