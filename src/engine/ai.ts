@@ -42,6 +42,8 @@ export const AI_TUNE = {
   raidOffense: true,
   /** 해안 견제: 군대를 최소로만 만든다 (끄면 다른 문명처럼 남는 망치로 군사 카드를 만든다) */
   raidLeanArmy: true,
+  /** 탐험형(식량 보너스가 없는 문명 중 EXPLORERS): 첫 정책은 전통, 나침반→신학을 서두르고, 매 차례 정찰해 식량 좋은 타일을 맡아 둔다 */
+  explorer: false,
 }
 
 const weight = (y: { food: number; hammer: number; science: number; gold: number }) =>
@@ -393,6 +395,12 @@ const rushingCulture = (_p: Player): boolean => plan === 'culture'
 
 /** 번성형 기술 순서: 나침반 → 과학·식량 산출을 키우는 기술과 행복(일꾼 상한) 기술 → 인쇄기술(두 번째 도시) → 나머지는 싼 것부터 넓게 */
 const COMPASS_CHAIN = new Set(['sailing', 'optics', 'compass'])
+/**
+ * 탐험형 문명: 시작 식량 보너스가 없어 성장이 늦으므로, 전통으로 문화를 당겨 받고 나침반→신학을 빨리 열어
+ * 매 차례 정찰로 식량이 좋은 타일을 골라 맡아 둔다 (나쁜 타일은 맡았다가 바로 돌려보내 일꾼을 그 차례에 그대로 쓴다).
+ */
+const EXPLORERS = new Set(['england'])
+const isExplorer = (p: Player): boolean => AI_TUNE.explorer && EXPLORERS.has(p.civId) && !civById(p.civId).bonus.food
 /** 해금 기술이 산출을 올려 주는 자원 (자원 카드에 적힌 boosts 기준) */
 function boostTechValue(p: Player, techId: string): number {
   let v = 0
@@ -416,6 +424,7 @@ function buildPriority(p: Player, t: TechDef): number {
   // 망치를 쓸 곳이 없으면 군사 카드를 여는 비용 0 기술(농업·궁술·청동기술·목축업)을 나침반보다 먼저 연다
   if (idleHammers && t.cost === 0 && unlocksCard(t.id)) return 350
   if (p.techs.includes('compass') === false && COMPASS_CHAIN.has(t.id)) return 300
+  if (isExplorer(p) && t.id === 'theology') return 290
   let v = boostTechValue(p, t.id)
   const mountainFirstCity = !!p.cities[0]?.tiles.some((x) => (x.role === 'city' || x.role === 'side') && x.card.terrains.includes('산'))
   if (t.id === 'writing') v += 90 // 식량을 과학으로 바꿀 수 있다
@@ -767,6 +776,7 @@ function policyOrder(s: GameState, p: Player): Policy[] {
   // 맨 처음 고르는 정책은 전통 아니면 미학으로 고정한다: 당장 남는 식량(식량 − 일꾼)이 없으면 미학, 있으면 전통.
   if ((p.policyPicks ?? 0) === 0) {
     aiDebug.policyReason = '첫 정책'
+    if (isExplorer(p)) return ['tradition', 'aesthetics', ...POLICY_PREFERENCE]
     return food - totalWorkers(p) > 0 ? ['tradition', 'aesthetics', ...POLICY_PREFERENCE] : ['aesthetics', 'tradition', ...POLICY_PREFERENCE]
   }
   // 평등 한 번으로 관광이 상대의 문화를 넘어 탈락시킬 수 있으면 (아폴로 질주 중이어도) 평등
@@ -884,13 +894,24 @@ function holdValue(p: Player, card: TileCard): number {
   if (r?.luxuryTech && !owned.has(card.resource!)) v += 8
   if (card.resource === 'aluminum') v += 6
   if (card.wonder && (WONDERS[card.wonder].happinessOnClaim ?? 0) > 0) v += 9
+  // 탐험형은 식량이 많은 타일(성장 발판)을 더 쳐 준다
+  if (isExplorer(p)) v += 2 * tileYield(card, ctxOf(p)).food
   return v + tileScore(p, card) * 0.5
 }
 const HOLD_THRESHOLD = 7
+/** 탐험형이 맡아둔 타일을 붙들고 있는 최대 라운드 */
+const EXPLORER_HOLD = 2
 
 /** 정찰은 3라운드에 한 번만 (일꾼 1개가 그 차례 쉬므로) */
 function scoutCandidates(s: GameState, p: Player): Action[] {
   if (aiStyle === 'hammer' || !p.techs.includes('compass') || rushingApollo(p) || rushingCulture(p)) return []
+  if (isExplorer(p)) {
+    // 탐험형: 이번 차례에 정찰한 카드는 바로 맡아 보고, 좋지 않으면 그 자리에서 돌려보내 일꾼을 되찾는다
+    if (p.scouted) return [{ type: 'holdScouted' }]
+    // 맡아둔 지 오래돼도(EXPLORER_HOLD 라운드) 문화가 들어오지 않으면 일꾼이 묶여 있으니 돌려보내고 새로 정찰한다
+    if (p.held) return holdValue(p, p.held) < HOLD_THRESHOLD || s.round - (p.scoutedRound ?? s.round) >= EXPLORER_HOLD ? [{ type: 'releaseHeld' }] : []
+    return p.scoutedRound === s.round ? [] : [{ type: 'scout' }]
+  }
   if (p.held || p.scouting || p.scouted || totalWorkers(p) < 4 || s.round % 3 !== 0) return []
   return [{ type: 'scout' }]
 }
