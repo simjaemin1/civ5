@@ -595,6 +595,59 @@ describe('AI 전쟁 판단 (승률 추정·쏠림 방지·수비·실질 위협�
     })
   })
 
+  describe('정책 갈아타기 (전통 → 피라미드의 자유·과학이론의 합리주의)', () => {
+    /** 0번이 연구 단계: 철학(정책 기술)과 다른 싼 기술을 열 수 있고, 피라미드를 지을 수 있다 */
+    const atResearch = (prog: number) => {
+      const s = atPhase('research', ['korea', 'egypt', 'china'])
+      const p = s.players[0]
+      for (const t of ['archery', 'mathematics', 'masonry', 'construction', 'writing']) if (!p.techs.includes(t)) p.techs.push(t)
+      for (const t of ['philosophy', 'theology', 'engineering', 'currency']) p.techs = p.techs.filter((x) => x !== t)
+      for (const o of s.players.slice(1)) o.techs = o.techs.filter((x) => x !== 'construction') // 피라미드 경쟁자 없음
+      s.wonderProgress = { pyramids: { 0: prog } }
+      p.policy = 'aesthetics'
+      p.turn!.yields.science = 1
+      for (const y of p.turn!.yields.cities) y.hammer = 8
+      return s
+    }
+    const researched = (s: GameState) => aiCandidates(s).flatMap((a) => (a.type === 'research' ? [a.techId] : []))
+
+    it('피라미드를 가져갈 문명은 완성이 확실해질 때까지 정책 기술(철학)을 열지 않는다', () => {
+      const s = atResearch(1)
+      expect(researched(s)).not.toContain('philosophy')
+      expect(withTune({ policyGambit: false }, () => researched(s))).toContain('philosophy')
+    })
+
+    it('피라미드 완성이 확실한 차례에는 정책 기술을 먼저 열고 전통을 고른다', () => {
+      let s = atResearch(2)
+      expect(researched(s)[0]).toBe('philosophy')
+      s = apply(s, { type: 'research', techId: 'philosophy' })
+      for (const y of s.players[0].turn!.yields.cities) y.hammer = 8 // 연구 뒤 산출을 다시 계산하므로 망치를 다시 맞춘다
+      expect(aiCandidates(s).find((a) => a.type === 'choosePolicy')).toMatchObject({ policy: 'tradition' })
+    })
+
+    it('전통일 때 과학이론의 합리주의 제안은 받아들인다', () => {
+      const s = atPhase('research', ['korea', 'egypt'])
+      const p = s.players[0]
+      p.policy = 'tradition'
+      p.policyOffer = 'rationalism'
+      expect(aiCandidates(s).find((a) => a.type === 'policyOffer')).toEqual({ type: 'policyOffer', accept: true })
+    })
+
+    it('이미 자유면 피라미드에 투자하지 않는다 (상대의 완성을 막을 때만)', () => {
+      const s = atPhase('produce', ['korea', 'egypt'])
+      const p = s.players[0]
+      for (const t of ['masonry', 'construction']) if (!p.techs.includes(t)) p.techs.push(t)
+      give(s, 0, 'rifleman', 4)
+      p.turn!.produced = []
+      for (const y of p.turn!.yields.cities) y.hammer = 8
+      const invests = () => aiCandidates(s).flatMap((a) => (a.type === 'invest' ? [a.wonderId] : []))
+      p.policy = 'aesthetics'
+      expect(invests()).toContain('pyramids')
+      p.policy = 'liberty'
+      expect(invests()).not.toContain('pyramids')
+    })
+  })
+
   describe('해안 견제 (영국): 해안·석유 타일만 노리고, 점령하면 계속 막고, 성장을 해치지 않는다', () => {
     const firstTarget = (s: GameState) => aiCandidates(s).find((a) => a.type === 'declareWar')
     it('해안·석유 타일만 노린다 (더 좋은 언덕이 있어도)', () => {
