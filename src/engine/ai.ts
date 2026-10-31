@@ -6,7 +6,7 @@ import type { TechDef, WonderCardDef } from './data'
 import { apply, researchableTechs } from './game'
 import { canHammerScience, computeYields, ctxOf, culture, happiness, rationalismScience, tileYield, totalWorkers, tourism } from './yields'
 import { conditionMet, investableWonders, minHammers } from './wonders'
-import { cardCost, heldCount, holdLimit, producible, uniqueOf, upgradeTargets } from './military'
+import { cardCost, heldCount, holdLimit, isObsolete, producible, uniqueOf, upgradeTargets } from './military'
 import { declarationTargets, findTile, occupiedTiles } from './war'
 import { battleActions, battleOdds } from './aiBattle'
 import { currentPlayer, defaultTileCity } from './core'
@@ -585,6 +585,84 @@ function harassRecalls(s: GameState, p: Player): Action[] {
   return [{ type: 'recallGeneral', ...pick.t }]
 }
 
+// ───── 해안 견제 (영국) ─────
+// 영국은 해안 타일 전투에서 공격 전투력 +1을 받는다. 그래서 상대의 해안·석유 타일만 노리고, 한 번 점령하면 계속 막는다.
+// 선전포고에는 일꾼이 하나 들므로, 칠 곳이 있고 그 일꾼을 빼도 성장이 멈추지 않을 때만 일꾼을 남긴다.
+const COASTAL_RAIDERS = new Set(['england'])
+const isCoastalRaider = (p: Player): boolean => COASTAL_RAIDERS.has(p.civId)
+/** 해안 견제가 노리는 타일: 해안 또는 석유 */
+function raidTile(s: GameState, ownerId: number, cityId: number, tileId: number): boolean {
+  const card = findTile(s.players[ownerId], cityId, tileId)?.tile.card
+  return !!card && (card.terrains.includes('해안') || card.resource === 'oil')
+}
+/** 살아 있는 문명의 위협도 순위 (0이 1등) */
+function threatRank(s: GameState, id: number): number {
+  const alive = s.players.filter((q) => !q.eliminated).map((q) => ({ id: q.id, v: threat(s, q) }))
+  alive.sort((a, b) => b.v - a.v || a.id - b.id)
+  return alive.findIndex((x) => x.id === id)
+}
+/** 해안 견제의 선전포고 점수: 탈환 > 해안·석유 타일 (위협도가 높은 상대일수록 앞). 그 밖의 타일과 도시는 노리지 않는다 */
+function raidRate(s: GameState, _p: Player, t: ReturnType<typeof declarationTargets>[number]): number {
+  if (t.kind === 'retake') return 1000
+  if (t.kind === 'city' || !raidTile(s, t.defenderId, t.cityId, t.tileId)) return -1
+  return raidValue(s, t.defenderId, t.cityId, t.tileId)
+}
+/** 해안 견제가 보는 상대 타일의 가치: 중요도에 상대의 위협도 순위를 더한다 (1등의 타일일수록 크다) */
+function raidValue(s: GameState, ownerId: number, cityId: number, tileId: number): number {
+  const alive = s.players.filter((o) => !o.eliminated).length
+  return tileImportance(s, ownerId, cityId, tileId) + 4 * (alive - 1 - threatRank(s, ownerId))
+}
+/** 지금 이길 가망이 있는 해안·석유 목표가 있는지 (일꾼을 남길지 정할 때 본다) */
+function raidReady(s: GameState, p: Player): boolean {
+  if (armyOf(p) < 2 || p.generals - p.generalWorkers < 1) return false
+  const targets = declarationTargets(s, p)
+    .filter((t) => t.kind === 'normal' && raidRate(s, p, t) >= 0)
+    .sort((a, b) => raidRate(s, p, b) - raidRate(s, p, a))
+  return targets.slice(0, 2).some((t) => battleOdds(s, p, t) >= ODDS_NEEDED.normal)
+}
+/** 일꾼 하나를 빼면 성장(식량 일꾼×2)이 멈추거나 일꾼을 잃는 도시가 생기는지 */
+function reserveHurtsGrowth(p: Player): boolean {
+  const cap = happiness(p)
+  const fate = (reserve: number): number[] => {
+    const q = structuredClone(p)
+    for (const c of q.cities) c.placed = []
+    for (const x of placements(p, reserve)) q.cities.find((c) => c.id === x.cityId)!.placed.push(x.tileId)
+    const y = computeYields(q)
+    return q.cities.map((c) => {
+      const food = y.cities.find((v) => v.cityId === c.id)!.food
+      return food < c.workers ? -1 : food >= c.workers * 2 && totalWorkers(q) < cap ? 1 : 0
+    })
+  }
+  const full = fate(0)
+  const kept = fate(1)
+  return kept.some((v, i) => v < full[i])
+}
+/** 해안 견제가 선전포고용 일꾼을 남길지: 전제정치면 일꾼이 들지 않으므로 남기지 않는다 */
+function raidReserve(s: GameState, p: Player): number {
+  if (p.policy === 'despotism') return 0
+  return raidReady(s, p) && !reserveHurtsGrowth(p) ? 1 : 0
+}
+/**
+ * 해안 견제의 장군 옮기기: 점령한 해안·석유 타일은 계속 막는다. 쓸 장군이 없을 때 장군 하나를 옮기는 경우는 둘뿐이다.
+ * 1) 순위가 크게 바뀌었다: 점령 중인 상대가 꼴찌(위협도 최하위)로 떨어졌다.
+ * 2) 상대가 새 해안·석유 타일을 얻었다 (아직 아무도 막지 않은 해안·석유 타일이 생겼다).
+ * 옮길 곳이 이길 가망이 없거나 지금 점령보다 못하면 옮기지 않는다 (worthRecall).
+ */
+function raidRecalls(s: GameState, p: Player): Action[] {
+  if (p.generals - p.generalWorkers >= 1) return []
+  const occ = occupiedTiles(s, p)
+  if (!occ.length) return []
+  // 아직 아무도 막지 않은 상대의 해안·석유 타일 (장군이 없으면 선전포고 대상이 비므로 영토를 직접 본다)
+  const open = s.players.some((o) => o.id !== p.id && !o.eliminated && o.cities.some((c) => c.tiles.some((t) => t.role !== 'city' && t.occupiedBy === undefined && raidTile(s, o.id, c.id, t.card.id))))
+  if (!open) return []
+  const last = s.players.filter((q) => !q.eliminated).length - 1
+  const fallen = occ.filter((t) => threatRank(s, t.defenderId) === last)
+  const pool = fallen.length ? fallen : occ
+  return [...pool]
+    .sort((a, b) => raidValue(s, a.defenderId, a.cityId, a.tileId) - raidValue(s, b.defenderId, b.cityId, b.tileId))
+    .map((t) => ({ type: 'recallGeneral' as const, defenderId: t.defenderId, cityId: t.cityId, tileId: t.tileId }))
+}
+
 /** 이웃이 군사를 가졌으면 그만큼(최대 4장, 최소 2장) 수비 군사를 갖춰야 한다 */
 /** 이번 라운드에 나를 노린 선전포고가 있다 */
 const underAttack = (s: GameState, p: Player): boolean => s.declarations.some((d) => d.defenderId === p.id)
@@ -899,7 +977,7 @@ function wonderBids(s: GameState, p: Player, wonders: WonderCardDef[], h: number
  * 견제형 문명은 점령을 오래 들고 있고, 1등이 바뀌었거나 상대가 훨씬 좋은 타일을 얻었을 때만 장군을 옮긴다 (harassRecalls).
  */
 function recallCandidates(s: GameState, p: Player): Action[] {
-  const raw = isHarasser(s, p) ? harassRecalls(s, p) : plainRecalls(s, p)
+  const raw = isCoastalRaider(p) ? raidRecalls(s, p) : isHarasser(s, p) ? harassRecalls(s, p) : plainRecalls(s, p)
   // 불러들인 장군으로 정말 더 나은 곳을 치는지 미리 본다: 방금 푼 타일을 다시 치거나 더 못한 타일로 가면 점령을 그대로 둔다
   // (같은 타일을 풀었다 다시 치면 일꾼만 쓰고 질 위험만 진다). 승률 추정이 비싸 앞의 둘만 본다
   for (const a of raw.slice(0, 2)) if (a.type === 'recallGeneral' && worthRecall(s, p, a)) return [a]
@@ -922,7 +1000,7 @@ function plainRecalls(s: GameState, p: Player): Action[] {
 
 /** 불러들인 뒤 이번 차례에 칠 곳이 푼 타일과 다르고, 탈환·도시 공격이거나 푼 타일보다 중요한 타일이어야 불러들인다 */
 function worthRecall(s: GameState, p: Player, a: { defenderId: number; cityId: number; tileId: number }): boolean {
-  const value = isHarasser(s, p) ? harassValue : tileImportance
+  const value = isCoastalRaider(p) ? raidValue : isHarasser(s, p) ? harassValue : tileImportance
   const released = value(s, a.defenderId, a.cityId, a.tileId)
   let after: GameState
   try {
@@ -978,9 +1056,19 @@ function produceCandidates(s: GameState, p: Player): Action[] {
     if (facesImpi(s, p)) cardActions.sort((x, y) => Number(isInfantryAction(y)) - Number(isInfantryAction(x)))
     // 임피를 든 줄루는 폭격기를 먼저 만든다: 임피가 상대 대공포의 '폭격기 대미지 0'과 전투기 효과를 없애 폭격기가 마음껏 친다
     if (holdsImpi(p)) cardActions.sort((x, y) => Number(isBomberAction(y)) - Number(isBomberAction(x)))
+    // 해안 견제(영국)는 쓸모없는 군대를 늘리지 않는다: 군대가 2장 미만이거나 수비가 모자랄 때만 만들고,
+    // 장궁병을 만들 수 있는 동안(중반)은 장궁병만 만든다. 나머지 망치는 불가사의 경쟁에 쓴다
+    const raider = isCoastalRaider(p)
+    if (raider) {
+      const wanted = army < 2 || needDefense
+      const longbowEra = p.techs.includes('machinery') && !isObsolete(p, cardById('crossbowman'))
+      const keep = !wanted ? [] : longbowEra ? cardActions.filter((a) => a.type === 'produce' && a.unique) : cardActions
+      cardActions.splice(0, cardActions.length, ...keep)
+    }
     // 완성 직전인 상대를 동률로 막는 투자가 가장 먼저, 뒤 문명이 넘길 수 있는 투자는 군사 카드 뒤로
     out.push(...spoilActions)
-    out.push(...(army < 3 || needDefense || rush || aiStyle === 'hammer' ? [...cardActions, ...wonderActions] : [...wonderActions, ...cardActions]))
+    const cardsFirst = raider ? needDefense || army < 2 : army < 3 || needDefense || rush || aiStyle === 'hammer'
+    out.push(...(cardsFirst ? [...cardActions, ...wonderActions] : [...wonderActions, ...cardActions]))
     out.push(...riskyActions)
   }
   // 3) 금으로 승급 (가장 높은 단계부터 시도한다)
@@ -1095,7 +1183,11 @@ function declareCandidates(s: GameState, p: Player): Action[] {
         return tileImportance(s, t.defenderId, t.cityId, t.tileId) + (side ? 8 : 0)
       }
     }
-    if (isWarlord(p)) {
+    if (isCoastalRaider(p)) {
+      // 해안 견제(영국): 1등을 가리지 않고 상대의 해안·석유 타일만 노린다 (위협도가 높은 상대가 앞). 도시는 치지 않는다
+      aim = null
+      rate = (t) => raidRate(s, p, t)
+    } else if (isWarlord(p)) {
       // 한 상대에 집중한다: 도시를 칠 수 있으면 도시(탈락), 아니면 그 도시의 4칸 → 좋은 타일 순으로 선점령
       aim = warlordVictim(s, p)
       // 힘이 앞서지 않으면 장군만 낭비하므로 선전포고하지 않고 군대를 더 키운다 (탈환은 언제든)
@@ -1171,7 +1263,7 @@ export function aiCandidates(s: GameState): Action[] {
       const baseScience = civById(p.civId).bonus.science ?? 0
       defending = armyOf(p) < defenseTarget(s, p) || underAttack(s, p)
       starving = baseScience < Math.min(...researchableTechs(s).map((t) => t.cost), 99)
-      const reserve = p.generals > 0 && p.military.length >= 2 ? 1 : 0
+      const reserve = isCoastalRaider(p) ? raidReserve(s, p) : p.generals > 0 && p.military.length >= 2 ? 1 : 0
       const planned = plannedPlacements(s, p, reserve)
       return [
         ...recallCandidates(s, p),

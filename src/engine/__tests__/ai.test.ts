@@ -594,6 +594,72 @@ describe('AI 전쟁 판단 (승률 추정·쏠림 방지·수비·실질 위협�
       expect(recalls(s)).toEqual([])
     })
   })
+
+  describe('해안 견제 (영국): 해안·석유 타일만 노리고, 점령하면 계속 막고, 성장을 해치지 않는다', () => {
+    const firstTarget = (s: GameState) => aiCandidates(s).find((a) => a.type === 'declareWar')
+    it('해안·석유 타일만 노린다 (더 좋은 언덕이 있어도)', () => {
+      const s = atPhase('declare', ['england', 'egypt'])
+      s.players[0].generals = 1
+      give(s, 0, 'rifleman', 4)
+      give(s, 1, 'warrior', 1)
+      flatten(s, 1)
+      addExtra(s, 1, { terrains: ['언덕'], resource: 'iron' })
+      expect(firstTarget(s)).toBeUndefined()
+      const coast = addExtra(s, 1, { terrains: ['해안'] })
+      expect(firstTarget(s)).toMatchObject({ defenderId: 1, tileId: coast.card.id })
+      const oil = addExtra(s, 1, { terrains: ['사막'], resource: 'oil' })
+      expect([coast.card.id, oil.card.id]).toContain(firstTarget(s)!.tileId)
+    })
+
+    it('칠 해안·석유 타일이 없으면 선전포고용 일꾼을 남기지 않는다', () => {
+      const s = atPhase('place', ['england', 'egypt'])
+      const p = s.players[0]
+      p.generals = 1
+      give(s, 0, 'rifleman', 4)
+      give(s, 1, 'warrior', 1)
+      flatten(s, 1)
+      // 일꾼보다 타일이 많게 (남긴 일꾼이 놀던 일꾼이 아니게), 식량이 넉넉하게, 일꾼은 행복 상한까지
+      for (let i = 0; i < 4; i++) addExtra(s, 0, { terrains: ['평지'] })
+      flatten(s, 0)
+      while (totalWorkers(p) < happiness(p)) p.cities[0].workers++
+      const placedCount = () => (aiCandidates(s).find((a) => a.type === 'placeWorkers') as { placements: unknown[] }).placements.length
+      expect(placedCount()).toBe(totalWorkers(p))
+      // 칠 해안 타일이 생기고, 일꾼 하나를 빼도 성장에 상관없으면 하나를 남긴다
+      addExtra(s, 1, { terrains: ['해안'] })
+      expect(placedCount()).toBe(totalWorkers(p) - 1)
+    })
+
+    it('점령한 해안 타일은 계속 막고, 상대가 새 해안 타일을 얻으면 장군을 옮긴다', () => {
+      const s = atPhase('place', ['england', 'egypt'])
+      s.players[0].generals = 0
+      s.players[0].returningGenerals = 0
+      give(s, 0, 'rifleman', 4)
+      give(s, 1, 'warrior', 1)
+      flatten(s, 1)
+      const held = addExtra(s, 1, { terrains: ['해안'] }, 0)
+      // 더 좋은 언덕(해안 아님)이 있어도 옮기지 않는다
+      addExtra(s, 1, { terrains: ['언덕'], resource: 'iron' })
+      expect(recalls(s)).toEqual([])
+      addExtra(s, 1, { terrains: ['해안'], resource: 'pearls' })
+      expect(recalls(s)).toEqual([expect.objectContaining({ defenderId: 1, tileId: held.card.id })])
+    })
+
+    it('군대가 충분하면 군사 카드를 더 만들지 않고, 수비가 필요하면 중반에는 장궁병만 만든다', () => {
+      const s = atPhase('produce', ['england', 'egypt'])
+      const p = s.players[0]
+      if (!p.techs.includes('machinery')) p.techs.push('machinery')
+      if (!p.techs.includes('archery')) p.techs.push('archery')
+      give(s, 0, 'warrior', 2)
+      give(s, 1, 'warrior', 1)
+      p.turn!.produced = []
+      for (const y of p.turn!.yields.cities) y.hammer = 12
+      const produces = () => aiCandidates(s).flatMap((a) => (a.type === 'produce' ? [a] : []))
+      expect(produces()).toEqual([])
+      s.declarations = [declOn(s, 1, 0)]
+      expect(produces().length).toBeGreaterThan(0)
+      expect(produces().every((a) => a.unique === '장궁병')).toBe(true)
+    })
+  })
 })
 
 describe('AI 전투: 줄루의 임피 + 폭격기', () => {
