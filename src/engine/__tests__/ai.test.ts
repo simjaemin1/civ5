@@ -700,7 +700,7 @@ describe('AI 전쟁 판단 (승률 추정·쏠림 방지·수비·실질 위협�
       expect(recalls(s)).toEqual([expect.objectContaining({ defenderId: 1, tileId: held.card.id })])
     })
 
-    it('군대가 충분하면 군사 카드를 더 만들지 않고, 수비가 필요하면 중반에는 장궁병만 만든다', () => {
+    it('(군대 최소화를 켜면) 군대가 충분하면 군사 카드를 더 만들지 않고, 수비가 필요하면 중반에는 장궁병만 만든다', () => {
       const s = atPhase('produce', ['england', 'egypt'])
       const p = s.players[0]
       if (!p.techs.includes('machinery')) p.techs.push('machinery')
@@ -709,7 +709,7 @@ describe('AI 전쟁 판단 (승률 추정·쏠림 방지·수비·실질 위협�
       give(s, 1, 'warrior', 1)
       p.turn!.produced = []
       for (const y of p.turn!.yields.cities) y.hammer = 12
-      const produces = () => aiCandidates(s).flatMap((a) => (a.type === 'produce' ? [a] : []))
+      const produces = () => withTune({ raidLeanArmy: true }, () => aiCandidates(s).flatMap((a) => (a.type === 'produce' ? [a] : [])))
       expect(produces()).toEqual([])
       s.declarations = [declOn(s, 1, 0)]
       expect(produces().length).toBeGreaterThan(0)
