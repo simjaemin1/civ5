@@ -34,6 +34,8 @@ export const AI_TUNE = {
   harassMargin: 3,
   /** 견제형(고유 유닛을 든 문명 등)이 노리는 상대 타일의 망치 1당 가산점: 상대의 고생산 타일을 점령해 군사·불가사의 생산을 누른다 */
   harassHammer: 6,
+  /** 견제형이 셋 이상인 판에서 1등 도시 사면에 주는 가산점: 망치 2 타일(+12)보다 크게 해서 사면을 먼저 함께 채운다 */
+  harassSide: 14,
 }
 
 const weight = (y: { food: number; hammer: number; science: number; gold: number }) =>
@@ -1108,7 +1110,7 @@ function declareCandidates(s: GameState, p: Player): Action[] {
         if (t.kind === 'city') return hasSiege(p) ? 500 : -1
         const o = s.players[t.defenderId]
         const side = coalition && t.cityId === conquestCity(o).id && findTile(o, t.cityId, t.tileId)?.tile.role === 'side'
-        return harassValue(s, t.defenderId, t.cityId, t.tileId) + (side ? 8 : 0)
+        return harassValue(s, t.defenderId, t.cityId, t.tileId) + (side ? AI_TUNE.harassSide : 0)
       }
     }
     const targets = declarationTargets(s, p)
