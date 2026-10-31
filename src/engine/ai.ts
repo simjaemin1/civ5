@@ -830,6 +830,9 @@ function foundSecond(hand: TileCard[]): Action {
 const isInfantryAction = (a: Action): boolean => a.type === 'produce' && !a.unique && cardById(a.defId).line === 'infantry'
 const facesImpi = (s: GameState, p: Player): boolean => s.players.some((o) => o.id !== p.id && !o.eliminated && o.civId === 'zulu')
 const isSiegeAction = (a: Action): boolean => a.type === 'produce' && (cardById(a.defId).line === 'siege' || a.unique === '공성추')
+/** 임피(줄루)를 들고 있다: 임피가 상대 대공포·전투기의 효과를 없애므로 폭격기와 섞어 쓴다 */
+const holdsImpi = (p: Player): boolean => p.military.some((c) => cardStats(c).effect === 'impi')
+const isBomberAction = (a: Action): boolean => a.type === 'produce' && a.defId === 'bomber'
 
 /**
  * 한 도시가 낼 수 있는 망치의 상한 (공개 정보만: 영토 타일 산출, 도시별 일꾼 수, 문명 보너스).
@@ -973,6 +976,8 @@ function produceCandidates(s: GameState, p: Player): Action[] {
     if ((warRush || joinSiege) && !hasSiege(p)) cardActions.sort((x, y) => Number(isSiegeAction(y)) - Number(isSiegeAction(x)))
     // 줄루의 임피는 상대 카드의 효과 칸 공격과 효과(원거리의 반격 없음 등)를 없애므로, 줄루가 상대면 마크로만 싸우는 보병 계열을 먼저 만든다
     if (facesImpi(s, p)) cardActions.sort((x, y) => Number(isInfantryAction(y)) - Number(isInfantryAction(x)))
+    // 임피를 든 줄루는 폭격기를 먼저 만든다: 임피가 상대 대공포의 '폭격기 대미지 0'과 전투기 효과를 없애 폭격기가 마음껏 친다
+    if (holdsImpi(p)) cardActions.sort((x, y) => Number(isBomberAction(y)) - Number(isBomberAction(x)))
     // 완성 직전인 상대를 동률로 막는 투자가 가장 먼저, 뒤 문명이 넘길 수 있는 투자는 군사 카드 뒤로
     out.push(...spoilActions)
     out.push(...(army < 3 || needDefense || rush || aiStyle === 'hammer' ? [...cardActions, ...wonderActions] : [...wonderActions, ...cardActions]))
@@ -989,7 +994,11 @@ function produceCandidates(s: GameState, p: Player): Action[] {
         if (uq && ups.some((x) => x.id === uq.base) && cardCost(p, cardById(uq.base), uq) <= gold) out.push({ type: 'upgrade', uid: c.uid, unique: u.name })
       }
     }
-    for (const c of p.military) for (const t of upgradeTargets(p, c).filter((x) => heldCount(p, x.id) < holdLimit(p, x.id) && cardCost(p, x) <= gold)) out.push({ type: 'upgrade', uid: c.uid, toDefId: t.id })
+    // 임피는 승급하지 않는다 (대전차포가 되면 임피 효과를 잃어 폭격기와의 조합이 깨진다)
+    for (const c of p.military) {
+      if (cardStats(c).effect === 'impi') continue
+      for (const t of upgradeTargets(p, c).filter((x) => heldCount(p, x.id) < holdLimit(p, x.id) && cardCost(p, x) <= gold)) out.push({ type: 'upgrade', uid: c.uid, toDefId: t.id })
+    }
   }
   return out
 }

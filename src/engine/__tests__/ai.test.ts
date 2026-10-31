@@ -596,6 +596,37 @@ describe('AI 전쟁 판단 (승률 추정·쏠림 방지·수비·실질 위협�
   })
 })
 
+describe('AI 전투: 줄루의 임피 + 폭격기', () => {
+  /** 0번 줄루가 1번에게 건 일반 선전포고의 배치 단계 */
+  const setup = (mine: string[], theirs: string[]) => {
+    const s = structuredClone(createGame({ seed: 1, civIds: ['zulu', 'korea'] }))
+    const put = (pid: number, defs: string[]) =>
+      defs.map((d) => {
+        const uid = s.nextUid++
+        const card = d === 'impi' ? { uid, defId: 'pikeman', unique: '임피', dirs: ['C' as const] } : { uid, defId: d, dirs: cardById(d).variantDirs ? ['C' as const] : undefined }
+        s.players[pid].military.push(card)
+        return uid
+      })
+    const a = put(0, mine)
+    put(1, theirs)
+    s.phase = 'battle'
+    s.battle = { decl: { attackerId: 0, defenderId: 1, cityId: 0, tileId: -1, kind: 'normal' }, slots: { 0: null, 1: null }, chooseQueue: [], picks: {}, step: 'arrange', coastal: false }
+    return { s, a }
+  }
+
+  it('상대가 전투기·대공포로 막으면 임피를 폭격기와 함께 내 상대의 공중 면역을 없앤다', () => {
+    // 전투기는 전투기·대공포가 아닌 카드의 공격을, 대공포는 폭격기의 공격을 받지 않는다. 임피가 깔리면 두 효과가 모두 없어진다.
+    // 강한 순으로는 보병 3장, 폭격기 2장 다음이 임피라 예전 방침(상위 4장, 5번째로 바꾸기)에는 임피가 들어가지 않는다
+    const { s, a } = setup(['infantry', 'infantry', 'infantry', 'bomber', 'bomber', 'impi'], ['fighter', 'fighter', 'fighter', 'aa_gun'])
+    const [, , , b1, b2, impi] = a
+    const act = battleActions(s, 0, false)[0]
+    expect(act.type).toBe('arrangeBattle')
+    if (act.type !== 'arrangeBattle') return
+    expect(act.slots).toContain(impi)
+    expect(act.slots.some((x) => x === b1 || x === b2)).toBe(true)
+  })
+})
+
 describe('AI 전투: 대상 고르기 (엔진으로 모든 대상 조합을 돌려 고른다)', () => {
   /** 0번(공격)과 1번(수비)이 주어진 카드로 배치를 마친 대상 고르기 단계 */
   const choosing = (mine: (string | null)[], theirs: (string | null)[]): { s: GameState; uid: (pid: number, slot: number) => number } => {
