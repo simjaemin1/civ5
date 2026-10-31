@@ -1354,14 +1354,16 @@ describe('문명 능력 (전쟁·군사 관련)', () => {
     expect(me(s).pendingFreeCards).toBe(0)
   })
 
-  it('중국: 자유 정책을 고를 때마다 위대한 장군 1개', () => {
+  it('중국: 자유 정책을 고를 때마다 문화 1 (장군은 시작할 때 1개뿐)', () => {
     let s = found(startGame(['china'], [hand4()]))
     s = play(s, { type: 'placeWorkers', placements: [] }, { type: 'skipResearch' })
     s = mod(s, (c) => (c.players[0].pendingPolicies = 2))
+    const before = culture(me(s))
     s = apply(s, { type: 'choosePolicy', policy: 'liberty' })
-    expect(me(s).generals).toBe(2)
+    expect(culture(me(s)) + (me(s).pendingTiles?.length ?? 0)).toBe(before + 1)
+    expect(me(s).generals).toBe(1)
     s = apply(s, { type: 'choosePolicy', policy: 'liberty' }) // 다시 골라도 또 받는다
-    expect(me(s).generals).toBe(3)
+    expect(culture(me(s)) + (me(s).pendingTiles?.length ?? 0)).toBe(before + 2)
   })
 
   it('줄루: 전제정치를 고를 때마다 위대한 장군을 1개 더 (모두 2개)', () => {
