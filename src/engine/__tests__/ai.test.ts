@@ -517,6 +517,20 @@ describe('AI 전쟁 판단 (승률 추정·쏠림 방지·수비·실질 위협�
   })
 
   describe('견제형 점령 (정복 없이 장군 한두 개로 방해)', () => {
+    it('고유 유닛을 든 문명은 상대의 고생산(망치) 타일을 먼저 노려 점거한다', () => {
+      const s = atPhase('declare', ['korea', 'egypt'])
+      s.players[0].generals = 1
+      give(s, 0, 'rifleman', 4)
+      s.players[0].military.push({ uid: s.nextUid++, defId: 'hwacha', unique: '화차', dirs: ['C'] }) // 고유 유닛을 들고 있어 견제형이다
+      give(s, 1, 'warrior', 1)
+      flatten(s, 1)
+      const hill = addExtra(s, 1, { terrains: ['언덕'] })
+      const firstTarget = () => aiCandidates(s).find((a) => a.type === 'declareWar')
+      expect(firstTarget()).toMatchObject({ defenderId: 1, tileId: hill.card.id })
+      // 망치 가산점이 없으면 식량까지 나오는 평지를 먼저 노린다
+      expect(withTune({ harassHammer: 0 }, firstTarget)).not.toMatchObject({ tileId: hill.card.id })
+    })
+
     it('점령은 오래 들고 있는 것이 기본이다 (더 좋은 타일이 없으면 장군을 불러들이지 않는다)', () => {
       const s = atPhase('place', ['korea', 'egypt'])
       s.players[0].generals = 0
