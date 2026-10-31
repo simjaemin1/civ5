@@ -57,7 +57,7 @@ describe('정책', () => {
   })
 
   it('전제정치: 위대한 장군 +1', () => {
-    let s = mod(toProduce(solo()), (c) => (c.players[0].pendingPolicies = 1))
+    let s = mod(toProduce(solo('korea')), (c) => (c.players[0].pendingPolicies = 1)) // 덴마크는 장군 1개로 시작하므로 시작 장군이 없는 한국으로
     s = apply(s, { type: 'choosePolicy', policy: 'despotism' })
     expect(me(s).generals).toBe(1)
   })
