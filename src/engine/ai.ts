@@ -48,6 +48,12 @@ export const AI_TUNE = {
   explorerChase: true,
   /** 정책 갈아타기: 피라미드(→자유)·과학이론(→합리주의)으로 정책이 바뀌기 직전에 정책 기술을 열어 전통(문화 2)을 고른다 */
   policyGambit: true,
+  /** 갈아타기 중 피라미드(→자유) 쪽 */
+  gambitPyramids: true,
+  /** 갈아타기 중 과학이론(→합리주의) 쪽 */
+  gambitScience: true,
+  /** 정책 기술을 일찍부터 아껴 둔다 (끄면 갈아타기 직전 한 차례만: 피라미드 진척도가 하나 남았을 때, 과학이론을 바로 열 수 있을 때) */
+  gambitHoldEarly: true,
 }
 
 const weight = (y: { food: number; hammer: number; science: number; gold: number }) =>
@@ -1018,12 +1024,13 @@ const SCI_THEORY = 'scientific_theory'
 const bestCeiling = (o: Player): number => Math.max(0, ...hammerCeiling(o).values())
 /** 피라미드를 가져갈 문명: 진척도가 가장 앞서거나, 진척도가 같으면 망치 상한이 가장 높다. 이미 자유면 피라미드로 얻을 게 없다 */
 function pyramidPlan(s: GameState, p: Player): boolean {
-  if (!AI_TUNE.policyGambit || isWarlord(p) || s.wonderOwners[PYRAMIDS] !== undefined || p.policy === 'liberty') return false
+  if (!AI_TUNE.policyGambit || !AI_TUNE.gambitPyramids || isWarlord(p) || s.wonderOwners[PYRAMIDS] !== undefined || p.policy === 'liberty') return false
   const w = wonderCardById(PYRAMIDS)
   if (!p.techs.includes(w.tech)) return false
   const prog = s.wonderProgress[PYRAMIDS] ?? {}
   const mine = prog[p.id] ?? 0
   const rival = Math.max(0, ...Object.entries(prog).filter(([id]) => Number(id) !== p.id).map(([, v]) => v))
+  if (!AI_TUNE.gambitHoldEarly && mine < w.progressNeeded - 1) return false
   if (mine !== rival) return mine > rival
   const rivals = s.players.filter((o) => o.id !== p.id && !o.eliminated && o.cities.length > 0 && o.techs.includes(w.tech))
   return bestCeiling(p) > Math.max(0, ...rivals.map(bestCeiling))
@@ -1040,7 +1047,7 @@ function pyramidSure(s: GameState, p: Player): boolean {
 }
 /** 과학이론이 가까워 정책 기술을 아껴 둔다 (과학이론까지 남은 기술 2개 이하, 아직 합리주의가 아니다) */
 function sciPlan(p: Player): boolean {
-  return AI_TUNE.policyGambit && !isWarlord(p) && !p.techs.includes(SCI_THEORY) && p.policy !== 'rationalism' && missingFor(p, [SCI_THEORY]).size <= 2
+  return AI_TUNE.policyGambit && AI_TUNE.gambitScience && !isWarlord(p) && !p.techs.includes(SCI_THEORY) && p.policy !== 'rationalism' && missingFor(p, [SCI_THEORY]).size <= (AI_TUNE.gambitHoldEarly ? 2 : 1)
 }
 /** 다음 차례에 과학이론을 열 수 있다: 지금 정책 기술로 전통을 고를 때다 (이미 전통이면 이제 과학이론을 연다) */
 function sciReady(p: Player): boolean {
