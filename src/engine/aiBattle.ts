@@ -355,8 +355,11 @@ export function choosePicks(s: GameState, pid: number): Record<number, number | 
 
 // ───── 배치: 결과 표와 최소 손해 / 혼합 전략 ─────
 
-/** 배치 방침: 상위 4·3·2·1장, 4번째를 5번째 카드로 바꾼 4장, 내지 않기 (각각 bestSlots로 자리 정하기) */
-const POLICIES = ['top4', 'top3', 'top2', 'top1', 'swap5', 'none'] as const
+/**
+ * 배치 방침: 상위 4·3·2·1장, 4번째를 5번째 카드로 바꾼 4장, 내지 않기, 임피+폭격기 (각각 bestSlots로 자리 정하기).
+ * 임피+폭격기: 임피가 상대 대공포의 '폭격기 대미지 0'과 전투기 효과를 없애므로, 임피 1장과 폭격기를 먼저 넣고 나머지는 강한 순 (줄루)
+ */
+const POLICIES = ['top4', 'top3', 'top2', 'top1', 'swap5', 'impiAir', 'none'] as const
 type Policy = (typeof POLICIES)[number]
 
 function policySlots(s: GameState, b: BattleState, p: Player, policy: Policy): (number | null)[] | null {
@@ -373,6 +376,14 @@ function policySlots(s: GameState, b: BattleState, p: Player, policy: Policy): (
       return cards.length >= 1 ? take(cards.slice(0, 1)) : null
     case 'swap5':
       return cards.length >= 5 ? take([...cards.slice(0, 3), cards[4]]) : null
+    case 'impiAir': {
+      const stat = (uid: number) => cardStats(p.military.find((c) => c.uid === uid)!)
+      const impi = cards.find((uid) => stat(uid).effect === 'impi')
+      const bombers = cards.filter((uid) => stat(uid).baseId === 'bomber')
+      if (impi === undefined || !bombers.length) return null
+      const rest = cards.filter((uid) => uid !== impi && !bombers.includes(uid))
+      return take([impi, ...bombers, ...rest].slice(0, 4))
+    }
     case 'none':
       return [null, null, null, null]
   }
@@ -415,13 +426,22 @@ function buildTable(s: GameState, decl: Declaration, me: number, samples: number
   const payoff = rows.map(() => POLICIES.map(() => 0))
   const win = rows.map(() => POLICIES.map(() => 0))
   const counts = rows.map(() => POLICIES.map(() => 0))
+  const dup = new Map<number, number>()
   const hidden = s.players[opp].military.some((c) => c.dirs?.length)
   const n = hidden ? samples : 1
   for (let k = 0; k < n; k++) {
     const military = hidden ? sampleDirs(s.players[opp].military, rand) : s.players[opp].military
     const oppView = { ...s.players[opp], military }
+    const colKeys = new Map<string, number>()
     POLICIES.forEach((pol, j) => {
       const col = policySlots(s, b, oppView, pol) ?? policySlots(s, b, oppView, 'top4')!
+      // 같은 배치가 되는 방침(예: 임피가 없는 상대의 임피+폭격기)은 다시 돌리지 않고 앞 열의 결과를 쓴다
+      const key = JSON.stringify(col)
+      if (colKeys.has(key)) {
+        dup.set(j, colKeys.get(key)!)
+        return
+      }
+      colKeys.set(key, j)
       rows.forEach((row, i) => {
         const rep = runBattle(s, decl, { [me]: row, [opp]: col }, { pid: opp, military })
         if (!rep) return
@@ -433,6 +453,11 @@ function buildTable(s: GameState, decl: Declaration, me: number, samples: number
     })
   }
   for (let i = 0; i < rows.length; i++) {
+    for (const [j, j0] of dup) {
+      payoff[i][j] = payoff[i][j0]
+      win[i][j] = win[i][j0]
+      counts[i][j] = counts[i][j0]
+    }
     for (let j = 0; j < POLICIES.length; j++) {
       const c = counts[i][j]
       payoff[i][j] = c ? payoff[i][j] / c : -Infinity

@@ -20,6 +20,8 @@ export interface CivDef {
   happiness: number
   bonus: PartialYield
   startCulture: number
+  /** 시작할 때 받는 위대한 장군 토큰 (문명 카드의 장군 그림) */
+  startGenerals?: number
   ability: string
   unique: string
   tileMods?: TileMod[]

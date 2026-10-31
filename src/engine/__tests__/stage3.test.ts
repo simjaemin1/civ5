@@ -1336,9 +1336,40 @@ describe('문명 능력 (전쟁·군사 관련)', () => {
     expect(() => apply(s, { type: 'endProduction' })).not.toThrow()
   })
 
-  it('중국: 위대한 장군 1개로 시작', () => {
-    const s = found(startGame(['china'], [hand4()]))
-    expect(me(s).generals).toBe(1)
+  it('독일·중국·줄루·몽골·훈족은 위대한 장군 1개로 시작 (독일의 무료 카드는 그 시점에 만들 카드가 없어 받지 못한다)', () => {
+    for (const civ of ['germany', 'china', 'zulu', 'mongolia', 'huns']) {
+      const s = found(startGame([civ], [hand4()]))
+      expect(me(s).generals, civ).toBe(1)
+      expect(me(s).pendingFreeCards, civ).toBe(0)
+    }
+    expect(me(found(startGame(['korea'], [hand4()]))).generals).toBe(0)
+  })
+
+  it('독일: 장군을 얻는 그 시점에 만들 수 있는 카드가 없으면 무료 카드를 받지 못한다', () => {
+    let s = found(startGame(['germany'], [hand4()]))
+    s = play(s, { type: 'placeWorkers', placements: [] }, { type: 'skipResearch' })
+    s = mod(s, (c) => (c.players[0].pendingPolicies = 1))
+    s = apply(s, { type: 'choosePolicy', policy: 'despotism' })
+    expect(me(s).generals).toBe(2)
+    expect(me(s).pendingFreeCards).toBe(0)
+  })
+
+  it('중국: 자유 정책을 고를 때마다 위대한 장군 1개', () => {
+    let s = found(startGame(['china'], [hand4()]))
+    s = play(s, { type: 'placeWorkers', placements: [] }, { type: 'skipResearch' })
+    s = mod(s, (c) => (c.players[0].pendingPolicies = 2))
+    s = apply(s, { type: 'choosePolicy', policy: 'liberty' })
+    expect(me(s).generals).toBe(2)
+    s = apply(s, { type: 'choosePolicy', policy: 'liberty' }) // 다시 골라도 또 받는다
+    expect(me(s).generals).toBe(3)
+  })
+
+  it('줄루: 전제정치를 고를 때마다 위대한 장군을 1개 더 (모두 2개)', () => {
+    let s = found(startGame(['zulu'], [hand4()]))
+    s = play(s, { type: 'placeWorkers', placements: [] }, { type: 'skipResearch' })
+    s = mod(s, (c) => (c.players[0].pendingPolicies = 1))
+    s = apply(s, { type: 'choosePolicy', policy: 'despotism' })
+    expect(me(s).generals).toBe(1 + 2)
   })
 
   it('인도: 군사 카드 1장을 공용 덱에 돌려 파괴하면 그 차례 식량 +2', () => {

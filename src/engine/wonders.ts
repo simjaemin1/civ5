@@ -61,7 +61,7 @@ export function invest(s: GameState, p: Player, cityId: number, wonderId: string
 
 export function applyWonderEffects(s: GameState, p: Player, w: WonderCardDef): void {
   for (const e of w.effects) {
-    if (e.kind === 'general') gainGeneral(p, e.amount)
+    if (e.kind === 'general') gainGeneral(s, p, e.amount)
     else if (e.kind === 'setPolicy') p.policy = e.policy
     else if (e.kind === 'culture') gainCulture(s, p, e.amount)
     else if (e.kind === 'choosePolicy') p.pendingPolicies++

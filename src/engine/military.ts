@@ -208,10 +208,10 @@ export function claimFreeCard(s: GameState, p: Player, a: { defId: string; uniqu
   say(s, `${civById(p.civId).name} 무료 군사 카드: ${a.unique ?? ok.def.name}`)
 }
 
-/** 위대한 장군 토큰을 얻는다 (독일은 무료 군사 카드 선택권도 얻는다). */
-export function gainGeneral(p: Player, n: number): void {
+/** 위대한 장군 토큰을 얻는다. 독일은 그 시점에 생산가능한 군사 카드가 있으면 무료 카드 선택권도 얻는다 (없으면 받지 못한다). */
+export function gainGeneral(s: GameState, p: Player, n: number): void {
   p.generals += n
-  if (p.civId === 'germany') p.pendingFreeCards += n
+  if (p.civId === 'germany' && anyProducible(s, p)) p.pendingFreeCards += n
 }
 
 /** 무료 카드를 받을 수 있는데 만들 수 있는 카드가 하나도 없으면 선택권을 버린다. */
