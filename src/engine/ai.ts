@@ -401,6 +401,27 @@ const COMPASS_CHAIN = new Set(['sailing', 'optics', 'compass'])
  */
 const EXPLORERS = new Set(['england'])
 const isExplorer = (p: Player): boolean => AI_TUNE.explorer && EXPLORERS.has(p.civId) && !civById(p.civId).bonus.food
+/** 문화를 주는 기술 (정책 선택권 또는 문화) */
+const CULTURE_TECHS = TECHS.filter((t) => t.effects.some((e) => e.kind === 'policy' || e.kind === 'culture')).map((t) => t.id)
+/**
+ * 탐험형이 좋은 타일을 맡아 두었으면 문화를 받아 오는 것이 최우선이다: 정책·문화를 주는 기술 중 남은 비용이 가장 싼 길.
+ * 맡아둔 타일이 없으면 빈 집합.
+ */
+function cultureChase(p: Player): Set<string> {
+  if (!isExplorer(p) || !p.held) return new Set()
+  let best: Set<string> = new Set()
+  let bestCost = Infinity
+  for (const g of CULTURE_TECHS) {
+    if (p.techs.includes(g)) continue
+    const path = missingFor(p, [g])
+    const cost = [...path].reduce((n, id) => n + (TECHS.find((t) => t.id === id)?.cost ?? 0), 0)
+    if (cost < bestCost) {
+      bestCost = cost
+      best = path
+    }
+  }
+  return best
+}
 /** 해금 기술이 산출을 올려 주는 자원 (자원 카드에 적힌 boosts 기준) */
 function boostTechValue(p: Player, techId: string): number {
   let v = 0
@@ -440,9 +461,11 @@ function buildPriority(p: Player, t: TechDef): number {
   return v
 }
 
-function techPriority(t: TechDef, rush?: Set<string>, p?: Player): number {
+function techPriority(t: TechDef, rush?: Set<string>, p?: Player, chase?: Set<string>): number {
   // 평소에는 싼 기술부터 넓게 (고점을 보고 번성), 아폴로 질주 때는 선행 기술을 우선
   let v = (rush ? t.cost : -t.cost) + (rush?.has(t.id) ? 500 : 0) + (p && !rush ? buildPriority(p, t) : 0)
+  // 탐험형이 맡아둔 타일을 받아 올 정책·문화 기술 길이 무엇보다 먼저다
+  if (chase?.has(t.id)) v += 2000
   for (const e of t.effects) {
     if (e.kind === 'foodToScience') v += 5
     else if (e.kind === 'secondCity') v += 8
@@ -472,12 +495,18 @@ function researchCandidates(s: GameState, p: Player): Action[] {
         ? missingFor(p, ['acoustics']) // 문화가 급하면 음향학(문화 +1)부터
         : undefined
   idleHammers = [...hammerUse(s, p).values()].every((costs) => costs.length === 0)
-  const techs = researchableTechs(s).sort((a, b) => techPriority(b, rush, p) - techPriority(a, rush, p))
+  const chase = cultureChase(p)
+  const techs = researchableTechs(s).sort((a, b) => techPriority(b, rush, p, chase) - techPriority(a, rush, p, chase))
   for (const t of techs) {
     let need = t.cost - turn.yields.science
     let foodConv = 0
     let hammerConv = 0
-    if (need > 0 && p.techs.includes('writing')) {
+    // 맡아둔 타일을 받아 올 기술은 일꾼 하나를 잃더라도(식량을 모두 과학으로) 이번 차례에 연다
+    const chasing = chase.has(t.id) && need > 0 && need <= food + (canHammerScience(p) ? Math.min(2, hammers) : 0)
+    if (need > 0 && p.techs.includes('writing') && chasing) {
+      foodConv = Math.min(need, food)
+      need -= foodConv
+    } else if (need > 0 && p.techs.includes('writing')) {
 // 자유 정책에서는 일꾼을 굶겨도 잃지 않으므로 식량을 전부 과학으로 돌릴 수 있다
       // 전쟁광이 공성 카드(대포)를 여는 화학은 일꾼 몇 명을 잃더라도 식량을 모두 과학으로 돌려 연구한다
       const spare = p.policy === 'liberty' || (isWarlord(p) && warFoundation(p) && t.id === 'chemistry' && !hasSiege(p) && siegeRoute(p).has(t.id)) ? food : food - totalWorkers(p)
@@ -779,6 +808,11 @@ function policyOrder(s: GameState, p: Player): Policy[] {
     if (isExplorer(p)) return ['tradition', 'aesthetics', ...POLICY_PREFERENCE]
     return food - totalWorkers(p) > 0 ? ['tradition', 'aesthetics', ...POLICY_PREFERENCE] : ['aesthetics', 'tradition', ...POLICY_PREFERENCE]
   }
+  // 탐험형이 좋은 타일을 맡아 두었으면 문화를 주는 정책(미학)으로 바로 받아 온다
+  if (isExplorer(p) && p.held && !rushingApollo(p) && !rushingCulture(p)) {
+    aiDebug.policyReason = '맡아둔 타일'
+    return ['aesthetics', 'tradition', ...POLICY_PREFERENCE]
+  }
   // 평등 한 번으로 관광이 상대의 문화를 넘어 탈락시킬 수 있으면 (아폴로 질주 중이어도) 평등
   if (p.policy !== 'equality') {
     const gain = Math.floor(culture(p) / 3)
@@ -899,8 +933,6 @@ function holdValue(p: Player, card: TileCard): number {
   return v + tileScore(p, card) * 0.5
 }
 const HOLD_THRESHOLD = 7
-/** 탐험형이 맡아둔 타일을 붙들고 있는 최대 라운드 */
-const EXPLORER_HOLD = 2
 
 /** 정찰은 3라운드에 한 번만 (일꾼 1개가 그 차례 쉬므로) */
 function scoutCandidates(s: GameState, p: Player): Action[] {
@@ -908,8 +940,8 @@ function scoutCandidates(s: GameState, p: Player): Action[] {
   if (isExplorer(p)) {
     // 탐험형: 이번 차례에 정찰한 카드는 바로 맡아 보고, 좋지 않으면 그 자리에서 돌려보내 일꾼을 되찾는다
     if (p.scouted) return [{ type: 'holdScouted' }]
-    // 맡아둔 지 오래돼도(EXPLORER_HOLD 라운드) 문화가 들어오지 않으면 일꾼이 묶여 있으니 돌려보내고 새로 정찰한다
-    if (p.held) return holdValue(p, p.held) < HOLD_THRESHOLD || s.round - (p.scoutedRound ?? s.round) >= EXPLORER_HOLD ? [{ type: 'releaseHeld' }] : []
+    // 좋은 타일을 맡아 두었으면 문화(정책·문화 기술)로 받아 올 때까지 붙든다 (cultureChase가 그 기술로 달린다)
+    if (p.held) return holdValue(p, p.held) < HOLD_THRESHOLD ? [{ type: 'releaseHeld' }] : []
     return p.scoutedRound === s.round ? [] : [{ type: 'scout' }]
   }
   if (p.held || p.scouting || p.scouted || totalWorkers(p) < 4 || s.round % 3 !== 0) return []
