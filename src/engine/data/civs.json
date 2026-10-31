@@ -434,16 +434,8 @@
    "food": 1
   },
   "startCulture": 0,
-  "ability": "물고기 타일을 얻을 때마다 문화 1, 물고기 타일 식량 +1",
+  "ability": "물고기 타일을 얻을 때마다 문화 1",
   "unique": "사무라이 (장검사)",
-  "tileMods": [
-   {
-    "resource": "fish",
-    "yield": {
-     "food": 1
-    }
-   }
-  ],
   "uniques": [
    {
     "name": "사무라이",
