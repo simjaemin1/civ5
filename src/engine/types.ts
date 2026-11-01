@@ -145,7 +145,7 @@ export interface Player {
   scoutedRound?: number
   /** 맡아둔 타일을 돌려보내 정찰 일꾼이 돌아온 라운드: 그 차례에는 그 일꾼을 선전포고에 쓸 수 없다 */
   scoutReleasedRound?: number
-  /** 나침반으로 맡아둔 타일 (일꾼 1개가 그 위에 있음) */
+  /** 맡아둔 타일 (일꾼 1개가 그 위에 있음) */
   held: TileCard | null
   /** 정찰(맡아둔 타일 포함)에 쓴 일꾼의 도시. 없으면 도시를 가리지 않는다 (도시가 하나이거나 AI) */
   scoutCity?: number

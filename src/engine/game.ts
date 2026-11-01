@@ -603,7 +603,7 @@ function research(
       const sites = p.cities.reduce((n, c) => n + c.tiles.filter((t) => t.card.historic).length, 0)
       if (sites > 0) gainCulture(s, p, sites)
     }
-    // compass, foodToScience(조건 확인용) 등은 연구 효과로 따로 처리할 것이 없다
+    // compass(새 효과 준비 중, 맡아두기는 게임 시작부터 가능), foodToScience(조건 확인용) 등은 연구 효과로 따로 처리할 것이 없다
   }
   if (tech.id === 'machinery' && p.civId === 'brazil') {
     // 브라질: 기계를 얻을 때 영토의 정글 1장당 문화 1 (1회)

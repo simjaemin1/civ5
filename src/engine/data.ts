@@ -85,6 +85,7 @@ export type TechEffect =
   | { kind: 'policyChance'; policy: PolicyId }
   | { kind: 'setPolicy'; policy: PolicyId }
   | { kind: 'freeCard'; defId: string }
+  /** 나침반: 예전에는 맡아두기를 열었다. 맡아두기는 게임 시작부터 되므로 지금은 효과 없음 (새 효과 준비 중) */
   | { kind: 'compass' }
   | { kind: 'secondCity' }
   | { kind: 'archaeology' }

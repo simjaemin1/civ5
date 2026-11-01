@@ -114,7 +114,7 @@ describe('AI 시뮬레이션', () => {
 })
 
 describe('AI 과학 승리 전략', () => {
-  it('나침반 → 행복·일꾼 증식 → 아폴로로 과학 승리가 실제로 나온다', () => {
+  it('행복·일꾼 증식 → 아폴로로 과학 승리가 실제로 나온다', () => {
     const types: string[] = []
     // 문화 승리 질주를 끄고 과학 전략만 본다
     const saved = AI_TUNE.cultureRush
@@ -356,10 +356,11 @@ describe('AI 차례 계획기 (문턱 기준 일꾼 배치)', () => {
     const first = aiCandidates(s).find((a) => a.type === 'research')
     if (!first || first.type !== 'research') throw new Error('연구 후보 없음')
     expect(['agriculture', 'archery', 'animal_husbandry', 'bronze_working']).toContain(first.techId)
-    // 이미 카드를 만들 수 있으면 평소 순서(나침반 계열)를 따른다
+    // 이미 카드를 만들 수 있으면 평소 순서(싼 기술부터, 같은 비용은 기술 표 순서)를 따른다. 맡아두기가 처음부터 되므로 나침반 계열(항해)을 서두르지 않는다
     p.techs = ['agriculture']
-    const usual = aiCandidates(s).find((a) => a.type === 'research')
-    expect(usual && usual.type === 'research' && usual.techId).toBe('sailing')
+    const usual = aiCandidates(s).filter((a) => a.type === 'research').map((a) => a.type === 'research' && a.techId)
+    expect(usual[0]).toBe('archery')
+    expect(usual.indexOf('sailing')).toBeGreaterThan(0)
   })
 })
 
