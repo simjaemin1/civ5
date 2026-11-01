@@ -1128,7 +1128,7 @@ describe('승리와 탈락', () => {
   })
 })
 
-describe('정찰과 나침반', () => {
+describe('정찰과 맡아두기', () => {
   const start = () => found(startGame(['denmark'], [hand4()]))
   const eldorado = (): TileCard => ({ id: 777, terrains: ['산'], wonder: 'eldorado' })
 
@@ -1185,7 +1185,7 @@ describe('정찰과 나침반', () => {
     expect(sameOnTop).toBeLessThan(trials / 10) // 완전히 새로 섞는 것이므로 가끔 같은 타일이 맨 위에 올 수는 있지만 드물다
   })
 
-  it('나침반으로 맡아둔 타일을 돌려보낼 때도 덱을 섞는다', () => {
+  it('맡아둔 타일을 돌려보낼 때도 덱을 섞는다', () => {
     let s = mod(start(), (c) => {
       c.players[0].techs.push('compass')
       c.deck.unshift({ id: 999, terrains: ['오아시스'] })
@@ -1220,11 +1220,10 @@ describe('정찰과 나침반', () => {
     expect(gain(true)).toEqual({ gained: 2, found: true }) // 뽑은 엘도라도 1 + 영토 1
   })
 
-  it('나침반이 없으면 맡아둘 수 없고, 있으면 맡아둔 타일을 다음 문화 타일로 가져온다', () => {
+  it('나침반이 없어도 게임 시작부터 맡아둘 수 있고, 맡아둔 타일을 다음 문화 타일로 가져온다', () => {
     let s = mod(start(), (c) => c.deck.unshift({ id: 999, terrains: ['오아시스'] }))
     s = apply(s, { type: 'scout' })
-    expect(() => apply(s, { type: 'holdScouted' })).toThrow(RuleError)
-    s = mod(s, (c) => c.players[0].techs.push('compass'))
+    expect(me(s).techs).not.toContain('compass')
     s = apply(s, { type: 'holdScouted' })
     expect(me(s).held!.id).toBe(999)
     expect(me(s).scouted).toBeNull()

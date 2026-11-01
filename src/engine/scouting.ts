@@ -25,7 +25,7 @@ export function scout(s: GameState, p: Player, cityId?: number): void {
   }
   p.scoutCity = cityId
   if (s.deck.length === 0) throw new RuleError('타일 덱이 비었습니다')
-  // 규칙서 9장: 한 차례에 1장만 볼 수 있다. 나침반으로 맡아둔 뒤 돌려보내고 다시 정찰하는 것도 막는다
+  // 규칙서 8장: 한 차례에 1장만 볼 수 있다. 맡아둔 뒤 돌려보내고 다시 정찰하는 것도 막는다
   if (p.scoutedRound === s.round) throw new RuleError('정찰은 한 차례에 1장만 볼 수 있습니다 (이번 차례에 이미 봤습니다)')
   p.scoutedRound = s.round
   p.scouted = s.deck.shift()!
@@ -38,9 +38,8 @@ export function scout(s: GameState, p: Player, cityId?: number): void {
   }
 }
 
-/** 나침반: 정찰한 카드를 돌려넣지 않고 맡아둔다 (최대 1장, 일꾼 1개가 그 위에 남는다). */
+/** 맡아두기: 정찰한 카드를 돌려넣지 않고 맡아둔다 (최대 1장, 일꾼 1개가 그 위에 남는다). 게임 시작부터 할 수 있다 (사용자 결정, 예전에는 나침반 효과) */
 export function holdScouted(s: GameState, p: Player): void {
-  if (!p.techs.includes('compass')) throw new RuleError('나침반을 연구해야 합니다')
   if (!p.scouted) throw new RuleError('맡아둘 정찰한 카드가 없습니다')
   p.held = p.scouted
   p.scouted = null

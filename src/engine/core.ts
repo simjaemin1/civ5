@@ -31,7 +31,7 @@ export function drawTiles(s: GameState, n: number): TileCard[] {
 
 /**
  * 문화를 n 얻어 새 타일을 붙인다. 첫 5타일의 남은 면이 있으면 거기에 먼저 붙인다.
- * 나침반으로 맡아둔 타일이 있으면 덱 대신 그 타일을 가져온다.
+ * 맡아둔 타일이 있으면 덱 대신 그 타일을 가져온다.
  */
 export function gainCulture(s: GameState, p: Player, n: number): void {
   const before = culture(p)

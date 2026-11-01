@@ -42,7 +42,7 @@ export const AI_TUNE = {
   raidOffense: true,
   /** 해안 견제: 군대를 최소로만 만든다 (끄면 다른 문명처럼 남는 망치로 군사 카드를 만든다). 400판: 켜면 21.0%, 끄면 27.0% (피라미드 갈아타기와 함께) */
   raidLeanArmy: false,
-  /** 탐험형(식량 보너스가 없는 문명 중 EXPLORERS): 첫 정책은 전통, 나침반→신학을 서두르고, 매 차례 정찰해 식량 좋은 타일을 맡아 둔다 */
+  /** 탐험형(식량 보너스가 없는 문명 중 EXPLORERS): 첫 정책은 전통, 신학을 서두르고, 매 차례 정찰해 식량 좋은 타일을 맡아 둔다 */
   explorer: false,
   /** 탐험형이 맡아둔 타일을 받아 오려고 정책·문화 기술로 달린다 (끄면 정찰·맡아두기만 한다) */
   explorerChase: true,
@@ -425,10 +425,9 @@ let plan: 'apollo' | 'culture' | null = null
 const rushingApollo = (_p: Player): boolean => plan === 'apollo'
 const rushingCulture = (_p: Player): boolean => plan === 'culture'
 
-/** 번성형 기술 순서: 나침반 → 과학·식량 산출을 키우는 기술과 행복(일꾼 상한) 기술 → 인쇄기술(두 번째 도시) → 나머지는 싼 것부터 넓게 */
-const COMPASS_CHAIN = new Set(['sailing', 'optics', 'compass'])
+/** 번성형 기술 순서: 과학·식량 산출을 키우는 기술과 행복(일꾼 상한) 기술 → 인쇄기술(두 번째 도시) → 나머지는 싼 것부터 넓게 (맡아두기는 게임 시작부터 되므로 나침반을 서두르지 않는다) */
 /**
- * 탐험형 문명: 시작 식량 보너스가 없어 성장이 늦으므로, 전통으로 문화를 당겨 받고 나침반→신학을 빨리 열어
+ * 탐험형 문명: 시작 식량 보너스가 없어 성장이 늦으므로, 전통으로 문화를 당겨 받고 신학을 빨리 열어
  * 매 차례 정찰로 식량이 좋은 타일을 골라 맡아 둔다 (나쁜 타일은 맡았다가 바로 돌려보내 일꾼을 그 차례에 그대로 쓴다).
  */
 const EXPLORERS = new Set(['england'])
@@ -474,9 +473,8 @@ let idleHammers = false
 const unlocksCard = (techId: string): boolean => MILITARY_CARDS.some((c) => c.tech === techId && !c.uniqueOnly && !c.notBattle)
 
 function buildPriority(p: Player, t: TechDef): number {
-  // 망치를 쓸 곳이 없으면 군사 카드를 여는 비용 0 기술(농업·궁술·청동기술·목축업)을 나침반보다 먼저 연다
+  // 망치를 쓸 곳이 없으면 군사 카드를 여는 비용 0 기술(농업·궁술·청동기술·목축업)을 먼저 연다
   if (idleHammers && t.cost === 0 && unlocksCard(t.id)) return 350
-  if (p.techs.includes('compass') === false && COMPASS_CHAIN.has(t.id)) return 300
   if (isExplorer(p) && t.id === 'theology') return 290
   let v = boostTechValue(p, t.id)
   const mountainFirstCity = !!p.cities[0]?.tiles.some((x) => (x.role === 'city' || x.role === 'side') && x.card.terrains.includes('산'))
@@ -1013,7 +1011,7 @@ const HOLD_THRESHOLD = 7
 
 /** 정찰은 3라운드에 한 번만 (일꾼 1개가 그 차례 쉬므로) */
 function scoutCandidates(s: GameState, p: Player): Action[] {
-  if (aiStyle === 'hammer' || !p.techs.includes('compass') || rushingApollo(p) || rushingCulture(p)) return []
+  if (aiStyle === 'hammer' || rushingApollo(p) || rushingCulture(p)) return []
   if (isExplorer(p)) {
     // 탐험형: 이번 차례에 정찰한 카드는 바로 맡아 보고, 좋지 않으면 그 자리에서 돌려보내 일꾼을 되찾는다
     if (p.scouted) return [{ type: 'holdScouted' }]

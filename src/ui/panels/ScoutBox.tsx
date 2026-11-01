@@ -56,13 +56,10 @@ export function ScoutBox({
           <div style={{ width: 120 }}>
             <TileView card={player.scouted} player={player} />
           </div>
-          {player.techs.includes('compass') ? (
-            <button onClick={() => dispatch({ type: 'holdScouted' })} title="다음에 새 타일을 얻을 때 이 타일을 가져옵니다. 일꾼 1개가 묶입니다.">
-              🧭 맡아두기
-            </button>
-          ) : (
-            <small className="muted">차례가 끝나면 덱에 돌아갑니다 (나침반을 연구하면 맡아둘 수 있음)</small>
-          )}
+          <button onClick={() => dispatch({ type: 'holdScouted' })} title="다음에 새 타일을 얻을 때 이 타일을 가져옵니다. 일꾼 1개가 묶입니다.">
+            📌 맡아두기
+          </button>
+          <small className="muted">맡아두지 않으면 차례가 끝날 때 덱에 돌아갑니다</small>
         </span>
       )}
       {player.held && (
