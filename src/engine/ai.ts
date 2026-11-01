@@ -48,6 +48,8 @@ export const AI_TUNE = {
   explorerChase: true,
   /** 정책 갈아타기: 피라미드(→자유)·과학이론(→합리주의)으로 정책이 바뀌기 직전에 정책 기술을 열어 전통(문화 2)을 고른다 */
   policyGambit: true,
+  /** 독일: 극후반(탄도학으로 팬저가 열린 뒤)에만 정복으로 돌아서고, 그 전에는 견제·선전포고 없이 내정에 집중한다 (탈환만) */
+  germanyLateWar: true,
   /** 불모지 탈출: 시작 패에서 점수가 이 값 이하인 타일(식량 1 이하 등)이 wastelandMinBad장 이상이면 그 타일을 모두 바꾼다 (0이면 쓰지 않는다) */
   wastelandScore: 1.6,
   wastelandMinBad: 2,
@@ -556,7 +558,14 @@ function researchCandidates(s: GameState, p: Player): Action[] {
 
 /** 전쟁광 문명(훈족·줄루·그리스·몽골): 전제정치로 장군을 모으고 군대를 많이 뽑아, 한 상대를 골라 좋은 타일을 선점령한 뒤 도시를 공격해 탈락시킨다 */
 const WARLORDS = new Set(['huns', 'zulu', 'greece', 'mongolia'])
-const isWarlord = (p: Player): boolean => AI_TUNE.warlord && WARLORDS.has(p.civId)
+const isWarlord = (p: Player): boolean => AI_TUNE.warlord && (WARLORDS.has(p.civId) || lateWarTime(p))
+/** 극후반 정복형(독일): 팬저가 열리는 탄도학 전에는 내정만, 연구한 뒤에는 전쟁광처럼 한 상대를 골라 탈락시킨다 */
+const LATE_CONQUERORS = new Set(['germany'])
+const LATE_WAR_TECH = 'ballistics'
+const lateConqueror = (p: Player): boolean => AI_TUNE.germanyLateWar && LATE_CONQUERORS.has(p.civId)
+const lateWarTime = (p: Player): boolean => lateConqueror(p) && p.techs.includes(LATE_WAR_TECH)
+/** 극후반 정복형이 아직 내정 중이다 (견제·선전포고를 하지 않는다) */
+const lateConquerorWaiting = (p: Player): boolean => lateConqueror(p) && !lateWarTime(p)
 /** 전쟁광도 기반(영토 7타일 이상, 일꾼 4명 이상)이 없으면 미학 등 성장 정책으로 먼저 키운다 */
 const warFoundation = (p: Player): boolean => p.cities.reduce((n, c) => n + c.tiles.length, 0) >= 7 && totalWorkers(p) >= 4
 /** 산업시대(비용 6열 이상 기술)가 열리기 전: 이때까지 군대로 몰아붙인다 */
@@ -615,7 +624,7 @@ const harassValue = (s: GameState, ownerId: number, cityId: number, tileId: numb
  * 장군 한두 개로 상대 타일을 오래 점령해 방해한다. 전쟁광은 해당 없다 (한 상대를 골라 탈락시킨다).
  */
 function isHarasser(s: GameState, p: Player): boolean {
-  if (!AI_TUNE.harass || isWarlord(p) || armyOf(p) < 2) return false
+  if (!AI_TUNE.harass || isWarlord(p) || lateConquerorWaiting(p) || armyOf(p) < 2) return false
   const rivals = s.players.filter((o) => o.id !== p.id && !o.eliminated && o.cities.length > 0)
   if (!rivals.length) return false
   if (p.military.some((c) => c.unique && cardStats(c).hp !== undefined)) return true
@@ -1200,7 +1209,7 @@ function produceCandidates(s: GameState, p: Player): Action[] {
     // 군대가 3장 미만이거나 이웃의 군사에 비해 수비가 모자라면 군사 카드를 먼저, 그 뒤에는 불가사의에 망치를 모두 건다
     // 이번 라운드에 나를 노린 선전포고가 있으면(앞사람의 선전포고는 공개됨) 수비 카드를 먼저 만든다
     const needDefense = army < defenseTarget(s, p) || underAttack(s, p)
-    const warRush = isWarlord(p) && warFoundation(p) && preIndustrial(s)
+    const warRush = isWarlord(p) && warFoundation(p) && (preIndustrial(s) || lateWarTime(p))
     // 공성 카드가 없으면 그것부터 만든다 (도시를 치려면 공성 카드가 살아남아야 한다)
     const joinSiege = !isWarlord(p) && !hasSiege(p) && (() => { const l = coalitionLeader(s, p); return !!l && l.cities.length > 0 && sidesOccupied(l) >= 2 && sidesMine(l, p.id) >= 1 })()
     const rush = (warRush && army < AI_TUNE.warlordArmy) || ((warRush || joinSiege) && !hasSiege(p) && cardActions.some(isSiegeAction))
@@ -1311,7 +1320,7 @@ function declareCandidates(s: GameState, p: Player): Action[] {
   if (planning) return [{ type: 'endTurn' }]
   const out: Action[] = []
   const army = p.military.filter((c) => cardStats(c).hp !== undefined).length
-  if (army >= 2) {
+  if (army >= 2 && !lateConquerorWaiting(p)) {
     // 탈환 → 상대의 좋은 타일(산출·자원·행복) → 도시 순으로 노린다. 좋은 타일을 점령해 상대의 성장을 누른다
     const value = (t: ReturnType<typeof declarationTargets>[number]): number => {
       if (t.kind === 'retake') return 1000
@@ -1416,7 +1425,8 @@ export function aiCandidates(s: GameState): Action[] {
       const baseScience = civById(p.civId).bonus.science ?? 0
       defending = armyOf(p) < defenseTarget(s, p) || underAttack(s, p)
       starving = baseScience < Math.min(...researchableTechs(s).map((t) => t.cost), 99)
-      const reserve = isCoastalRaider(p) ? raidReserve(s, p) : p.generals > 0 && p.military.length >= 2 ? 1 : 0
+      // 극후반 정복형이 내정 중이면 선전포고를 하지 않으므로 일꾼을 남기지 않는다
+      const reserve = isCoastalRaider(p) ? raidReserve(s, p) : lateConquerorWaiting(p) ? 0 : p.generals > 0 && p.military.length >= 2 ? 1 : 0
       const planned = plannedPlacements(s, p, reserve)
       return [
         ...recallCandidates(s, p),
