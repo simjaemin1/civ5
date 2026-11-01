@@ -1,6 +1,6 @@
 import type { Action, GameState, Player, Side, TileCard } from './types'
 import { RuleError, SIDES } from './types'
-import { MILITARY_CARDS, RESOURCES, TECHS, WONDERS, cardById, civById, techById, wonderCardById } from './data'
+import { MILITARY_CARDS, RESOURCES, TECHS, WONDERS, WONDER_CARDS, cardById, civById, techById, wonderCardById } from './data'
 import { cardStats } from './cardstats'
 import type { TechDef, WonderCardDef } from './data'
 import { apply, researchableTechs } from './game'
@@ -50,6 +50,10 @@ export const AI_TUNE = {
   policyGambit: true,
   /** 독일: 극후반(탄도학으로 팬저가 열린 뒤)에만 정복으로 돌아서고, 그 전에는 견제·선전포고 없이 내정에 집중한다 (탈환만) */
   germanyLateWar: true,
+  /** 극후반 정복형(독일)이 내정 중일 때 견제 점령(짤짤이)을 하는 간격: 이 라운드마다 한 번 (0이면 하지 않는다) */
+  lateHarassEvery: 3,
+  /** 극후반 정복형(독일)은 망치를 덜 치고 과학을 더 친다 (장군을 얻을 때 받는 무료 카드는 그 시점에 만들 수 있는 카드라, 과학이 앞서면 더 좋은 카드가 온다). 1이면 다른 문명과 같다 */
+  lateScienceBoost: 2,
   /** 불모지 탈출: 시작 패에서 점수가 이 값 이하인 타일(식량 1 이하 등)이 wastelandMinBad장 이상이면 그 타일을 모두 바꾼다 (0이면 쓰지 않는다) */
   wastelandScore: 1.6,
   wastelandMinBad: 2,
@@ -89,6 +93,8 @@ function yieldWeights(p: Player): { food: number; hammer: number; science: numbe
   if (defending) return { food: 1.6, hammer: 3, science: 0.8, gold: 0.2 }
   // 아폴로 질주·과학 기아: 식량이 곧 과학이므로 식량과 과학을 크게 친다
   if (rushingApollo(p) || rushingCulture(p) || starving) return { food: 3, hammer: 0.5, science: 3, gold: 0.2 }
+  // 극후반 정복형(독일): 생산이 좀 줄더라도 과학을 앞세운다 (무료 카드가 더 좋은 카드로 온다)
+  if (lateConqueror(p) && AI_TUNE.lateScienceBoost !== 1) return { food: 1.6, hammer: 1.1 / AI_TUNE.lateScienceBoost, science: AI_TUNE.scienceWeight * AI_TUNE.lateScienceBoost, gold: 0.4 }
   return { food: 1.6, hammer: 1.1, science: AI_TUNE.scienceWeight, gold: 0.4 }
 }
 
@@ -487,11 +493,26 @@ function buildPriority(p: Player, t: TechDef): number {
   return v
 }
 
+const WONDER_CARDS_TECHS = new Set(WONDER_CARDS.map((w) => w.tech))
+/** 군사 카드만 열고 아무 효과·자원·불가사의도 없으며 이어지는 기술도 없는 막다른 기술 (예: 기사도) */
+const DEAD_END_MILITARY = new Set(
+  TECHS.filter(
+    (t) =>
+      t.effects.length === 0 &&
+      unlocksCard(t.id) &&
+      !TECHS.some((x) => x.prereqs?.includes(t.id)) &&
+      !WONDER_CARDS_TECHS.has(t.id) &&
+      !Object.values(RESOURCES).some((r) => r.luxuryTech === t.id || r.boosts?.some((b) => b.tech === t.id)),
+  ).map((t) => t.id),
+)
+
 function techPriority(t: TechDef, rush?: Set<string>, p?: Player, chase?: Set<string>): number {
   // 평소에는 싼 기술부터 넓게 (고점을 보고 번성), 아폴로 질주 때는 선행 기술을 우선
   let v = (rush ? t.cost : -t.cost) + (rush?.has(t.id) ? 500 : 0) + (p && !rush ? buildPriority(p, t) : 0)
   // 탐험형이 맡아둔 타일을 받아 올 정책·문화 기술 길이 무엇보다 먼저다
   if (chase?.has(t.id)) v += 2000
+  // 극후반 정복형(독일)은 내정 중에 군사 카드만 여는 막다른 기술(기사도 등)로 과학을 흘리지 않는다
+  if (p && lateConquerorWaiting(p) && AI_TUNE.lateScienceBoost > 1 && DEAD_END_MILITARY.has(t.id)) v -= 300
   for (const e of t.effects) {
     if (e.kind === 'foodToScience') v += 5
     else if (e.kind === 'secondCity') v += 8
@@ -534,6 +555,8 @@ function researchCandidates(s: GameState, p: Player): Action[] {
     let need = t.cost - turn.yields.science
     let foodConv = 0
     let hammerConv = 0
+    // 극후반 정복형(독일)은 막다른 군사 기술(기사도 등)에 식량·망치를 과학으로 돌려 쓰지 않는다 (남는 과학으로만)
+    if (need > 0 && lateConquerorWaiting(p) && AI_TUNE.lateScienceBoost > 1 && DEAD_END_MILITARY.has(t.id)) continue
     // 맡아둔 타일을 받아 올 기술은 일꾼 하나를 잃더라도(식량을 모두 과학으로) 이번 차례에 연다
     const chasing = chase.has(t.id) && need > 0 && need <= food + (canHammerScience(p) ? Math.min(2, hammers) : 0)
     if (need > 0 && p.techs.includes('writing') && chasing) {
@@ -566,6 +589,9 @@ const lateConqueror = (p: Player): boolean => AI_TUNE.germanyLateWar && LATE_CON
 const lateWarTime = (p: Player): boolean => lateConqueror(p) && p.techs.includes(LATE_WAR_TECH)
 /** 극후반 정복형이 아직 내정 중이다 (견제·선전포고를 하지 않는다) */
 const lateConquerorWaiting = (p: Player): boolean => lateConqueror(p) && !lateWarTime(p)
+/** 내정 중인 극후반 정복형이 견제 점령을 하는 차례: 매 차례는 아니고 몇 라운드에 한 번 (문명마다 차례를 어긋나게) */
+const lateHarassTurn = (s: GameState, p: Player): boolean =>
+  lateConquerorWaiting(p) && AI_TUNE.lateHarassEvery > 0 && (s.round + p.id) % AI_TUNE.lateHarassEvery === 0
 /** 전쟁광도 기반(영토 7타일 이상, 일꾼 4명 이상)이 없으면 미학 등 성장 정책으로 먼저 키운다 */
 const warFoundation = (p: Player): boolean => p.cities.reduce((n, c) => n + c.tiles.length, 0) >= 7 && totalWorkers(p) >= 4
 /** 산업시대(비용 6열 이상 기술)가 열리기 전: 이때까지 군대로 몰아붙인다 */
@@ -624,7 +650,7 @@ const harassValue = (s: GameState, ownerId: number, cityId: number, tileId: numb
  * 장군 한두 개로 상대 타일을 오래 점령해 방해한다. 전쟁광은 해당 없다 (한 상대를 골라 탈락시킨다).
  */
 function isHarasser(s: GameState, p: Player): boolean {
-  if (!AI_TUNE.harass || isWarlord(p) || lateConquerorWaiting(p) || armyOf(p) < 2) return false
+  if (!AI_TUNE.harass || isWarlord(p) || armyOf(p) < 2) return false
   const rivals = s.players.filter((o) => o.id !== p.id && !o.eliminated && o.cities.length > 0)
   if (!rivals.length) return false
   if (p.military.some((c) => c.unique && cardStats(c).hp !== undefined)) return true
@@ -913,6 +939,11 @@ function policyOrder(s: GameState, p: Player): Policy[] {
   }
   if (lateTiles >= 2) {
     aiDebug.policyReason = '후반 타일'
+    return sprint()
+  }
+  // 극후반 정복형(독일): 과학이 늦어지지 않게 자유·합리주의로 달린다
+  if (lateConqueror(p) && AI_TUNE.lateScienceBoost > 1) {
+    aiDebug.policyReason = '과학 우선'
     return sprint()
   }
   if (territory.length >= 4 && avgTile < POOR_TILES && !foundationDone) {
@@ -1320,7 +1351,7 @@ function declareCandidates(s: GameState, p: Player): Action[] {
   if (planning) return [{ type: 'endTurn' }]
   const out: Action[] = []
   const army = p.military.filter((c) => cardStats(c).hp !== undefined).length
-  if (army >= 2 && !lateConquerorWaiting(p)) {
+  if (army >= 2 && (!lateConquerorWaiting(p) || lateHarassTurn(s, p))) {
     // 탈환 → 상대의 좋은 타일(산출·자원·행복) → 도시 순으로 노린다. 좋은 타일을 점령해 상대의 성장을 누른다
     const value = (t: ReturnType<typeof declarationTargets>[number]): number => {
       if (t.kind === 'retake') return 1000
@@ -1425,8 +1456,9 @@ export function aiCandidates(s: GameState): Action[] {
       const baseScience = civById(p.civId).bonus.science ?? 0
       defending = armyOf(p) < defenseTarget(s, p) || underAttack(s, p)
       starving = baseScience < Math.min(...researchableTechs(s).map((t) => t.cost), 99)
-      // 극후반 정복형이 내정 중이면 선전포고를 하지 않으므로 일꾼을 남기지 않는다
-      const reserve = isCoastalRaider(p) ? raidReserve(s, p) : lateConquerorWaiting(p) ? 0 : p.generals > 0 && p.military.length >= 2 ? 1 : 0
+      // 극후반 정복형이 내정 중이면 견제 점령을 하는 차례에만 선전포고용 일꾼을 남긴다
+      const canDeclare = p.generals > 0 && p.military.length >= 2
+      const reserve = isCoastalRaider(p) ? raidReserve(s, p) : lateConquerorWaiting(p) ? (lateHarassTurn(s, p) && canDeclare ? 1 : 0) : canDeclare ? 1 : 0
       const planned = plannedPlacements(s, p, reserve)
       return [
         ...recallCandidates(s, p),
