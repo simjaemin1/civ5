@@ -141,6 +141,8 @@ export interface Player {
   scouting: boolean
   /** 정찰로 본 타일 (이번 차례) */
   scouted: TileCard | null
+  /** 나침반: 정찰로 함께 본 두 번째 타일 (이번 차례, 둘 중 1장만 맡아둘 수 있다) */
+  scoutedExtra?: TileCard | null
   /** 마지막으로 정찰한 라운드: 한 차례에 1장만 볼 수 있다 (맡아둔 타일을 돌려보내도 다시 정찰할 수 없다) */
   scoutedRound?: number
   /** 맡아둔 타일을 돌려보내 정찰 일꾼이 돌아온 라운드: 그 차례에는 그 일꾼을 선전포고에 쓸 수 없다 */
@@ -281,7 +283,8 @@ export type Action =
   | { type: 'upgrade'; uid: number; unique?: string; toDefId?: string }
   | { type: 'recallGeneral'; defenderId: number; cityId: number; tileId: number }
   | { type: 'scout'; cityId?: number }
-  | { type: 'holdScouted' }
+  /** 정찰한 타일 맡아두기 (나침반으로 2장을 봤으면 tileId로 고른다, 없으면 첫 장) */
+  | { type: 'holdScouted'; tileId?: number }
   | { type: 'releaseHeld' }
   | { type: 'declareWar'; defenderId: number; cityId: number; tileId: number }
   | { type: 'endTurn' }

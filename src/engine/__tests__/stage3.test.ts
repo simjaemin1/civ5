@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { SIDES, actorOf, apply, defaultTileCity, extraHoles, gainCulture, cardById, culture, ctxOf, RuleError, MILITARY_CARDS, declarationTargets, freeWorkers, tileYield, isCoastalCity, happiness } from '..'
+import { SIDES, actorOf, apply, defaultTileCity, extraHoles, gainCulture, cardById, culture, ctxOf, RuleError, MILITARY_CARDS, declarationTargets, freeWorkers, tileYield, isCoastalCity, happiness, scoutedCards, totalWorkers } from '..'
 import type { GameState, TileCard } from '..'
 import { found, me, play, startGame, tile } from './helpers'
 import { flushPendingTiles } from '../core'
@@ -1183,6 +1183,30 @@ describe('정찰과 맡아두기', () => {
     }
     expect(reordered).toBe(trials) // 돌려넣을 때마다 순서가 새로 섞인다
     expect(sameOnTop).toBeLessThan(trials / 10) // 완전히 새로 섞는 것이므로 가끔 같은 타일이 맨 위에 올 수는 있지만 드물다
+  })
+
+  it('나침반이 있으면 정찰할 때 2장을 보고 그중 1장을 맡아둔다 (나머지는 덱으로, 없으면 1장만)', () => {
+    const tiles = (g: GameState) => g.deck.length + scoutedCards(g.players[0]).length + (g.players[0].held ? 1 : 0)
+    // 나침반 없이: 1장
+    let s = mod(start(), (c) => c.deck.unshift({ id: 901, terrains: ['오아시스'] }, { id: 902, terrains: ['평지'] }))
+    s = apply(s, { type: 'scout' })
+    expect(scoutedCards(me(s)).map((c) => c.id)).toEqual([901])
+    // 나침반: 2장
+    s = mod(start(), (c) => {
+      c.players[0].techs.push('compass')
+      c.deck.unshift({ id: 901, terrains: ['오아시스'] }, { id: 902, terrains: ['평지'] })
+    })
+    const total = tiles(s)
+    s = apply(s, { type: 'scout' })
+    expect(scoutedCards(me(s)).map((c) => c.id)).toEqual([901, 902])
+    expect(tiles(s)).toBe(total)
+    expect(() => apply(s, { type: 'holdScouted', tileId: 777 })).toThrow(RuleError)
+    s = apply(s, { type: 'holdScouted', tileId: 902 })
+    expect(me(s).held!.id).toBe(902)
+    expect(scoutedCards(me(s))).toEqual([])
+    expect(s.deck.some((c) => c.id === 901)).toBe(true) // 고르지 않은 타일은 덱으로
+    expect(tiles(s)).toBe(total)
+    expect(freeWorkers(me(s))).toBe(totalWorkers(me(s)) - 1) // 일꾼은 1개만 묶인다
   })
 
   it('맡아둔 타일을 돌려보낼 때도 덱을 섞는다', () => {
