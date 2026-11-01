@@ -48,16 +48,17 @@ export function scout(s: GameState, p: Player, cityId?: number): void {
 
 /**
  * 맡아두기: 정찰한 카드를 돌려넣지 않고 맡아둔다 (최대 1장, 일꾼 1개가 그 위에 남는다). 게임 시작부터 할 수 있다 (사용자 결정, 예전에는 나침반 효과).
- * 나침반으로 2장을 봤으면 그중 1장을 고르고, 나머지 1장은 덱에 돌려넣는다.
+ * 나침반으로 2장을 봤으면 그중 1장을 고르고, 나머지 1장은 정찰한 카드로 남았다가 차례가 끝날 때 덱에 돌아간다
+ * (맡아두기는 고르기만 하는 행동이라 덱을 건드리지 않는다: 되돌리기가 잠기지 않는다).
  */
 export function holdScouted(s: GameState, p: Player, tileId?: number): void {
+  if (p.held) throw new RuleError('이미 맡아둔 타일이 있습니다 (1장까지)')
   const seen = scoutedCards(p)
   if (!seen.length) throw new RuleError('맡아둘 정찰한 카드가 없습니다')
   const pick = tileId === undefined ? seen[0] : seen.find((c) => c.id === tileId)
   if (!pick) throw new RuleError('이번 차례에 정찰한 카드가 아닙니다')
   p.held = pick
-  for (const c of seen) if (c.id !== pick.id) returnToDeck(s, c)
-  p.scouted = null
+  p.scouted = seen.find((c) => c.id !== pick.id) ?? null
   p.scoutedExtra = null
   say(s, `${civById(p.civId).name} 타일 맡아두기`)
 }

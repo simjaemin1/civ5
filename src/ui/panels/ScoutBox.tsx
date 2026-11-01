@@ -54,18 +54,20 @@ export function ScoutBox({
       {placePhase && canScout && !canScout.ok && !player.scouting && !player.held && <small className="muted">{canScout.why}</small>}
       {seen.length > 0 && (
         <span className="row">
-          <b>정찰한 타일{seen.length > 1 ? ' (나침반: 2장 중 1장)' : ''}:</b>
+          <b>{player.held ? '덱에 돌아갈 타일:' : `정찰한 타일${seen.length > 1 ? ' (나침반: 2장 중 1장)' : ''}:`}</b>
           {seen.map((card) => (
             <span key={card.id} className="scout-pick">
               <div style={{ width: 120 }}>
                 <TileView card={card} player={player} />
               </div>
-              <button onClick={() => dispatch({ type: 'holdScouted', tileId: card.id })} title="다음에 새 타일을 얻을 때 이 타일을 가져옵니다. 일꾼 1개가 묶입니다.">
-                📌 맡아두기
-              </button>
+              {!player.held && (
+                <button onClick={() => dispatch({ type: 'holdScouted', tileId: card.id })} title="다음에 새 타일을 얻을 때 이 타일을 가져옵니다. 일꾼 1개가 묶입니다.">
+                  📌 맡아두기
+                </button>
+              )}
             </span>
           ))}
-          <small className="muted">{seen.length > 1 ? '맡아두지 않은 타일은 덱에 돌아갑니다' : '맡아두지 않으면 차례가 끝날 때 덱에 돌아갑니다'}</small>
+          <small className="muted">{player.held ? '차례가 끝나면 덱에 돌아갑니다' : seen.length > 1 ? '맡아두지 않은 타일은 차례가 끝날 때 덱에 돌아갑니다' : '맡아두지 않으면 차례가 끝날 때 덱에 돌아갑니다'}</small>
         </span>
       )}
       {player.held && (

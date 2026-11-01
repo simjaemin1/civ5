@@ -1203,8 +1203,8 @@ describe('정찰과 맡아두기', () => {
     expect(() => apply(s, { type: 'holdScouted', tileId: 777 })).toThrow(RuleError)
     s = apply(s, { type: 'holdScouted', tileId: 902 })
     expect(me(s).held!.id).toBe(902)
-    expect(scoutedCards(me(s))).toEqual([])
-    expect(s.deck.some((c) => c.id === 901)).toBe(true) // 고르지 않은 타일은 덱으로
+    expect(scoutedCards(me(s)).map((c) => c.id)).toEqual([901]) // 고르지 않은 타일은 차례가 끝날 때 덱으로 (맡아두기는 덱을 건드리지 않는다)
+    expect(() => apply(s, { type: 'holdScouted', tileId: 901 })).toThrow(RuleError) // 맡아두기는 1장까지
     expect(tiles(s)).toBe(total)
     expect(freeWorkers(me(s))).toBe(totalWorkers(me(s)) - 1) // 일꾼은 1개만 묶인다
   })

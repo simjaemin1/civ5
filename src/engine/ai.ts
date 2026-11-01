@@ -1015,7 +1015,7 @@ function scoutCandidates(s: GameState, p: Player): Action[] {
   if (aiStyle === 'hammer' || rushingApollo(p) || rushingCulture(p)) return []
   if (isExplorer(p)) {
     // 탐험형: 이번 차례에 정찰한 카드는 바로 맡아 보고, 좋지 않으면 그 자리에서 돌려보내 일꾼을 되찾는다
-    if (p.scouted) return [{ type: 'holdScouted', tileId: bestScouted(p).id }]
+    if (p.scouted && !p.held) return [{ type: 'holdScouted', tileId: bestScouted(p).id }]
     // 좋은 타일을 맡아 두었으면 문화(정책·문화 기술)로 받아 올 때까지 붙든다 (cultureChase가 그 기술로 달린다)
     if (p.held) return holdValue(p, p.held) < HOLD_THRESHOLD ? [{ type: 'releaseHeld' }] : []
     return p.scoutedRound === s.round ? [] : [{ type: 'scout' }]
