@@ -50,6 +50,8 @@ export const AI_TUNE = {
   policyGambit: true,
   /** 독일: 극후반(탄도학으로 팬저가 열린 뒤)에만 정복으로 돌아서고, 그 전에는 견제·선전포고 없이 내정에 집중한다 (탈환만) */
   germanyLateWar: true,
+  /** 극후반 정복형(독일)이 내정 중일 때 견제 점령(짤짤이)을 하는 간격: 이 라운드마다 한 번 (0이면 하지 않는다) */
+  lateHarassEvery: 3,
   /** 불모지 탈출: 시작 패에서 점수가 이 값 이하인 타일(식량 1 이하 등)이 wastelandMinBad장 이상이면 그 타일을 모두 바꾼다 (0이면 쓰지 않는다) */
   wastelandScore: 1.6,
   wastelandMinBad: 2,
@@ -566,6 +568,9 @@ const lateConqueror = (p: Player): boolean => AI_TUNE.germanyLateWar && LATE_CON
 const lateWarTime = (p: Player): boolean => lateConqueror(p) && p.techs.includes(LATE_WAR_TECH)
 /** 극후반 정복형이 아직 내정 중이다 (견제·선전포고를 하지 않는다) */
 const lateConquerorWaiting = (p: Player): boolean => lateConqueror(p) && !lateWarTime(p)
+/** 내정 중인 극후반 정복형이 견제 점령을 하는 차례: 매 차례는 아니고 몇 라운드에 한 번 (문명마다 차례를 어긋나게) */
+const lateHarassTurn = (s: GameState, p: Player): boolean =>
+  lateConquerorWaiting(p) && AI_TUNE.lateHarassEvery > 0 && (s.round + p.id) % AI_TUNE.lateHarassEvery === 0
 /** 전쟁광도 기반(영토 7타일 이상, 일꾼 4명 이상)이 없으면 미학 등 성장 정책으로 먼저 키운다 */
 const warFoundation = (p: Player): boolean => p.cities.reduce((n, c) => n + c.tiles.length, 0) >= 7 && totalWorkers(p) >= 4
 /** 산업시대(비용 6열 이상 기술)가 열리기 전: 이때까지 군대로 몰아붙인다 */
@@ -624,7 +629,7 @@ const harassValue = (s: GameState, ownerId: number, cityId: number, tileId: numb
  * 장군 한두 개로 상대 타일을 오래 점령해 방해한다. 전쟁광은 해당 없다 (한 상대를 골라 탈락시킨다).
  */
 function isHarasser(s: GameState, p: Player): boolean {
-  if (!AI_TUNE.harass || isWarlord(p) || lateConquerorWaiting(p) || armyOf(p) < 2) return false
+  if (!AI_TUNE.harass || isWarlord(p) || armyOf(p) < 2) return false
   const rivals = s.players.filter((o) => o.id !== p.id && !o.eliminated && o.cities.length > 0)
   if (!rivals.length) return false
   if (p.military.some((c) => c.unique && cardStats(c).hp !== undefined)) return true
@@ -1320,7 +1325,7 @@ function declareCandidates(s: GameState, p: Player): Action[] {
   if (planning) return [{ type: 'endTurn' }]
   const out: Action[] = []
   const army = p.military.filter((c) => cardStats(c).hp !== undefined).length
-  if (army >= 2 && !lateConquerorWaiting(p)) {
+  if (army >= 2 && (!lateConquerorWaiting(p) || lateHarassTurn(s, p))) {
     // 탈환 → 상대의 좋은 타일(산출·자원·행복) → 도시 순으로 노린다. 좋은 타일을 점령해 상대의 성장을 누른다
     const value = (t: ReturnType<typeof declarationTargets>[number]): number => {
       if (t.kind === 'retake') return 1000
@@ -1425,8 +1430,9 @@ export function aiCandidates(s: GameState): Action[] {
       const baseScience = civById(p.civId).bonus.science ?? 0
       defending = armyOf(p) < defenseTarget(s, p) || underAttack(s, p)
       starving = baseScience < Math.min(...researchableTechs(s).map((t) => t.cost), 99)
-      // 극후반 정복형이 내정 중이면 선전포고를 하지 않으므로 일꾼을 남기지 않는다
-      const reserve = isCoastalRaider(p) ? raidReserve(s, p) : lateConquerorWaiting(p) ? 0 : p.generals > 0 && p.military.length >= 2 ? 1 : 0
+      // 극후반 정복형이 내정 중이면 견제 점령을 하는 차례에만 선전포고용 일꾼을 남긴다
+      const canDeclare = p.generals > 0 && p.military.length >= 2
+      const reserve = isCoastalRaider(p) ? raidReserve(s, p) : lateConquerorWaiting(p) ? (lateHarassTurn(s, p) && canDeclare ? 1 : 0) : canDeclare ? 1 : 0
       const planned = plannedPlacements(s, p, reserve)
       return [
         ...recallCandidates(s, p),

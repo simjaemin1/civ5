@@ -595,16 +595,22 @@ describe('AI 전쟁 판단 (승률 추정·쏠림 방지·수비·실질 위협�
     })
   })
 
-  it('독일은 탄도학(팬저) 전에는 힘이 앞서도 선전포고하지 않고(탈환만), 연구한 뒤에는 정복에 나선다', () => {
+  it('독일은 탄도학(팬저) 전에는 몇 라운드에 한 번만 견제 점령하고, 연구한 뒤에는 정복에 나선다', () => {
     const s = atPhase('declare', ['germany', 'egypt'])
     s.players[0].generals = 1
     give(s, 0, 'rifleman', 4)
     give(s, 1, 'warrior', 1)
     s.players[0].techs = s.players[0].techs.filter((t) => t !== 'ballistics')
-    expect(declaresOn(s)).toEqual([])
+    const every = AI_TUNE.lateHarassEvery
+    const harassRound = (r: number) => (r + s.players[0].id) % every === 0
+    s.round = [0, 1, 2].map((d) => s.round + d).find((r) => !harassRound(r))!
+    expect(declaresOn(s)).toEqual([]) // 견제하는 차례가 아니면 선전포고하지 않는다 (탈환만)
     expect(withTune({ germanyLateWar: false }, () => declaresOn(s))).toContain(1)
+    s.round = [0, 1, 2].map((d) => s.round + d).find(harassRound)!
+    expect(declaresOn(s)).toContain(1) // 견제하는 차례에는 선전포고한다
+    s.round = [0, 1, 2].map((d) => s.round + d).find((r) => !harassRound(r))!
     s.players[0].techs.push('ballistics')
-    expect(declaresOn(s)).toContain(1)
+    expect(declaresOn(s)).toContain(1) // 탄도학 뒤에는 차례와 상관없이 정복에 나선다
   })
 
   describe('정책 갈아타기 (전통 → 피라미드의 자유·과학이론의 합리주의)', () => {
