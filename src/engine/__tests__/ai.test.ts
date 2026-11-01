@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { holdLimit, AI_TUNE, actorOf, aiCandidates, aiStep, apply, bestSlots, createGame, cardById, cardStats, MILITARY_CARDS, civById, CIVS, happiness, rankTop, totalWorkers, usableInBattle, battleActions, choosePicks, simplePicks, mixedStrategy, arrangeBattle, WONDER_CARDS, declarationTargets, threat } from '..'
+import { TECHS, holdLimit, AI_TUNE, actorOf, aiCandidates, aiStep, apply, bestSlots, createGame, cardById, cardStats, MILITARY_CARDS, civById, CIVS, happiness, rankTop, totalWorkers, usableInBattle, battleActions, choosePicks, simplePicks, mixedStrategy, arrangeBattle, WONDER_CARDS, declarationTargets, threat } from '..'
 import type { GameState, TileCard } from '..'
 
 /** AI끼리 게임을 끝까지(또는 maxSteps까지) 돌린다. */
@@ -611,6 +611,20 @@ describe('AI 전쟁 판단 (승률 추정·쏠림 방지·수비·실질 위협�
     s.round = [0, 1, 2].map((d) => s.round + d).find((r) => !harassRound(r))!
     s.players[0].techs.push('ballistics')
     expect(declaresOn(s)).toContain(1) // 탄도학 뒤에는 차례와 상관없이 정복에 나선다
+  })
+
+  it('독일은 내정 중에 군사 카드만 여는 막다른 기술(기사도)에 식량을 과학으로 돌려 쓰지 않는다', () => {
+    const s = atPhase('research', ['germany', 'egypt'])
+    const p = s.players[0]
+    // 4열까지 모두 연구했고 기사도만 남았다: 남은 후보는 기사도(비용 4)와 5열 기술(비용 6)
+    p.techs = TECHS.filter((t) => t.column <= 4 && t.id !== 'chivalry').map((t) => t.id)
+    p.turn!.yields.science = 2
+    for (const y of p.turn!.yields.cities) y.food = 20 // 남는 식량이 넉넉하다
+    const researched = () => aiCandidates(s).flatMap((a) => (a.type === 'research' ? [a.techId] : []))
+    expect(researched()).not.toContain('chivalry')
+    expect(withTune({ lateScienceBoost: 1 }, researched)).toContain('chivalry') // 끄면 식량을 돌려서라도 연다
+    p.turn!.yields.science = 4 // 남는 과학만으로 열 수 있으면 손해가 없으니 연다 (맨 뒤로)
+    expect(researched()).toContain('chivalry')
   })
 
   describe('정책 갈아타기 (전통 → 피라미드의 자유·과학이론의 합리주의)', () => {
