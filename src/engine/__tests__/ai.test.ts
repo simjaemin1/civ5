@@ -595,6 +595,18 @@ describe('AI 전쟁 판단 (승률 추정·쏠림 방지·수비·실질 위협�
     })
   })
 
+  it('독일은 탄도학(팬저) 전에는 힘이 앞서도 선전포고하지 않고(탈환만), 연구한 뒤에는 정복에 나선다', () => {
+    const s = atPhase('declare', ['germany', 'egypt'])
+    s.players[0].generals = 1
+    give(s, 0, 'rifleman', 4)
+    give(s, 1, 'warrior', 1)
+    s.players[0].techs = s.players[0].techs.filter((t) => t !== 'ballistics')
+    expect(declaresOn(s)).toEqual([])
+    expect(withTune({ germanyLateWar: false }, () => declaresOn(s))).toContain(1)
+    s.players[0].techs.push('ballistics')
+    expect(declaresOn(s)).toContain(1)
+  })
+
   describe('정책 갈아타기 (전통 → 피라미드의 자유·과학이론의 합리주의)', () => {
     /** 0번이 연구 단계: 철학(정책 기술)과 다른 싼 기술을 열 수 있고, 피라미드를 지을 수 있다 */
     const atResearch = (prog: number) => {
