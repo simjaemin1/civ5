@@ -329,6 +329,8 @@ button.tile.empty.build-cell.target { border-color: var(--accent); color: var(--
 .confirm-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: var(--now); border: 1px solid var(--accent-2); border-radius: 8px; padding: 8px 10px; margin: 8px 0; }
 .war-hint { margin: 4px 0; font-size: 0.9rem; color: var(--err); }
 .scout-box { margin: 6px 0; }
+/* 정찰한 타일 (나침반이면 2장): 타일 아래에 맡아두기 버튼 */
+.scout-pick { display: inline-flex; flex-direction: column; align-items: center; gap: 4px; }
 .prod-row { margin: 2px 0; }
 .prod-row.blocked { opacity: 0.6; }
 .prod-row button { white-space: nowrap; }

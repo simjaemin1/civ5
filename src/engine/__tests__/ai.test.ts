@@ -367,8 +367,14 @@ describe('AI 차례 계획기 (문턱 기준 일꾼 배치)', () => {
 describe('AI 전쟁 판단 (승률 추정·쏠림 방지·수비·실질 위협도)', () => {
   /** 0번 문명의 선전포고 단계까지 돌린 상태 */
   const atPhase = (phase: GameState['phase'], civs: string[]): GameState => {
+    // 시드 6부터: 그 단계에 닿지 못하고 게임이 끝나면(예: 일꾼을 다 써서 선전포고 단계를 계속 건너뜀) 다음 시드
+    const reached = (g: GameState) => g.phase === phase && actorOf(g) === 0 && g.round >= 4 && !g.players[0].pendingDiscard && !g.players[0].pendingCardDiscard?.length
     let s = createGame({ seed: 6, civIds: civs })
-    for (let i = 0; i < 4000 && !(s.phase === phase && actorOf(s) === 0 && s.round >= 4 && !s.players[0].pendingDiscard && !s.players[0].pendingCardDiscard?.length); i++) s = aiStep(s).state
+    for (let seed = 6; seed < 30; seed++) {
+      s = createGame({ seed, civIds: civs })
+      for (let i = 0; i < 4000 && !reached(s) && s.phase !== 'over'; i++) s = aiStep(s).state
+      if (reached(s)) break
+    }
     s = structuredClone(s)
     s.declarations = []
     for (const p of s.players) {

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { TileView } from '../TileView'
 import { CityTag } from '../icons'
+import { scoutedCards } from '../../engine'
 import type { PanelProps } from './types'
 
 /**
@@ -18,13 +19,14 @@ export function ScoutBox({
   const [asking, setAsking] = useState(false)
   if (!player.scouted && !player.held && !placePhase) return null
   const cities = canScout?.ok ? canScout.cities : undefined
+  const seen = scoutedCards(player)
   return (
     <div className="row scout-box">
       {placePhase && !player.scouting && !player.held && (
         <button
           disabled={!canScout?.ok}
           onClick={() => (cities ? setAsking(!asking) : dispatch({ type: 'scout' }))}
-          title={canScout?.why ?? '일꾼 1개로 타일 덱 맨 위 카드 1장을 봅니다. 본 뒤에는 그 전으로 되돌릴 수 없습니다.'}
+          title={canScout?.why ?? (player.techs.includes('compass') ? '일꾼 1개로 타일 덱 맨 위 카드 2장을 봅니다 (나침반). 본 뒤에는 그 전으로 되돌릴 수 없습니다.' : '일꾼 1개로 타일 덱 맨 위 카드 1장을 봅니다. 본 뒤에는 그 전으로 되돌릴 수 없습니다.')}
         >
           🔭 정찰
         </button>
@@ -50,16 +52,22 @@ export function ScoutBox({
       )}
       {placePhase && canScout?.ok && !asking && !player.scouting && !player.held && <small className="muted">일꾼 1을 사용합니다</small>}
       {placePhase && canScout && !canScout.ok && !player.scouting && !player.held && <small className="muted">{canScout.why}</small>}
-      {player.scouted && (
+      {seen.length > 0 && (
         <span className="row">
-          <b>정찰한 타일:</b>
-          <div style={{ width: 120 }}>
-            <TileView card={player.scouted} player={player} />
-          </div>
-          <button onClick={() => dispatch({ type: 'holdScouted' })} title="다음에 새 타일을 얻을 때 이 타일을 가져옵니다. 일꾼 1개가 묶입니다.">
-            📌 맡아두기
-          </button>
-          <small className="muted">맡아두지 않으면 차례가 끝날 때 덱에 돌아갑니다</small>
+          <b>{player.held ? '덱에 돌아갈 타일:' : `정찰한 타일${seen.length > 1 ? ' (나침반: 2장 중 1장)' : ''}:`}</b>
+          {seen.map((card) => (
+            <span key={card.id} className="scout-pick">
+              <div style={{ width: 120 }}>
+                <TileView card={card} player={player} />
+              </div>
+              {!player.held && (
+                <button onClick={() => dispatch({ type: 'holdScouted', tileId: card.id })} title="다음에 새 타일을 얻을 때 이 타일을 가져옵니다. 일꾼 1개가 묶입니다.">
+                  📌 맡아두기
+                </button>
+              )}
+            </span>
+          ))}
+          <small className="muted">{player.held ? '차례가 끝나면 덱에 돌아갑니다' : seen.length > 1 ? '맡아두지 않은 타일은 차례가 끝날 때 덱에 돌아갑니다' : '맡아두지 않으면 차례가 끝날 때 덱에 돌아갑니다'}</small>
         </span>
       )}
       {player.held && (

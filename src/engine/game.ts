@@ -220,7 +220,7 @@ export function apply(prev: GameState, action: Action): GameState {
       return s
     case 'holdScouted':
       expectPhase(s, 'place', 'research', 'produce')
-      holdScouted(s, p)
+      holdScouted(s, p, action.tileId)
       return s
     case 'releaseHeld':
       expectPhase(s, 'place') // 맡아둔 타일을 돌려보낼지는 일꾼 배치(산출) 때 정한다

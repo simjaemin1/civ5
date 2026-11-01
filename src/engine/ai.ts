@@ -8,6 +8,7 @@ import { canHammerScience, computeYields, ctxOf, culture, happiness, rationalism
 import { conditionMet, investableWonders, minHammers } from './wonders'
 import { cardCost, heldCount, holdLimit, isObsolete, producible, uniqueOf, upgradeTargets } from './military'
 import { declarationTargets, findTile, occupiedTiles } from './war'
+import { scoutedCards } from './scouting'
 import { battleActions, battleOdds } from './aiBattle'
 import { currentPlayer, defaultTileCity } from './core'
 import { turnKey } from './undo'
@@ -1014,7 +1015,7 @@ function scoutCandidates(s: GameState, p: Player): Action[] {
   if (aiStyle === 'hammer' || rushingApollo(p) || rushingCulture(p)) return []
   if (isExplorer(p)) {
     // 탐험형: 이번 차례에 정찰한 카드는 바로 맡아 보고, 좋지 않으면 그 자리에서 돌려보내 일꾼을 되찾는다
-    if (p.scouted) return [{ type: 'holdScouted' }]
+    if (p.scouted && !p.held) return [{ type: 'holdScouted', tileId: bestScouted(p).id }]
     // 좋은 타일을 맡아 두었으면 문화(정책·문화 기술)로 받아 올 때까지 붙든다 (cultureChase가 그 기술로 달린다)
     if (p.held) return holdValue(p, p.held) < HOLD_THRESHOLD ? [{ type: 'releaseHeld' }] : []
     return p.scoutedRound === s.round ? [] : [{ type: 'scout' }]
@@ -1024,12 +1025,17 @@ function scoutCandidates(s: GameState, p: Player): Action[] {
 }
 
 /** 이번 차례에 문화(= 새 타일)가 들어올 가망이 있으면 정찰한 좋은 타일을 맡아둔다 */
+/** 정찰로 본 타일 중 맡아두기에 가장 좋은 타일 (나침반이면 2장 중에서) */
+function bestScouted(p: Player): TileCard {
+  return scoutedCards(p).reduce((a, b) => (holdValue(p, b) > holdValue(p, a) ? b : a))
+}
+
 function holdCandidates(p: Player, research: Action[]): Action[] {
-  if (!p.scouted || p.held || holdValue(p, p.scouted) < HOLD_THRESHOLD) return []
+  if (!p.scouted || p.held || holdValue(p, bestScouted(p)) < HOLD_THRESHOLD) return []
   const first = research.find((a): a is Extract<Action, { type: 'research' }> => a.type === 'research')
   const tech = first ? TECHS.find((t) => t.id === first.techId) : undefined
   const hope = p.pendingPolicies > 0 || !!tech?.effects.some((e) => e.kind === 'culture' || e.kind === 'policy')
-  return hope ? [{ type: 'holdScouted' }] : []
+  return hope ? [{ type: 'holdScouted', tileId: bestScouted(p).id }] : []
 }
 
 function foundSecond(hand: TileCard[]): Action {
