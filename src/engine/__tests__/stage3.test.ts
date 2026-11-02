@@ -1466,6 +1466,16 @@ describe('문명 능력 (전쟁·군사 관련)', () => {
     expect(tileYield(coast, ctxOf(withOptics)).hammer).toBe(tileYield(coast, ctxOf(p0)).hammer)
   })
 
+  it('아라비아: 석유·오아시스 타일 식량 +2 (사용자 결정, 예전 +1)', () => {
+    const ar = ctxOf(found(startGame(['arabia'], [hand4()])).players[0])
+    const kr = ctxOf(found(startGame(['korea'], [hand4()])).players[0])
+    const oil = tile(['사막'], { resource: 'oil' })
+    const oasis = tile(['오아시스'])
+    expect(tileYield(oil, ar).food - tileYield(oil, kr).food).toBe(2)
+    expect(tileYield(oasis, ar).food - tileYield(oasis, kr).food).toBe(2)
+    expect(tileYield(tile(['사막']), ar)).toEqual(tileYield(tile(['사막']), kr)) // 석유 없는 사막은 그대로
+  })
+
   it('일본: 물고기 타일 산출은 다른 문명과 같다 (식량 보너스 없음)', () => {
     const fish = tile(['해안'], { resource: 'fish' })
     const jp = tileYield(fish, ctxOf(found(startGame(['japan'], [hand4()])).players[0]))
