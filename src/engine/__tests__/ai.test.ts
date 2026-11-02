@@ -133,7 +133,7 @@ describe('AI 과학 승리 전략', () => {
 
   it('세계화·냉각기술 + 평등으로 관광이 상대 문화를 넘겨 문화 승리가 실제로 나온다', () => {
     const types: string[] = []
-    for (const seed of [3, 7, 10]) {
+    for (const seed of [3, 7, 10, 11, 12]) {
       const { state } = simulate(seed, ['korea', 'egypt', 'china'], 2500)
       checkInvariants(state)
       types.push(state.winner?.type ?? 'none')
@@ -730,6 +730,18 @@ describe('AI 전쟁 판단 (승률 추정·쏠림 방지·수비·실질 위협�
     // 실제로 배치할 수 있다 (엔진 규칙)
     const a = aiCandidates(s).find((x) => x.type === 'placeWorkers')!
     expect(() => apply(s, a)).not.toThrow()
+  })
+
+  it('중국은 첫 정책부터 늘 자유를 고른다 (자유를 고를 때마다 문화 1)', () => {
+    const s = atPhase('research', ['china', 'egypt'])
+    const p = s.players[0]
+    p.pendingPolicies = 1
+    const firstPolicy = () => aiCandidates(s).find((a) => a.type === 'choosePolicy')
+    for (const picks of [0, 3]) {
+      p.policyPicks = picks
+      expect(firstPolicy()).toMatchObject({ policy: 'liberty' })
+    }
+    expect(withTune({ chinaLiberty: false }, firstPolicy)).not.toMatchObject({ policy: 'liberty' })
   })
 
   describe('정책 갈아타기 (전통 → 피라미드의 자유·과학이론의 합리주의)', () => {

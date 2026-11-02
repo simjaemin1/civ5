@@ -62,6 +62,8 @@ export const AI_TUNE = {
   /** 몽골: 내 장군이 점령한 상대 타일에 일꾼을 올려 산출하고(몽골 능력), 몽골이 쓰기 좋은 상대 타일을 노린다. 노릴 때 몽골 산출 가치에 곱하는 값 (0이면 끔) */
   mongoliaSteal: 1.5,
   /** 첫 정책: 일꾼이 이 수보다 적으면 전통(일꾼 3개를 버림) 대신 미학을 고른다 (0이면 끔). firstPolicyCivs가 비면 모든 문명 */
+  /** 중국: 자유를 고를 때마다 문화 1이므로 정책은 늘 자유를 먼저 고른다 (평등 한 번으로 상대를 탈락시킬 수 있을 때만 평등) */
+  chinaLiberty: true,
   firstTraditionMinWorkers: 0,
   firstPolicyCivs: [] as string[],
   /** 줄루: 이 기술(임피가 열리는 공공행정)을 연구하기 전에는 전쟁광이 아니라 다른 문명처럼 성장한다 (빈 문자열이면 처음부터 전쟁광) */
@@ -941,6 +943,14 @@ export const aiDebug = { policyReason: '' }
 
 function policyOrder(s: GameState, p: Player): Policy[] {
   aiDebug.policyReason = ''
+  // 중국: 자유를 고를 때마다 문화 1 (같은 정책을 다시 골라도 효과가 다시 난다). 전통·미학 대신 늘 자유
+  if (AI_TUNE.chinaLiberty && p.civId === 'china') {
+    aiDebug.policyReason = '중국 자유'
+    const gain = Math.floor(culture(p) / 3)
+    const now = tourism(p)
+    const finisher = p.policy !== 'equality' && s.players.some((o) => o.id !== p.id && !o.eliminated && o.cities.length > 0 && culture(o) >= now && culture(o) < now + gain)
+    return finisher ? ['equality', 'liberty', ...POLICY_PREFERENCE] : ['liberty', 'rationalism', ...POLICY_PREFERENCE]
+  }
   const turn = p.turn
   const food = turn ? turn.yields.cities.reduce((n, c) => n + c.food, 0) : 0
   const base = turn ? turn.yields.science - (p.policy === 'rationalism' ? rationalismScience(p.civId) : 0) : 0
