@@ -700,6 +700,21 @@ describe('AI 전쟁 판단 (승률 추정·쏠림 방지·수비·실질 위협�
     expect(declaresOn(d2)).toContain(1)
   })
 
+  it('줄루는 전제정치를 정해진 횟수(2번)까지만 고르고, 그 뒤에는 성장 정책을 고른다', () => {
+    const s = atPhase('research', ['zulu', 'egypt'])
+    const p = s.players[0]
+    // 전쟁광 기반(영토 7타일·일꾼 4 이상)을 갖춘 상태
+    for (let i = 0; i < 4; i++) addExtra(s, 0, { terrains: ['언덕'], resource: 'iron' })
+    p.cities[0].workers = Math.max(4, p.cities[0].workers)
+    p.policyPicks = 3
+    p.pendingPolicies = 1
+    const firstPolicy = () => aiCandidates(s).find((a) => a.type === 'choosePolicy')
+    p.policyCounts = { despotism: 1 }
+    expect(firstPolicy()).toMatchObject({ policy: 'despotism' })
+    p.policyCounts = { despotism: 2 }
+    expect(firstPolicy()).not.toMatchObject({ policy: 'despotism' })
+  })
+
   describe('정책 갈아타기 (전통 → 피라미드의 자유·과학이론의 합리주의)', () => {
     /** 0번이 연구 단계: 철학(정책 기술)과 다른 싼 기술을 열 수 있고, 피라미드를 지을 수 있다 */
     const atResearch = (prog: number) => {

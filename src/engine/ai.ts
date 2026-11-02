@@ -57,6 +57,8 @@ export const AI_TUNE = {
   lateScienceBoost: 2,
   /** 스웨덴: 평소에는 장군을 모두 일꾼처럼 타일에 올리고(점령 중인 장군도 불러들임), 캐롤리언 시대(강선~소총병이 생산불가가 되기 전)에만 장군 1개로 가끔 견제 점령한다 */
   swedenGeneralWorkers: true,
+  /** 줄루: 전제정치를 고를 때마다 장군 2개라 몇 번만 고르고 나머지는 성장 정책으로 (이 횟수까지만 전제정치) */
+  zuluDespotismMax: 2,
   /** 모든 문명: 고유 유닛 시대(기초 카드가 아직 생산불가가 되기 전)에는 고유 유닛을 이 장수까지 먼저 만든다 (0이면 끔) */
   uniqueTarget: 3,
   /** 불모지 탈출: 시작 패에서 점수가 이 값 이하인 타일(식량 1 이하 등)이 wastelandMinBad장 이상이면 그 타일을 모두 바꾼다 (0이면 쓰지 않는다) */
@@ -934,7 +936,9 @@ function policyOrder(s: GameState, p: Player): Policy[] {
   if (rushingApollo(p)) return ['liberty', 'rationalism', ...POLICY_PREFERENCE]
   // 전쟁광: 기반이 갖춰졌으면(영토·일꾼) 타일이 괜찮거나 상대가 전통으로 약해졌을 때 전제정치(장군 +1, 선전포고에 일꾼 불필요), 타일이 모자라면 미학으로 타협한다.
   // 기반이 없으면 아래 성장 정책 규칙을 따르고, 과학·문화 질주 중에도 그쪽을 우선한다 (산업시대 전까지)
-  if (isWarlord(p) && preIndustrial(s) && warFoundation(p)) {
+  // 줄루는 전제정치 한 번에 장군 2개라, 정해진 횟수만 고르고 나머지는 아래 성장 정책을 따른다
+  const despotismDone = p.civId === 'zulu' && (p.policyCounts?.despotism ?? 0) >= AI_TUNE.zuluDespotismMax
+  if (isWarlord(p) && preIndustrial(s) && warFoundation(p) && !despotismDone) {
     const terr = p.cities.flatMap((c) => c.tiles).filter((t) => t.role !== 'city')
     const avg = terr.length ? terr.reduce((n, t) => n + weight(tileYield(t.card, ctxOf(p))), 0) / terr.length : 0
     const weakRival = s.players.some((o) => o.id !== p.id && !o.eliminated && o.policy === 'tradition')
