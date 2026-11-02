@@ -57,6 +57,10 @@ export const AI_TUNE = {
   lateScienceBoost: 2,
   /** 스웨덴: 평소에는 장군을 모두 일꾼처럼 타일에 올리고(점령 중인 장군도 불러들임), 캐롤리언 시대(강선~소총병이 생산불가가 되기 전)에만 장군 1개로 가끔 견제 점령한다 */
   swedenGeneralWorkers: true,
+  /** 줄루: 전제정치를 고를 때마다 장군 2개라 몇 번만 고르고 나머지는 성장 정책으로 (이 횟수까지만 전제정치) */
+  zuluDespotismMax: 2,
+  /** 줄루: 이 기술(임피가 열리는 공공행정)을 연구하기 전에는 전쟁광이 아니라 다른 문명처럼 성장한다 (빈 문자열이면 처음부터 전쟁광) */
+  zuluWarTech: '',
   /** 모든 문명: 고유 유닛 시대(기초 카드가 아직 생산불가가 되기 전)에는 고유 유닛을 이 장수까지 먼저 만든다 (0이면 끔) */
   uniqueTarget: 3,
   /** 불모지 탈출: 시작 패에서 점수가 이 값 이하인 타일(식량 1 이하 등)이 wastelandMinBad장 이상이면 그 타일을 모두 바꾼다 (0이면 쓰지 않는다) */
@@ -584,7 +588,8 @@ function researchCandidates(s: GameState, p: Player): Action[] {
 
 /** 전쟁광 문명(훈족·줄루·그리스·몽골): 전제정치로 장군을 모으고 군대를 많이 뽑아, 한 상대를 골라 좋은 타일을 선점령한 뒤 도시를 공격해 탈락시킨다 */
 const WARLORDS = new Set(['huns', 'zulu', 'greece', 'mongolia'])
-const isWarlord = (p: Player): boolean => AI_TUNE.warlord && (WARLORDS.has(p.civId) || lateWarTime(p))
+const isWarlord = (p: Player): boolean =>
+  AI_TUNE.warlord && ((WARLORDS.has(p.civId) && !(p.civId === 'zulu' && AI_TUNE.zuluWarTech && !p.techs.includes(AI_TUNE.zuluWarTech))) || lateWarTime(p))
 /** 극후반 정복형(독일): 팬저가 열리는 탄도학 전에는 내정만, 연구한 뒤에는 전쟁광처럼 한 상대를 골라 탈락시킨다 */
 const LATE_CONQUERORS = new Set(['germany'])
 const LATE_WAR_TECH = 'ballistics'
@@ -934,7 +939,9 @@ function policyOrder(s: GameState, p: Player): Policy[] {
   if (rushingApollo(p)) return ['liberty', 'rationalism', ...POLICY_PREFERENCE]
   // 전쟁광: 기반이 갖춰졌으면(영토·일꾼) 타일이 괜찮거나 상대가 전통으로 약해졌을 때 전제정치(장군 +1, 선전포고에 일꾼 불필요), 타일이 모자라면 미학으로 타협한다.
   // 기반이 없으면 아래 성장 정책 규칙을 따르고, 과학·문화 질주 중에도 그쪽을 우선한다 (산업시대 전까지)
-  if (isWarlord(p) && preIndustrial(s) && warFoundation(p)) {
+  // 줄루는 전제정치 한 번에 장군 2개라, 정해진 횟수만 고르고 나머지는 아래 성장 정책을 따른다
+  const despotismDone = p.civId === 'zulu' && (p.policyCounts?.despotism ?? 0) >= AI_TUNE.zuluDespotismMax
+  if (isWarlord(p) && preIndustrial(s) && warFoundation(p) && !despotismDone) {
     const terr = p.cities.flatMap((c) => c.tiles).filter((t) => t.role !== 'city')
     const avg = terr.length ? terr.reduce((n, t) => n + weight(tileYield(t.card, ctxOf(p))), 0) / terr.length : 0
     const weakRival = s.players.some((o) => o.id !== p.id && !o.eliminated && o.policy === 'tradition')

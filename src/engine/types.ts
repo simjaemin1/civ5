@@ -115,6 +115,8 @@ export interface Player {
   policyOffer?: PolicyId
   /** 지금까지 정책을 고른 횟수 (불가사의·기술로 바뀐 것은 세지 않는다) */
   policyPicks?: number
+  /** 정책마다 고른 횟수 (AI가 예: 줄루의 전제정치를 몇 번 골랐는지 본다). 없으면 0 */
+  policyCounts?: Partial<Record<PolicyId, number>>
   /** 아직 고르지 않은 정책 선택 횟수 */
   pendingPolicies: number
   /**
