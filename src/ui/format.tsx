@@ -111,7 +111,7 @@ function techEffectLine(e: TechDef['effects'][number]): string | null {
     case 'archaeology': return '이 기술을 얻으면 얻은 시점에 자신이 보유한 사적지 타일 1장당 문화를 1씩 얻는다'
     case 'tourismPerCulture': return `매 턴, 자신의 문화 ${e.per}당 1의 관광 점수를 얻는다`
     case 'scienceVictory': return '이 기술을 가장 먼저 획득하였다면 이 게임에서 승리한다'
-    case 'compass': return '정찰 시 타일카드를 2장 보고, 그중 1장을 기억할 수 있다'
+    case 'compass': return '정찰 시 카드를 2장 볼 수 있게 된다 (타일 맡아 두기는 그 중 1장만 할 수 있다)'
     case 'happiness': return `행복 ${e.amount}를 얻는다`
     case 'sciencePerTurn': return `자신의 차례에 산출량+${e.amount}`
     case 'policyChance': return `이 기술을 얻으면 얻은 시점에 원한다면 정책을 '${POLICIES[e.policy].name}'로 변경할 수 있다`
