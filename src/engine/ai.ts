@@ -1,4 +1,4 @@
-import type { Action, GameState, Player, Side, TileCard } from './types'
+import type { Action, GameState, Placement, Player, Side, TileCard } from './types'
 import { RuleError, SIDES } from './types'
 import { MILITARY_CARDS, RESOURCES, TECHS, WONDERS, WONDER_CARDS, cardById, civById, techById, wonderCardById } from './data'
 import { cardStats } from './cardstats'
@@ -55,6 +55,10 @@ export const AI_TUNE = {
   lateHarassEvery: 3,
   /** 극후반 정복형(독일)은 망치를 덜 치고 과학을 더 친다 (장군을 얻을 때 받는 무료 카드는 그 시점에 만들 수 있는 카드라, 과학이 앞서면 더 좋은 카드가 온다). 1이면 다른 문명과 같다 */
   lateScienceBoost: 2,
+  /** 스웨덴: 평소에는 장군을 모두 일꾼처럼 타일에 올리고(점령 중인 장군도 불러들임), 캐롤리언 시대(강선~소총병이 생산불가가 되기 전)에만 장군 1개로 가끔 견제 점령한다 */
+  swedenGeneralWorkers: true,
+  /** 모든 문명: 고유 유닛 시대(기초 카드가 아직 생산불가가 되기 전)에는 고유 유닛을 이 장수까지 먼저 만든다 (0이면 끔) */
+  uniqueTarget: 3,
   /** 불모지 탈출: 시작 패에서 점수가 이 값 이하인 타일(식량 1 이하 등)이 wastelandMinBad장 이상이면 그 타일을 모두 바꾼다 (0이면 쓰지 않는다) */
   wastelandScore: 1.6,
   wastelandMinBad: 2,
@@ -591,6 +595,35 @@ const lateConquerorWaiting = (p: Player): boolean => lateConqueror(p) && !lateWa
 /** 내정 중인 극후반 정복형이 견제 점령을 하는 차례: 매 차례는 아니고 몇 라운드에 한 번 (문명마다 차례를 어긋나게) */
 const lateHarassTurn = (s: GameState, p: Player): boolean =>
   lateConquerorWaiting(p) && AI_TUNE.lateHarassEvery > 0 && (s.round + p.id) % AI_TUNE.lateHarassEvery === 0
+/** 스웨덴: 장군을 일꾼처럼 쓰는 문명 */
+const generalWorkerCiv = (p: Player): boolean => AI_TUNE.swedenGeneralWorkers && p.civId === 'sweden'
+/** 캐롤리언(소총병의 고유 유닛)을 만들 수 있는 시대: 강선을 연구했고 소총병이 아직 생산불가가 아니다 */
+const caroleanTime = (p: Player): boolean => p.techs.includes('rifling') && !isObsolete(p, cardById('rifleman'))
+/** 스웨덴이 견제 점령을 하는 차례: 캐롤리언 시대에만, 몇 라운드에 한 번 */
+const swedenHarassTurn = (s: GameState, p: Player): boolean =>
+  generalWorkerCiv(p) && caroleanTime(p) && AI_TUNE.lateHarassEvery > 0 && (s.round + p.id) % AI_TUNE.lateHarassEvery === 0
+/** 스웨덴이 선전포고(탈환 제외)를 하지 않는 차례 */
+const swedenAtPeace = (s: GameState, p: Player): boolean => generalWorkerCiv(p) && !swedenHarassTurn(s, p)
+/**
+ * 스웨덴: 남는 위대한 장군을 일꾼처럼 빈 타일에 올린다 (장군은 식량을 먹지 않는다). 견제하는 차례에는 선전포고용 장군 keep개를 남긴다.
+ * 이미 고른 배치에 없는, 상대가 점령하지 않은 좋은 타일부터.
+ */
+function withGeneralWorkers(p: Player, base: Placement[], keep: number): Placement[] {
+  if (!generalWorkerCiv(p)) return base
+  let free = p.generals - p.generalWorkers - keep
+  if (free <= 0) return base
+  const used = new Set(base.map((x) => x.tileId))
+  const open = p.cities
+    .flatMap((c) => c.tiles.filter((t) => t.role !== 'city' && (t.occupiedBy === undefined || t.occupiedBy === p.id) && !used.has(t.card.id)).map((t) => ({ cityId: c.id, card: t.card })))
+    .sort((a, b) => tileScore(p, b.card) - tileScore(p, a.card))
+  const out = [...base]
+  for (const t of open) {
+    if (free <= 0) break
+    out.push({ cityId: t.cityId, tileId: t.card.id, general: true })
+    free--
+  }
+  return out
+}
 /** 전쟁광도 기반(영토 7타일 이상, 일꾼 4명 이상)이 없으면 미학 등 성장 정책으로 먼저 키운다 */
 const warFoundation = (p: Player): boolean => p.cities.reduce((n, c) => n + c.tiles.length, 0) >= 7 && totalWorkers(p) >= 4
 /** 산업시대(비용 6열 이상 기술)가 열리기 전: 이때까지 군대로 몰아붙인다 */
@@ -1167,6 +1200,8 @@ function wonderBids(s: GameState, p: Player, wonders: WonderCardDef[], h: number
  * 견제형 문명은 점령을 오래 들고 있고, 1등이 바뀌었거나 상대가 훨씬 좋은 타일을 얻었을 때만 장군을 옮긴다 (harassRecalls).
  */
 function recallCandidates(s: GameState, p: Player): Action[] {
+  // 스웨덴: 캐롤리언 시대가 아니면 점령 중인 장군을 모두 불러들여 일꾼처럼 쓴다
+  if (generalWorkerCiv(p) && !caroleanTime(p)) return occupiedTiles(s, p).slice(0, 1).map((t) => ({ type: 'recallGeneral' as const, defenderId: t.defenderId, cityId: t.cityId, tileId: t.tileId }))
   const raw = isCoastalRaider(p) ? raidRecalls(s, p) : isHarasser(s, p) ? harassRecalls(s, p) : plainRecalls(s, p)
   // 불러들인 장군으로 정말 더 나은 곳을 치는지 미리 본다: 방금 푼 타일을 다시 치거나 더 못한 타일로 가면 점령을 그대로 둔다
   // (같은 타일을 풀었다 다시 치면 일꾼만 쓰고 질 위험만 진다). 승률 추정이 비싸 앞의 둘만 본다
@@ -1211,6 +1246,21 @@ function worthRecall(s: GameState, p: Player, a: { defenderId: number; cityId: n
   }
   if (side(after, next) && !side(s, a)) return true
   return value(after, next.defenderId, next.cityId, next.tileId) > released
+}
+
+/**
+ * 자기 상황에 꼭 맞아 고유 유닛보다 먼저 달릴 불가사의 (사용자 결정):
+ * 페트라(첫 5타일에 사막이 있어야 지을 수 있다), 프랑스의 관광 불가사의, 페르시아의 행복 불가사의, 영국의 알렉산드리아 등대,
+ * 갈아타기로 가져갈 피라미드, 문화 승리로 달릴 때의 관광 불가사의. 시스티나 성당·공중정원 같은 나머지는 고유 유닛 뒤로.
+ */
+function mustWonder(s: GameState, p: Player, w: WonderCardDef): boolean {
+  const has = (kind: string) => w.effects.some((e) => e.kind === kind)
+  if (w.id === 'petra') return true
+  if (w.id === PYRAMIDS && pyramidPlan(s, p)) return true
+  if (p.civId === 'france' && has('tourism')) return true
+  if (p.civId === 'persia' && has('happiness')) return true
+  if (p.civId === 'england' && w.id === 'great_lighthouse') return true
+  return rushingCulture(p) && has('tourism')
 }
 
 function produceCandidates(s: GameState, p: Player): Action[] {
@@ -1262,8 +1312,13 @@ function produceCandidates(s: GameState, p: Player): Action[] {
       const keep = !wanted ? [] : longbowEra ? cardActions.filter((a) => a.type === 'produce' && a.unique) : cardActions
       cardActions.splice(0, cardActions.length, ...keep)
     }
+    // 고유 유닛 시대에는 고유 유닛을 3장까지 먼저 만든다 (만들 수 있으면 시대가 아직 현역이다. 지나면 평소대로).
+    // 다만 자기 상황에 꼭 맞는 불가사의(페트라, 프랑스의 관광 불가사의 등)는 그보다 먼저 달린다
+    const uniqueRush = cardActions.filter((a) => a.type === 'produce' && !!a.unique && p.military.filter((c) => c.unique === a.unique).length < AI_TUNE.uniqueTarget)
+    const mustActions = uniqueRush.length ? wonderActions.filter((a) => a.type === 'invest' && mustWonder(s, p, wonderCardById(a.wonderId))) : []
     // 완성 직전인 상대를 동률로 막는 투자가 가장 먼저, 뒤 문명이 넘길 수 있는 투자는 군사 카드 뒤로
     out.push(...spoilActions)
+    out.push(...mustActions, ...uniqueRush)
     const cardsFirst = raider && AI_TUNE.raidLeanArmy ? needDefense || army < 2 || army < defenseTarget(s, p) + AI_TUNE.raidDefenseExtra : army < 3 || needDefense || rush || aiStyle === 'hammer'
     out.push(...(cardsFirst ? [...cardActions, ...wonderActions] : [...wonderActions, ...cardActions]))
     out.push(...riskyActions)
@@ -1355,7 +1410,7 @@ function declareCandidates(s: GameState, p: Player): Action[] {
   if (planning) return [{ type: 'endTurn' }]
   const out: Action[] = []
   const army = p.military.filter((c) => cardStats(c).hp !== undefined).length
-  if (army >= 2 && (!lateConquerorWaiting(p) || lateHarassTurn(s, p))) {
+  if (army >= 2 && (!lateConquerorWaiting(p) || lateHarassTurn(s, p)) && !swedenAtPeace(s, p)) {
     // 탈환 → 상대의 좋은 타일(산출·자원·행복) → 도시 순으로 노린다. 좋은 타일을 점령해 상대의 성장을 누른다
     const value = (t: ReturnType<typeof declarationTargets>[number]): number => {
       if (t.kind === 'retake') return 1000
@@ -1462,12 +1517,16 @@ export function aiCandidates(s: GameState): Action[] {
       starving = baseScience < Math.min(...researchableTechs(s).map((t) => t.cost), 99)
       // 극후반 정복형이 내정 중이면 견제 점령을 하는 차례에만 선전포고용 일꾼을 남긴다
       const canDeclare = p.generals > 0 && p.military.length >= 2
-      const reserve = isCoastalRaider(p) ? raidReserve(s, p) : lateConquerorWaiting(p) ? (lateHarassTurn(s, p) && canDeclare ? 1 : 0) : canDeclare ? 1 : 0
+      // 스웨덴은 견제하는 차례(캐롤리언 시대)에만 선전포고용 일꾼·장군을 남긴다
+      const reserve = isCoastalRaider(p) ? raidReserve(s, p) : lateConquerorWaiting(p) ? (lateHarassTurn(s, p) && canDeclare ? 1 : 0) : generalWorkerCiv(p) ? (swedenHarassTurn(s, p) && canDeclare ? 1 : 0) : canDeclare ? 1 : 0
+      const keepGeneral = generalWorkerCiv(p) && swedenHarassTurn(s, p) && canDeclare ? 1 : 0
       const planned = plannedPlacements(s, p, reserve)
+      const gw = (pl: Placement[]) => withGeneralWorkers(p, pl, keepGeneral)
       return [
         ...recallCandidates(s, p),
         ...scoutCandidates(s, p),
-        ...(planned ? [{ type: 'placeWorkers' as const, placements: planned }] : []),
+        ...(planned ? [{ type: 'placeWorkers' as const, placements: gw(planned) }] : []),
+        { type: 'placeWorkers', placements: gw(placements(p, reserve)) },
         { type: 'placeWorkers', placements: placements(p, reserve) },
         { type: 'placeWorkers', placements: placements(p, 0) },
         { type: 'placeWorkers', placements: [] },

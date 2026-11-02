@@ -431,6 +431,39 @@ describe('AI 전쟁 판단 (승률 추정·쏠림 방지·수비·실질 위협�
     expect(declaresOn(s)).not.toContain(1)
   })
 
+  it('고유 유닛 시대에는 군대가 넉넉해도 고유 유닛을 3장까지 불가사의보다 먼저 만든다', () => {
+    const s = atPhase('produce', ['korea', 'egypt'])
+    const p = s.players[0]
+    // 상황과 상관없는 불가사의(시스티나 성당·공중정원)만 지을 수 있다
+    for (const t of ['agriculture', 'gunpowder', 'acoustics', 'mathematics']) if (!p.techs.includes(t)) p.techs.push(t)
+    give(s, 0, 'rifleman', 4) // 군대는 이미 넉넉하다
+    give(s, 1, 'warrior', 1)
+    p.turn!.produced = []
+    for (const y of p.turn!.yields.cities) y.hammer = 12
+    const first = () => aiCandidates(s).find((a) => a.type === 'produce' || a.type === 'invest')!
+    expect(first()).toMatchObject({ type: 'produce', unique: '화차' })
+    expect(withTune({ uniqueTarget: 0 }, first).type).toBe('invest')
+    // 이미 3장이면 평소대로 (고유 유닛 3장이 모두 나가 있으면 만들 수도 없다)
+    for (let i = 0; i < 3; i++) p.military.push({ uid: s.nextUid++, defId: 'hwacha', unique: '화차', dirs: ['C'] })
+    s.uniqueSupply['화차'] = []
+    expect(first().type).toBe('invest')
+  })
+
+  it('고유 유닛보다 자기 상황에 꼭 맞는 불가사의가 먼저다 (프랑스의 루브르), 상관없는 불가사의(시스티나 등)는 뒤', () => {
+    const s = atPhase('produce', ['france', 'egypt'])
+    const p = s.players[0]
+    for (const t of ['agriculture', 'gunpowder', 'archaeology', 'acoustics', 'mathematics']) if (!p.techs.includes(t)) p.techs.push(t)
+    p.policy = 'aesthetics' // 루브르는 미학 정책일 때 짓는다
+    give(s, 0, 'rifleman', 4)
+    give(s, 1, 'warrior', 1)
+    p.turn!.produced = []
+    for (const y of p.turn!.yields.cities) y.hammer = 12
+    const order = aiCandidates(s).filter((a) => a.type === 'produce' || a.type === 'invest').map((a) => (a.type === 'invest' ? a.wonderId : a.type === 'produce' ? a.unique ?? a.defId : ''))
+    expect(order[0]).toBe('louvre')
+    expect(order[1]).toBe('총사대')
+    expect(order.indexOf('총사대')).toBeLessThan(order.indexOf('sistine_chapel'))
+  })
+
   it('나를 노린 선전포고가 있으면 불가사의보다 군사 카드를 먼저 만든다', () => {
     const s = atPhase('produce', ['korea', 'egypt'])
     const p = s.players[0]
@@ -632,6 +665,39 @@ describe('AI 전쟁 판단 (승률 추정·쏠림 방지·수비·실질 위협�
     expect(withTune({ lateScienceBoost: 1 }, researched)).toContain('chivalry') // 끄면 식량을 돌려서라도 연다
     p.turn!.yields.science = 4 // 남는 과학만으로 열 수 있으면 손해가 없으니 연다 (맨 뒤로)
     expect(researched()).toContain('chivalry')
+  })
+
+  it('스웨덴은 평소 장군을 모두 일꾼처럼 쓰고 선전포고하지 않으며, 캐롤리언 시대에는 견제하는 차례에 장군 1개를 남겨 선전포고한다', () => {
+    const generalPlacements = (s: GameState) => {
+      const a = aiCandidates(s).find((x) => x.type === 'placeWorkers')
+      return a && a.type === 'placeWorkers' ? a.placements.filter((x) => x.general).length : -1
+    }
+    // 평소 (강선 전)
+    let s = atPhase('place', ['sweden', 'egypt'])
+    const p = s.players[0]
+    p.techs = p.techs.filter((t) => t !== 'rifling')
+    p.generals = 2
+    for (let i = 0; i < 3; i++) addExtra(s, 0, { terrains: ['평지'] }) // 장군을 올릴 빈 타일
+    give(s, 0, 'rifleman', 4)
+    give(s, 1, 'warrior', 1)
+    expect(generalPlacements(s)).toBe(2)
+    expect(withTune({ swedenGeneralWorkers: false }, () => generalPlacements(s))).toBe(0)
+    const d = structuredClone(s)
+    d.phase = 'declare'
+    expect(declaresOn(d)).toEqual([])
+    // 점령 중인 장군은 불러들인다
+    const occ = structuredClone(s)
+    occ.players[1].cities[0].tiles.find((t) => t.role !== 'city')!.occupiedBy = 0
+    expect(recalls(occ).length).toBe(1)
+    // 캐롤리언 시대, 견제하는 차례: 장군 1개를 남기고 선전포고한다
+    s = structuredClone(s)
+    s.players[0].techs.push('rifling')
+    const harass = (r: number) => (r + s.players[0].id) % AI_TUNE.lateHarassEvery === 0
+    s.round = [0, 1, 2].map((x) => s.round + x).find(harass)!
+    expect(generalPlacements(s)).toBe(1)
+    const d2 = structuredClone(s)
+    d2.phase = 'declare'
+    expect(declaresOn(d2)).toContain(1)
   })
 
   describe('정책 갈아타기 (전통 → 피라미드의 자유·과학이론의 합리주의)', () => {
