@@ -61,6 +61,9 @@ export const AI_TUNE = {
   zuluDespotismMax: 2,
   /** 몽골: 내 장군이 점령한 상대 타일에 일꾼을 올려 산출하고(몽골 능력), 몽골이 쓰기 좋은 상대 타일을 노린다. 노릴 때 몽골 산출 가치에 곱하는 값 (0이면 끔) */
   mongoliaSteal: 1.5,
+  /** 첫 정책: 일꾼이 이 수보다 적으면 전통(일꾼 3개를 버림) 대신 미학을 고른다 (0이면 끔). firstPolicyCivs가 비면 모든 문명 */
+  firstTraditionMinWorkers: 0,
+  firstPolicyCivs: [] as string[],
   /** 줄루: 이 기술(임피가 열리는 공공행정)을 연구하기 전에는 전쟁광이 아니라 다른 문명처럼 성장한다 (빈 문자열이면 처음부터 전쟁광) */
   zuluWarTech: '',
   /** 모든 문명: 고유 유닛 시대(기초 카드가 아직 생산불가가 되기 전)에는 고유 유닛을 이 장수까지 먼저 만든다 (0이면 끔) */
@@ -955,6 +958,9 @@ function policyOrder(s: GameState, p: Player): Policy[] {
   if ((p.policyPicks ?? 0) === 0) {
     aiDebug.policyReason = '첫 정책'
     if (isExplorer(p)) return ['tradition', 'aesthetics', ...POLICY_PREFERENCE]
+    // 일꾼이 적을 때 전통을 고르면 일꾼 3개를 버려 거의 다 잃는다: 그때는 미학(문화 1, 손해 없음)
+    const lowCheck = AI_TUNE.firstTraditionMinWorkers > 0 && (AI_TUNE.firstPolicyCivs.length === 0 || AI_TUNE.firstPolicyCivs.includes(p.civId))
+    if (lowCheck && totalWorkers(p) < AI_TUNE.firstTraditionMinWorkers) return ['aesthetics', 'tradition', ...POLICY_PREFERENCE]
     return food - totalWorkers(p) > 0 ? ['tradition', 'aesthetics', ...POLICY_PREFERENCE] : ['aesthetics', 'tradition', ...POLICY_PREFERENCE]
   }
   // 탐험형이 좋은 타일을 맡아 두었으면 문화를 주는 정책(미학)으로 바로 받아 온다
