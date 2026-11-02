@@ -280,19 +280,19 @@
    "gold": 4
   },
   "startCulture": 0,
-  "ability": "석유·오아시스 타일 식량 +1",
+  "ability": "석유·오아시스 타일 식량 +2",
   "unique": "낙타궁수 (기사)",
   "tileMods": [
    {
     "resource": "oil",
     "yield": {
-     "food": 1
+     "food": 2
     }
    },
    {
     "terrain": "오아시스",
     "yield": {
-     "food": 1
+     "food": 2
     }
    }
   ],
