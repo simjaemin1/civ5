@@ -715,6 +715,23 @@ describe('AI 전쟁 판단 (승률 추정·쏠림 방지·수비·실질 위협�
     expect(firstPolicy()).not.toMatchObject({ policy: 'despotism' })
   })
 
+  it('몽골은 내 장군이 점령한 좋은 상대 타일에 일꾼을 올려 직접 산출한다 (내 타일보다 나으면 옮겨서라도)', () => {
+    const s = atPhase('place', ['mongolia', 'egypt'])
+    const p = s.players[0]
+    p.generals = 0
+    flatten(s, 0) // 내 타일은 모두 평지 (식량 2)
+    const oasis = addExtra(s, 1, { terrains: ['오아시스'] }, 0) // 몽골 장군이 점령한 상대 오아시스 (식량 3·금 1)
+    const enemyPlacements = () => {
+      const a = aiCandidates(s).find((x) => x.type === 'placeWorkers')
+      return a && a.type === 'placeWorkers' ? a.placements.filter((x) => x.enemy) : []
+    }
+    expect(enemyPlacements()).toEqual([expect.objectContaining({ tileId: oasis.card.id, enemy: { playerId: 1, cityId: s.players[1].cities[0].id } })])
+    expect(withTune({ mongoliaSteal: 0 }, enemyPlacements)).toEqual([])
+    // 실제로 배치할 수 있다 (엔진 규칙)
+    const a = aiCandidates(s).find((x) => x.type === 'placeWorkers')!
+    expect(() => apply(s, a)).not.toThrow()
+  })
+
   describe('정책 갈아타기 (전통 → 피라미드의 자유·과학이론의 합리주의)', () => {
     /** 0번이 연구 단계: 철학(정책 기술)과 다른 싼 기술을 열 수 있고, 피라미드를 지을 수 있다 */
     const atResearch = (prog: number) => {

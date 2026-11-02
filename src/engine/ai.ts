@@ -59,6 +59,8 @@ export const AI_TUNE = {
   swedenGeneralWorkers: true,
   /** 줄루: 전제정치를 고를 때마다 장군 2개라 몇 번만 고르고 나머지는 성장 정책으로 (이 횟수까지만 전제정치) */
   zuluDespotismMax: 2,
+  /** 몽골: 내 장군이 점령한 상대 타일에 일꾼을 올려 산출하고(몽골 능력), 몽골이 쓰기 좋은 상대 타일을 노린다. 노릴 때 몽골 산출 가치에 곱하는 값 (0이면 끔) */
+  mongoliaSteal: 1.5,
   /** 줄루: 이 기술(임피가 열리는 공공행정)을 연구하기 전에는 전쟁광이 아니라 다른 문명처럼 성장한다 (빈 문자열이면 처음부터 전쟁광) */
   zuluWarTech: '',
   /** 모든 문명: 고유 유닛 시대(기초 카드가 아직 생산불가가 되기 전)에는 고유 유닛을 이 장수까지 먼저 만든다 (0이면 끔) */
@@ -626,6 +628,44 @@ function withGeneralWorkers(p: Player, base: Placement[], keep: number): Placeme
     if (free <= 0) break
     out.push({ cityId: t.cityId, tileId: t.card.id, general: true })
     free--
+  }
+  return out
+}
+
+/** 몽골: 상대 타일을 몽골이 직접 쓸 때의 가치 (몽골 산출 기준: 러시아 툰드라처럼 그 문명 능력으로 좋아진 몫은 빠진다) */
+const stealValue = (p: Player, card: TileCard): number => tileScore(p, card)
+/**
+ * 몽골: 내 장군이 점령한 상대 타일에 일꾼을 올린다 (몽골 능력). 남는 일꾼이 있으면 그대로 올리고,
+ * 없으면 내 타일 중 더 못한 타일의 일꾼을 옮긴다. reserve만큼은 선전포고용으로 남긴다.
+ */
+function withEnemyWorkers(s: GameState, p: Player, base: Placement[], reserve: number): Placement[] {
+  if (p.civId !== 'mongolia' || AI_TUNE.mongoliaSteal <= 0) return base
+  const enemy: { playerId: number; cityId: number; tileId: number; card: TileCard }[] = []
+  for (const o of s.players) {
+    if (o.id === p.id) continue
+    for (const c of o.cities) for (const t of c.tiles) if (t.occupiedBy === p.id && t.role !== 'city') enemy.push({ playerId: o.id, cityId: c.id, tileId: t.card.id, card: t.card })
+  }
+  if (!enemy.length) return base
+  enemy.sort((a, b) => stealValue(p, b.card) - stealValue(p, a.card))
+  const out = [...base]
+  const scoutCity = (p.scouting || p.held) && p.scoutCity !== undefined ? p.scoutCity : undefined
+  const workersOn = (cityId: number) => out.filter((x) => x.cityId === cityId && !x.general).length
+  const room = (cityId: number) => p.cities.find((c) => c.id === cityId)!.workers - workersOn(cityId) - (scoutCity === cityId ? 1 : 0)
+  let spare = totalWorkers(p) - p.busyWorkers - (p.held || p.scouting ? 1 : 0) - reserve - out.filter((x) => !x.general).length
+  const cardOf = (x: Placement) => p.cities.find((c) => c.id === x.cityId)?.tiles.find((t) => t.card.id === x.tileId)?.card
+  for (const e of enemy) {
+    const city = spare > 0 ? p.cities.find((c) => room(c.id) > 0) : undefined
+    if (city) {
+      out.push({ cityId: city.id, tileId: e.tileId, enemy: { playerId: e.playerId, cityId: e.cityId } })
+      spare--
+      continue
+    }
+    // 남는 일꾼이 없으면 내 타일 중 가장 못한 타일보다 나을 때 그 일꾼을 옮긴다
+    const own = out.map((x, k) => ({ x, k, card: !x.general && !x.enemy ? cardOf(x) : undefined })).filter((y) => y.card)
+    if (!own.length) break
+    const worst = own.reduce((a, b) => (tileScore(p, b.card!) < tileScore(p, a.card!) ? b : a))
+    if (stealValue(p, e.card) <= tileScore(p, worst.card!)) break
+    out[worst.k] = { cityId: worst.x.cityId, tileId: e.tileId, enemy: { playerId: e.playerId, cityId: e.cityId } }
   }
   return out
 }
@@ -1223,6 +1263,8 @@ function plainRecalls(s: GameState, p: Player): Action[] {
   return occupiedTiles(s, p)
     .map((t) => ({ t, v: tileImportance(s, t.defenderId, t.cityId, t.tileId) }))
     .filter((x) => x.v < KEEP_OCCUPIED)
+    // 몽골은 쓰기 좋은 점령 타일을 풀지 않는다 (일꾼을 올려 직접 산출한다)
+    .filter((x) => !(p.civId === 'mongolia' && AI_TUNE.mongoliaSteal > 0 && stealValue(p, findTile(s.players[x.t.defenderId], x.t.cityId, x.t.tileId)!.tile.card) >= KEEP_OCCUPIED))
     .filter((x) => !keepForConquest(s, p, x.t))
     // 전쟁광은 탈락시키려는 상대의 망치 타일을 풀지 않는다 (반격할 군사 카드를 못 뽑게 계속 누른다)
     .filter((x) => !(x.t.defenderId === victim && tileHammers(s, x.t.defenderId, x.t.cityId, x.t.tileId) >= HAMMER_HOLD))
@@ -1457,7 +1499,9 @@ function declareCandidates(s: GameState, p: Player): Action[] {
         if (t.kind === 'city') return hasSiege(p) ? 500 : -1
         const o = s.players[t.defenderId]
         const side = t.cityId === conquestCity(o).id && findTile(o, t.cityId, t.tileId)?.tile.role === 'side'
-        return tileImportance(s, t.defenderId, t.cityId, t.tileId) + AI_TUNE.warlordHammer * tileHammers(s, t.defenderId, t.cityId, t.tileId) + (side ? 8 : 0)
+        // 몽골은 점령한 타일을 직접 쓸 수 있으니, 몽골이 쓰기 좋은 타일(초사기 타일)을 더 친다
+        const steal = p.civId === 'mongolia' ? AI_TUNE.mongoliaSteal * stealValue(p, findTile(o, t.cityId, t.tileId)!.tile.card) : 0
+        return tileImportance(s, t.defenderId, t.cityId, t.tileId) + AI_TUNE.warlordHammer * tileHammers(s, t.defenderId, t.cityId, t.tileId) + (side ? 8 : 0) + steal
       }
     } else if (isHarasser(s, p)) {
       // 견제형(고유 유닛을 든 문명 등): 군대만 뽑거나 전제정치로 가지 않고, 가진 장군으로 상대의 고생산(망치) 타일을 강제 점거한다.
@@ -1528,7 +1572,7 @@ export function aiCandidates(s: GameState): Action[] {
       const reserve = isCoastalRaider(p) ? raidReserve(s, p) : lateConquerorWaiting(p) ? (lateHarassTurn(s, p) && canDeclare ? 1 : 0) : generalWorkerCiv(p) ? (swedenHarassTurn(s, p) && canDeclare ? 1 : 0) : canDeclare ? 1 : 0
       const keepGeneral = generalWorkerCiv(p) && swedenHarassTurn(s, p) && canDeclare ? 1 : 0
       const planned = plannedPlacements(s, p, reserve)
-      const gw = (pl: Placement[]) => withGeneralWorkers(p, pl, keepGeneral)
+      const gw = (pl: Placement[]) => withEnemyWorkers(s, p, withGeneralWorkers(p, pl, keepGeneral), reserve)
       return [
         ...recallCandidates(s, p),
         ...scoutCandidates(s, p),
