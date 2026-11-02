@@ -634,6 +634,39 @@ describe('AI 전쟁 판단 (승률 추정·쏠림 방지·수비·실질 위협�
     expect(researched()).toContain('chivalry')
   })
 
+  it('스웨덴은 평소 장군을 모두 일꾼처럼 쓰고 선전포고하지 않으며, 캐롤리언 시대에는 견제하는 차례에 장군 1개를 남겨 선전포고한다', () => {
+    const generalPlacements = (s: GameState) => {
+      const a = aiCandidates(s).find((x) => x.type === 'placeWorkers')
+      return a && a.type === 'placeWorkers' ? a.placements.filter((x) => x.general).length : -1
+    }
+    // 평소 (강선 전)
+    let s = atPhase('place', ['sweden', 'egypt'])
+    const p = s.players[0]
+    p.techs = p.techs.filter((t) => t !== 'rifling')
+    p.generals = 2
+    for (let i = 0; i < 3; i++) addExtra(s, 0, { terrains: ['평지'] }) // 장군을 올릴 빈 타일
+    give(s, 0, 'rifleman', 4)
+    give(s, 1, 'warrior', 1)
+    expect(generalPlacements(s)).toBe(2)
+    expect(withTune({ swedenGeneralWorkers: false }, () => generalPlacements(s))).toBe(0)
+    const d = structuredClone(s)
+    d.phase = 'declare'
+    expect(declaresOn(d)).toEqual([])
+    // 점령 중인 장군은 불러들인다
+    const occ = structuredClone(s)
+    occ.players[1].cities[0].tiles.find((t) => t.role !== 'city')!.occupiedBy = 0
+    expect(recalls(occ).length).toBe(1)
+    // 캐롤리언 시대, 견제하는 차례: 장군 1개를 남기고 선전포고한다
+    s = structuredClone(s)
+    s.players[0].techs.push('rifling')
+    const harass = (r: number) => (r + s.players[0].id) % AI_TUNE.lateHarassEvery === 0
+    s.round = [0, 1, 2].map((x) => s.round + x).find(harass)!
+    expect(generalPlacements(s)).toBe(1)
+    const d2 = structuredClone(s)
+    d2.phase = 'declare'
+    expect(declaresOn(d2)).toContain(1)
+  })
+
   describe('정책 갈아타기 (전통 → 피라미드의 자유·과학이론의 합리주의)', () => {
     /** 0번이 연구 단계: 철학(정책 기술)과 다른 싼 기술을 열 수 있고, 피라미드를 지을 수 있다 */
     const atResearch = (prog: number) => {
