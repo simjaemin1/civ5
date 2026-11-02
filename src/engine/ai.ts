@@ -59,6 +59,8 @@ export const AI_TUNE = {
   swedenGeneralWorkers: true,
   /** 줄루: 전제정치를 고를 때마다 장군 2개라 몇 번만 고르고 나머지는 성장 정책으로 (이 횟수까지만 전제정치) */
   zuluDespotismMax: 2,
+  /** 줄루: 이 기술(임피가 열리는 공공행정)을 연구하기 전에는 전쟁광이 아니라 다른 문명처럼 성장한다 (빈 문자열이면 처음부터 전쟁광) */
+  zuluWarTech: '',
   /** 모든 문명: 고유 유닛 시대(기초 카드가 아직 생산불가가 되기 전)에는 고유 유닛을 이 장수까지 먼저 만든다 (0이면 끔) */
   uniqueTarget: 3,
   /** 불모지 탈출: 시작 패에서 점수가 이 값 이하인 타일(식량 1 이하 등)이 wastelandMinBad장 이상이면 그 타일을 모두 바꾼다 (0이면 쓰지 않는다) */
@@ -586,7 +588,8 @@ function researchCandidates(s: GameState, p: Player): Action[] {
 
 /** 전쟁광 문명(훈족·줄루·그리스·몽골): 전제정치로 장군을 모으고 군대를 많이 뽑아, 한 상대를 골라 좋은 타일을 선점령한 뒤 도시를 공격해 탈락시킨다 */
 const WARLORDS = new Set(['huns', 'zulu', 'greece', 'mongolia'])
-const isWarlord = (p: Player): boolean => AI_TUNE.warlord && (WARLORDS.has(p.civId) || lateWarTime(p))
+const isWarlord = (p: Player): boolean =>
+  AI_TUNE.warlord && ((WARLORDS.has(p.civId) && !(p.civId === 'zulu' && AI_TUNE.zuluWarTech && !p.techs.includes(AI_TUNE.zuluWarTech))) || lateWarTime(p))
 /** 극후반 정복형(독일): 팬저가 열리는 탄도학 전에는 내정만, 연구한 뒤에는 전쟁광처럼 한 상대를 골라 탈락시킨다 */
 const LATE_CONQUERORS = new Set(['germany'])
 const LATE_WAR_TECH = 'ballistics'
