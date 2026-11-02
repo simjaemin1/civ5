@@ -57,6 +57,8 @@ export const AI_TUNE = {
   lateScienceBoost: 2,
   /** 스웨덴: 평소에는 장군을 모두 일꾼처럼 타일에 올리고(점령 중인 장군도 불러들임), 캐롤리언 시대(강선~소총병이 생산불가가 되기 전)에만 장군 1개로 가끔 견제 점령한다 */
   swedenGeneralWorkers: true,
+  /** 모든 문명: 고유 유닛 시대(기초 카드가 아직 생산불가가 되기 전)에는 고유 유닛을 이 장수까지 먼저 만든다 (0이면 끔) */
+  uniqueTarget: 3,
   /** 불모지 탈출: 시작 패에서 점수가 이 값 이하인 타일(식량 1 이하 등)이 wastelandMinBad장 이상이면 그 타일을 모두 바꾼다 (0이면 쓰지 않는다) */
   wastelandScore: 1.6,
   wastelandMinBad: 2,
@@ -1246,6 +1248,21 @@ function worthRecall(s: GameState, p: Player, a: { defenderId: number; cityId: n
   return value(after, next.defenderId, next.cityId, next.tileId) > released
 }
 
+/**
+ * 자기 상황에 꼭 맞아 고유 유닛보다 먼저 달릴 불가사의 (사용자 결정):
+ * 페트라(첫 5타일에 사막이 있어야 지을 수 있다), 프랑스의 관광 불가사의, 페르시아의 행복 불가사의, 영국의 알렉산드리아 등대,
+ * 갈아타기로 가져갈 피라미드, 문화 승리로 달릴 때의 관광 불가사의. 시스티나 성당·공중정원 같은 나머지는 고유 유닛 뒤로.
+ */
+function mustWonder(s: GameState, p: Player, w: WonderCardDef): boolean {
+  const has = (kind: string) => w.effects.some((e) => e.kind === kind)
+  if (w.id === 'petra') return true
+  if (w.id === PYRAMIDS && pyramidPlan(s, p)) return true
+  if (p.civId === 'france' && has('tourism')) return true
+  if (p.civId === 'persia' && has('happiness')) return true
+  if (p.civId === 'england' && w.id === 'great_lighthouse') return true
+  return rushingCulture(p) && has('tourism')
+}
+
 function produceCandidates(s: GameState, p: Player): Action[] {
   const out: Action[] = []
   const turn = p.turn!
@@ -1295,8 +1312,13 @@ function produceCandidates(s: GameState, p: Player): Action[] {
       const keep = !wanted ? [] : longbowEra ? cardActions.filter((a) => a.type === 'produce' && a.unique) : cardActions
       cardActions.splice(0, cardActions.length, ...keep)
     }
+    // 고유 유닛 시대에는 고유 유닛을 3장까지 먼저 만든다 (만들 수 있으면 시대가 아직 현역이다. 지나면 평소대로).
+    // 다만 자기 상황에 꼭 맞는 불가사의(페트라, 프랑스의 관광 불가사의 등)는 그보다 먼저 달린다
+    const uniqueRush = cardActions.filter((a) => a.type === 'produce' && !!a.unique && p.military.filter((c) => c.unique === a.unique).length < AI_TUNE.uniqueTarget)
+    const mustActions = uniqueRush.length ? wonderActions.filter((a) => a.type === 'invest' && mustWonder(s, p, wonderCardById(a.wonderId))) : []
     // 완성 직전인 상대를 동률로 막는 투자가 가장 먼저, 뒤 문명이 넘길 수 있는 투자는 군사 카드 뒤로
     out.push(...spoilActions)
+    out.push(...mustActions, ...uniqueRush)
     const cardsFirst = raider && AI_TUNE.raidLeanArmy ? needDefense || army < 2 || army < defenseTarget(s, p) + AI_TUNE.raidDefenseExtra : army < 3 || needDefense || rush || aiStyle === 'hammer'
     out.push(...(cardsFirst ? [...cardActions, ...wonderActions] : [...wonderActions, ...cardActions]))
     out.push(...riskyActions)
