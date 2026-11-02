@@ -28,7 +28,7 @@
     <li><span class="n">10</span><span class="t">전쟁</span><span class="p">{{p10}}</span></li>
     <li><span class="n">11</span><span class="t">두 번째 도시</span><span class="p">{{p11}}</span></li>
     <li><span class="n">12</span><span class="t">탈락과 승리</span><span class="p">{{p12}}</span></li>
-    <li><span class="n">13</span><span class="t">참조표</span><span class="p">{{p13}}</span></li>
+    <li><span class="n">13</span><span class="t">막힐 때 돌파구</span><span class="p">{{p13}}</span></li>
   </ol>
   <p class="hint">처음이라면 1~3장을 먼저 읽고 바로 한 판을 시작하세요. 나머지는 필요할 때 찾아 읽으면 됩니다.</p>
 </section>
@@ -119,6 +119,7 @@
 <section class="ch" id="ch3">
   <header class="chhead"><span class="num">3</span><h1>차례 진행</h1></header>
   <p class="lead">우선도가 높은 문명부터 한 명씩 차례를 하고, 모두 끝나면 <b>라운드 정산</b>을 합니다.</p>
+  <div class="key"><span class="tag">카드가 먼저</span>이 규칙서는 기본 흐름만 설명합니다. 문명·기술·정책·불가사의·자연경관 카드에 적힌 <b>추가 획득과 특수 효과</b>는 따로 외울 필요 없이, 카드를 얻었을 때 <b>카드 설명을 따릅니다</b>.</div>
 
   <figure class="fig-frame">
     <svg viewBox="0 0 300 92">
@@ -176,34 +177,11 @@
     <div class="cards"><div class="cd"><img src="assets/tile/24.webp" style="width:13mm"></div><div class="cd"><img src="assets/tile/74.webp" style="width:13mm"></div></div>
   </div>
 
-  <h3>자원</h3>
-  <p>아래 자원은 기술을 연구하면 산출이 늘어납니다.</p>
-  <table class="keep">
-    <thead><tr><th>자원</th><th>기술</th><th>추가 산출</th></tr></thead>
-    <tbody>
-      <tr><td>밀, 바나나, 사슴</td><td>농업</td><td>식량 +1 (다음 차례부터)</td></tr>
-      <tr><td>소, 양</td><td>목축업</td><td>망치 +1</td></tr>
-      <tr><td>물고기</td><td>광학</td><td>망치 +1</td></tr>
-      <tr><td>석탄</td><td>산업화</td><td>망치 +2</td></tr>
-      <tr><td>석유</td><td>생물학</td><td>망치 +4</td></tr>
-      <tr><td>알루미늄</td><td>전기</td><td>식량 +3 (다음 차례부터)</td></tr>
-      <tr><td>우라늄</td><td>원자론</td><td>망치 +6</td></tr>
-    </tbody>
-  </table>
-
-  <h3>사치자원과 행복</h3>
-  <p style="break-after:avoid">카드에 <b>금 3</b>이 그려진 자원이 사치자원입니다. 특정 기술을 연구하면 <b>종류마다 행복 +1</b>입니다 (같은 종류를 여러 장 가져도 +1). 행복을 주는 기술은 아래 표에서 찾을 수 있습니다.</p>
-  <table class="keep">
-    <thead><tr><th>기술</th><th>사치자원</th></tr></thead>
-    <tbody>
-      <tr><td>광업</td><td>황금, 소금, 보석</td></tr>
-      <tr><td>항해</td><td>진주, 게, 고래</td></tr>
-      <tr><td>역법</td><td>향, 코코아, 설탕</td></tr>
-      <tr><td>수렵</td><td>상아, 모피</td></tr>
-      <tr><td>석공술</td><td>대리석</td></tr>
-      <tr><td>청동기술</td><td>구리</td></tr>
-    </tbody>
-  </table>
+  <h3>자원과 사치자원</h3>
+  <ul>
+    <li>어떤 기술은 특정 자원 타일의 산출을 늘립니다. 무엇이 늘어나는지는 기술 카드에 적혀 있습니다.</li>
+    <li>카드에 <b>금 3</b>이 그려진 자원이 <b>사치자원</b>입니다. 그 사치자원에 맞는 기술을 연구하면 <b>종류마다 행복 +1</b>입니다 (같은 종류를 여러 장 가져도 +1).</li>
+  </ul>
 
   <h3>새 타일 얻기</h3>
   <ul>
@@ -218,14 +196,8 @@
   <p class="lead">일꾼은 식량으로 늘어나고, 행복이 그 상한을 정합니다.</p>
   <div class="key"><span class="tag">핵심 규칙</span><b>일꾼 수는 행복을 넘을 수 없습니다.</b> 넘치면 넘친 만큼 원하는 일꾼을 버립니다. 식량이 많아도 행복이 모자라면 일꾼은 늘지 않습니다.</div>
 
-  <h3>행복 얻는 법</h3>
-  <ul>
-    <li>시작 행복: 문명 고유 행복</li>
-    <li>사치자원 종류마다 +1 (해당 기술 필요, 4장 참조)</li>
-    <li>과학기술: 다이너마이트 +2</li>
-    <li>불가사의: 마우솔레움 +1, 치첸이사 +2, 에펠탑 +1</li>
-    <li>자연경관: 올드 페이스풀을 영토로 얻으면 +1</li>
-  </ul>
+  <h3>행복</h3>
+  <p>문명 카드의 시작 행복에서 출발해, 사치자원(4장)과 기술·정책·불가사의 카드로 늘어납니다. 일꾼이 행복에 막혔다면 13장을 보세요.</p>
 
   <h3>식량 정산</h3>
   <p style="break-after:avoid">내정 마지막에, 연구에 쓰고 남은 식량을 일꾼 수와 비교합니다.</p>
