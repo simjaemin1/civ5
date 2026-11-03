@@ -1359,13 +1359,14 @@ describe('문명 능력 (전쟁·군사 관련)', () => {
     expect(() => apply(s, { type: 'endProduction' })).not.toThrow()
   })
 
-  it('독일·중국·줄루·몽골·훈족·덴마크·그리스는 위대한 장군 1개로 시작 (독일의 무료 카드는 그 시점에 만들 카드가 없어 받지 못한다)', () => {
-    for (const civ of ['germany', 'china', 'zulu', 'mongolia', 'huns', 'denmark', 'greece']) {
+  it('독일·중국·줄루·몽골·훈족·덴마크는 위대한 장군 1개로 시작 (독일의 무료 카드는 그 시점에 만들 카드가 없어 받지 못한다), 그리스는 새 카드에서 장군이 빠짐', () => {
+    for (const civ of ['germany', 'china', 'zulu', 'mongolia', 'huns', 'denmark']) {
       const s = found(startGame([civ], [hand4()]))
       expect(me(s).generals, civ).toBe(1)
       expect(me(s).pendingFreeCards, civ).toBe(0)
     }
     expect(me(found(startGame(['korea'], [hand4()]))).generals).toBe(0)
+    expect(me(found(startGame(['greece'], [hand4()]))).generals).toBe(0) // 사용자 결정 #64
   })
 
   it('독일: 장군을 얻는 그 시점에 만들 수 있는 카드가 없으면 무료 카드를 받지 못한다', () => {

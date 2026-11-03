@@ -414,7 +414,7 @@ function buildCity(
   // 시작 문화 보너스: 첫 도시를 4장으로 세운 뒤에 받는다 (그만큼 타일을 뽑아 붙임)
   const startCulture = civById(p.civId).startCulture
   if (startCulture) gainCulture(s, p, startCulture)
-  // 문명 카드에 장군 그림이 있으면 위대한 장군을 받고 시작한다 (독일·중국·줄루·몽골·훈족).
+  // 문명 카드에 장군 그림이 있으면 위대한 장군을 받고 시작한다 (독일·중국·덴마크·줄루·몽골·훈족).
   // 독일의 무료 군사 카드도 붙지만, 그 시점에 생산가능한 카드가 없으므로 받지 못한다
   const startGenerals = civById(p.civId).startGenerals ?? 0
   if (startGenerals) gainGeneral(s, p, startGenerals)
