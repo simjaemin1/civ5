@@ -17,8 +17,8 @@
   <h2>차례</h2>
   <ol>
     <li><span class="n">1</span><span class="t">게임 소개</span><span class="p">{{p1}}</span></li>
-    <li><span class="n">2</span><span class="t">게임 준비</span><span class="p">{{p2}}</span></li>
-    <li><span class="n">3</span><span class="t">문명 카드 보는 법</span><span class="p">{{p3}}</span></li>
+    <li><span class="n">2</span><span class="t">문명 카드 보는 법</span><span class="p">{{p2}}</span></li>
+    <li><span class="n">3</span><span class="t">게임 준비</span><span class="p">{{p3}}</span></li>
     <li><span class="n">4</span><span class="t">차례 진행</span><span class="p">{{p4}}</span></li>
     <li><span class="n">5</span><span class="t">타일과 산출</span><span class="p">{{p5}}</span></li>
     <li><span class="n">6</span><span class="t">일꾼, 행복, 성장</span><span class="p">{{p6}}</span></li>
@@ -61,7 +61,43 @@
 
 <!-- 2장 -->
 <section class="ch" id="ch2">
-  <header class="chhead"><span class="num">2</span><h1>게임 준비</h1></header>
+  <header class="chhead"><span class="num">2</span><h1>문명 카드 보는 법</h1></header>
+  <p class="lead">내 문명이 무엇을 가지고 시작하고, 매 차례 무엇을 받는지는 모두 문명 카드에 그려져 있습니다.</p>
+  <figure class="fig-frame">
+    <svg viewBox="0 0 300 158">
+      <image href="assets/civcard/germany.webp" x="0" y="4" width="196" height="137.4"/>
+      <g stroke="#b3261e" stroke-width="0.9" fill="none">
+        <polyline points="158,21 202,21"/>
+        <polyline points="146,31 164,31 170,35 202,35"/>
+        <polyline points="127,42.6 158,42.6 168,55 202,55"/>
+        <polyline points="191,64 202,79"/>
+        <polyline points="191,111 202,109"/>
+        <polyline points="16.3,133 16.3,149 24,149"/>
+      </g>
+      <g fill="#b3261e" stroke="#fff" stroke-width="0.8">
+        <circle cx="158" cy="21" r="2.2"/><circle cx="146" cy="31" r="2.2"/><circle cx="127" cy="42.6" r="2.2"/>
+        <circle cx="191" cy="64" r="2.2"/><circle cx="191" cy="111" r="2.2"/><circle cx="16.3" cy="133" r="2.2"/>
+      </g>
+      <g font-family="NSans" fill="#2a251f">
+        <text x="205" y="24" font-size="7.6" font-weight="800">시작 행복</text>
+        <text x="205" y="38" font-size="7.6" font-weight="800">차례당 보너스</text><text x="205" y="46" font-size="6.2" fill="#6d6458">매 차례 받음</text>
+        <text x="205" y="58" font-size="7.6" font-weight="800">시작 보너스</text><text x="205" y="66" font-size="6.2" fill="#6d6458">시작할 때 한 번</text>
+        <text x="205" y="82" font-size="7.6" font-weight="800">능력</text>
+        <text x="205" y="112" font-size="7.6" font-weight="800">고유 유닛</text><text x="205" y="120" font-size="6.2" fill="#6d6458">기초 카드 대신 가져옴</text>
+        <text x="27" y="152" font-size="7.6" font-weight="800">우선도</text><text x="56" y="152" font-size="6.2" fill="#6d6458">높을수록 먼저 차례를 함</text>
+      </g>
+    </svg>
+    <figcaption>독일 문명 카드</figcaption>
+  </figure>
+  <div class="iconkey">
+    <div class="c"><b>차례당 보너스</b><span><img src="assets/icon/res-food.png"><img src="assets/icon/res-hammer.png"><img src="assets/icon/res-science.png"><img src="assets/icon/res-gold.png"></span><em>식량·망치·과학·금 · 매 차례</em></div>
+    <div class="c"><b>시작 보너스</b><span><img src="assets/icon/res-culture.png"><img src="assets/icon/general.png"></span><em>문화·위대한 장군 · 시작할 때 한 번</em></div>
+  </div>
+</section>
+
+<!-- 3장 -->
+<section class="ch" id="ch3">
+  <header class="chhead"><span class="num">3</span><h1>게임 준비</h1></header>
   <p class="lead">모두 문명 카드 1장과 일꾼 1개를 받고, 타일 4장으로 첫 도시를 세우며 시작합니다.</p>
   <ol class="steps">
     <li><b>문명 카드 1장</b>과 <b>일꾼 토큰 1개</b>를 받습니다.</li>
@@ -98,42 +134,6 @@
   <h3>불모지 탈출</h3>
   <p>시작 패가 나쁘면 첫 차례에 도시를 세우지 않고, 타일을 <b>원하는 만큼</b> 버리고 버린 수만큼 새로 뽑을 수 있습니다. 첫 차례를 쉬고 다음 차례에 도시를 세웁니다.</p>
   <div class="note">도시는 식량을 포함한 타일에 세우는 것을 추천합니다.</div>
-</section>
-
-<!-- 3장 -->
-<section class="ch" id="ch3">
-  <header class="chhead"><span class="num">3</span><h1>문명 카드 보는 법</h1></header>
-  <p class="lead">내 문명이 무엇을 가지고 시작하고, 매 차례 무엇을 받는지는 모두 문명 카드에 그려져 있습니다.</p>
-  <figure class="fig-frame">
-    <svg viewBox="0 0 300 158">
-      <image href="assets/civcard/germany.webp" x="0" y="4" width="196" height="137.4"/>
-      <g stroke="#b3261e" stroke-width="0.9" fill="none">
-        <polyline points="158,21 202,21"/>
-        <polyline points="146,31 164,31 170,35 202,35"/>
-        <polyline points="127,42.6 158,42.6 168,55 202,55"/>
-        <polyline points="191,64 202,79"/>
-        <polyline points="191,111 202,109"/>
-        <polyline points="16.3,133 16.3,149 24,149"/>
-      </g>
-      <g fill="#b3261e" stroke="#fff" stroke-width="0.8">
-        <circle cx="158" cy="21" r="2.2"/><circle cx="146" cy="31" r="2.2"/><circle cx="127" cy="42.6" r="2.2"/>
-        <circle cx="191" cy="64" r="2.2"/><circle cx="191" cy="111" r="2.2"/><circle cx="16.3" cy="133" r="2.2"/>
-      </g>
-      <g font-family="NSans" fill="#2a251f">
-        <text x="205" y="24" font-size="7.6" font-weight="800">시작 행복</text>
-        <text x="205" y="38" font-size="7.6" font-weight="800">차례당 보너스</text><text x="205" y="46" font-size="6.2" fill="#6d6458">매 차례 받음</text>
-        <text x="205" y="58" font-size="7.6" font-weight="800">시작 보너스</text><text x="205" y="66" font-size="6.2" fill="#6d6458">시작할 때 한 번</text>
-        <text x="205" y="82" font-size="7.6" font-weight="800">능력</text>
-        <text x="205" y="112" font-size="7.6" font-weight="800">고유 유닛</text><text x="205" y="120" font-size="6.2" fill="#6d6458">기초 카드 대신 가져옴</text>
-        <text x="27" y="152" font-size="7.6" font-weight="800">우선도</text><text x="56" y="152" font-size="6.2" fill="#6d6458">높을수록 먼저 차례를 함</text>
-      </g>
-    </svg>
-    <figcaption>독일 문명 카드</figcaption>
-  </figure>
-  <div class="iconkey">
-    <div class="c"><b>차례당 보너스</b><span><img src="assets/icon/res-food.png"><img src="assets/icon/res-hammer.png"><img src="assets/icon/res-science.png"><img src="assets/icon/res-gold.png"></span><em>식량·망치·과학·금 · 매 차례</em></div>
-    <div class="c"><b>시작 보너스</b><span><img src="assets/icon/res-culture.png"><img src="assets/icon/general.png"></span><em>문화·위대한 장군 · 시작할 때 한 번</em></div>
-  </div>
 </section>
 
 <!-- 4장 -->
