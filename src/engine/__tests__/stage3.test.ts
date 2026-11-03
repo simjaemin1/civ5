@@ -434,6 +434,24 @@ describe('선전포고', () => {
     expect(canAttack(at([]), 2)).toBe(true)
   })
 
+  it('식량 정산(④)을 선전포고(⑤)보다 먼저 한다: 그 차례에 늘어난 일꾼으로 바로 선전포고할 수 있다 (사용자 결정 #68)', () => {
+    let s = mod(round2(), (c) => {
+      c.players[0].generals = 1
+      c.players[0].cities[0].workers = 1
+    })
+    const side = s.players[0].cities[0].tiles.find((t) => t.role === 'side')!.card.id
+    s = apply(s, { type: 'placeWorkers', placements: [{ cityId: 0, tileId: side }] }) // 일꾼 1개를 모두 타일에 올렸다
+    expect(freeWorkers(me(s))).toBe(0)
+    s = mod(s, (c) => (c.players[0].turn!.yields.cities[0].food = 10)) // 식량이 넉넉해 일꾼이 는다
+    s = play(s, { type: 'skipResearch' }, { type: 'endProduction' })
+    expect(totalWorkers(s.players[0])).toBe(2) // 정산이 먼저 끝났다
+    expect(s.phase).toBe('declare') // 새 일꾼은 타일에 올리지 않은 일꾼이라 선전포고할 수 있다
+    expect(declarationTargets(s, s.players[0]).length).toBeGreaterThan(0)
+    s = apply(s, { type: 'declareWar', defenderId: 1, cityId: 0, tileId: tileId(s, 1, 1) })
+    expect(s.declarations).toHaveLength(1)
+    expect(totalWorkers(s.players[0])).toBe(2) // 선전포고 뒤에 다시 정산하지 않는다
+  })
+
   it('한 차례에 한 번만 선전포고할 수 있다', () => {
     let s = mod(round2(), (c) => (c.players[0].generals = 2))
     s = toDeclare(s)

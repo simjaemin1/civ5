@@ -120,10 +120,13 @@ function mustChoosePolicyFirst(p: Player): void {
   if (p.pendingPolicies > 0 || p.policyOffer) throw new RuleError('정책을 먼저 정하세요 (정책 조건이 있는 불가사의 때문에 생산·투자 전에 정책을 정해야 합니다)')
 }
 
-/** 식량 정산 뒤 차례를 끝낸다. 행복 상한을 넘은 일꾼이 있으면 다 버린 뒤(discardWorker)에 차례가 끝난다. */
-function settleAndEnd(s: GameState, p: Player): void {
+/**
+ * 식량 정산 (내정 ④, 사용자 결정 #68: 선전포고보다 먼저). 행복 상한을 넘은 일꾼이 있으면 다 버린 뒤(discardWorker)에 선전포고로 넘어간다.
+ * 그 뒤 할 수 있는 선전포고가 있으면 선전포고 단계(⑤), 없으면 차례를 끝낸다.
+ */
+function settleThenDeclare(s: GameState, p: Player): void {
   foodSettlement(s, p)
-  if (p.pendingDiscard) {
+  if (p.pendingDiscard || declarationTargets(s, p).length > 0) {
     s.phase = 'declare'
     return
   }
@@ -280,12 +283,8 @@ export function apply(prev: GameState, action: Action): GameState {
         if (anyProducible(s, p)) throw new RuleError('무료 군사 카드를 먼저 골라야 합니다')
         p.pendingFreeCards = 0
       }
-      // 선전포고(내정 5단계): 할 수 있는 선전포고가 있으면 선택하게 한다. 그 뒤에 식량 정산(6단계)을 한다.
-      if (declarationTargets(s, p).length > 0) {
-        s.phase = 'declare'
-        return s
-      }
-      settleAndEnd(s, p)
+      // 식량 정산(내정 ④)을 먼저 하고, 할 수 있는 선전포고(⑤)가 있으면 선택하게 한다 (사용자 결정 #68)
+      settleThenDeclare(s, p)
       return s
     case 'recallGeneral':
       expectPhase(s, 'place') // 점령 중인 장군을 불러들일지는 일꾼 배치 때 정한다
@@ -293,13 +292,14 @@ export function apply(prev: GameState, action: Action): GameState {
       return s
     case 'declareWar':
       expectPhase(s, 'declare')
+      if (p.pendingDiscard) throw new RuleError('버려야 하는 일꾼을 먼저 고르세요')
       declareWar(s, p, action)
-      settleAndEnd(s, p)
+      endTurn(s)
       return s
     case 'endTurn':
       expectPhase(s, 'declare')
       if (p.pendingDiscard) throw new RuleError('버려야 하는 일꾼을 먼저 고르세요')
-      settleAndEnd(s, p)
+      endTurn(s)
       return s
     case 'discardCard':
       discardCard(s, p, action.uid)
@@ -315,7 +315,8 @@ export function apply(prev: GameState, action: Action): GameState {
       if (!p.pendingDiscard) {
         p.pendingDiscard = undefined
         say(s, `${civById(p.civId).name} 일꾼 ${totalWorkers(p)}개로 정리`)
-        endTurn(s)
+        // 일꾼을 다 버렸으면 선전포고(⑤)로: 할 수 있는 선전포고가 없으면 차례를 끝낸다
+        if (declarationTargets(s, p).length === 0) endTurn(s)
       }
       return s
     }
