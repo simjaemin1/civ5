@@ -37,7 +37,7 @@ const PHASE: Record<GameState['phase'], string> = {
   place: '① 일꾼 배치',
   research: '② 기술 연구',
   produce: '③ 생산',
-  declare: '④ 선전포고 → ⑤ 식량 정산',
+  declare: '④ 식량 정산 → ⑤ 선전포고',
   battle: '정산: 전투',
   over: '게임 종료',
 }
