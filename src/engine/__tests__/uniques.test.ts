@@ -70,7 +70,7 @@ describe('고유 유닛 데이터', () => {
   it('카드에 적힌 능력치를 쓴다 (장갑보병, 케식텐, 낙타궁수, 궁기병, 공성추, 프라싱야, 화차, 재규어)', () => {
     const st = (name: string) => cardStats({ uid: 0, defId: UNIQUES[name].def.base, unique: name, dirs: ['C'] })
     expect(st('장갑보병')).toMatchObject({ hp: 3, def: 2, marks: [{ dir: 'C', power: 2 }], baseId: 'spearman' })
-    expect(st('케식텐')).toMatchObject({ hp: 5, def: 1, choose: 2, noCounter: true, baseId: 'knight' })
+    expect(st('케식텐')).toMatchObject({ hp: 5, def: 0, choose: 2, noCounter: true, baseId: 'knight' }) // 사용자 결정 #65 (새 카드: 방어력 0)
     expect(st('낙타궁수')).toMatchObject({ hp: 4, def: 2, choose: 2, noCounter: true, baseId: 'knight' })
     expect(st('궁기병')).toMatchObject({ hp: 3, def: 1, choose: 2, noCounter: true, baseId: 'chariot' })
     expect(st('공성추')).toMatchObject({ hp: 6, def: 1, siege: true, baseId: 'spearman' })
