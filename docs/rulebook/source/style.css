@@ -146,3 +146,4 @@ ol.steps .subnote { display: block; margin-top: 0.6mm; padding-left: 2.5mm; bord
 .iconkey .c span { display: block; margin: 1.2mm 0 0.8mm; }
 .iconkey .c img { width: 6.5mm; height: 6.5mm; object-fit: contain; margin: 0 0.6mm; }
 .iconkey .c em { display: block; font-style: normal; font-size: 7pt; color: var(--muted); }
+.stepno { display: inline-flex; align-items: center; justify-content: center; width: 4.6mm; height: 4.6mm; border-radius: 50%; background: var(--ink); color: #fff; font-family: 'NSans'; font-weight: 700; font-size: 7pt; line-height: 1; vertical-align: 0.2mm; }
