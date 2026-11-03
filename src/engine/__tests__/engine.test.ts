@@ -68,9 +68,10 @@ describe('게임 준비', () => {
     expect(c.openSides).toHaveLength(1)
   })
 
-  it('시작 문화 1 문명은 타일 5장으로 시작하고 십자가 완성된다', () => {
-    const hand = [...hand4(), tile(['정글'])]
-    const s = found(startGame(['mongolia'], [hand]))
+  it('시작 문화 1 문명도 4장 안에서 도시를 고르고, 시작 문화는 도시를 세운 뒤 받아 십자가 완성된다 (사용자 결정)', () => {
+    let s = startGame(['mongolia'], [hand4()])
+    expect(me(s).hand).toHaveLength(4)
+    s = found(s)
     expect(culture(me(s))).toBe(5)
     expect(me(s).cities[0].openSides).toHaveLength(0)
   })

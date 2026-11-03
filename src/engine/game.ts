@@ -1,6 +1,6 @@
 import type { Action, City, GameState, Placement, Player, Side, TileCard } from './types'
 import { RuleError, SIDES } from './types'
-import { TECHS, WONDERS, civById, techById } from './data'
+import { TECHS, civById, techById } from './data'
 import type { TechDef } from './data'
 import { shuffle } from './rng'
 import { canHammerScience, computeYields, happiness, totalWorkers } from './yields'
@@ -84,21 +84,6 @@ export function createGame(opts: CreateOptions): GameState {
   return state
 }
 
-/**
- * 시작 손(불모지로 새로 뽑은 타일 포함)의 엘도라도: 게임에서 처음 발견하면 문화 +1, 타일 1장을 손에 더 받아 그 안에서 도시를 고른다.
- * 영토로 얻는 문화 +1은 영토가 확정된 뒤(도시를 세운 뒤)에 받으므로 시작 타일로 고를 수 없다 (사용자 결정): 도시를 세우면 1장이 더 붙는다.
- * 손이 5장을 넘으면 십자(5칸)에 놓지 않은 타일은 추가 타일(영토)로 붙는다.
- */
-function discoverInStartHand(s: GameState, p: Player): void {
-  for (const card of [...p.hand]) {
-    const w = card.wonder ? WONDERS[card.wonder] : undefined
-    if (!w?.cultureOnDiscover || s.eldoradoFound) continue
-    s.eldoradoFound = true
-    p.hand.push(...drawTiles(s, w.cultureOnDiscover))
-    say(s, `${civById(p.civId).name} 엘도라도 발견 (문화 +1)`)
-  }
-}
-
 function beginTurn(s: GameState): void {
   const p = currentPlayer(s)
   p.turn = null
@@ -109,9 +94,8 @@ function beginTurn(s: GameState): void {
   if (p.cities.length === 0) {
     s.phase = 'setup'
     if (p.hand.length === 0) {
-      const civ = civById(p.civId)
-      p.hand = drawTiles(s, 4 + civ.startCulture)
-      discoverInStartHand(s, p)
+      // 첫 도시는 모든 문명이 똑같이 4장 안에서 고른다 (사용자 결정): 시작 문화·엘도라도 발견 문화는 도시를 세운 뒤에 받는다
+      p.hand = drawTiles(s, 4)
     }
   } else {
     s.phase = 'place'
@@ -373,7 +357,6 @@ function wasteland(s: GameState, p: Player, discardTileIds: number[]): GameState
     } else if (p.startClaim) p.startClaim.bonusIds = p.startClaim.bonusIds.filter((bid) => bid !== discarded.id)
   }
   p.hand.push(...drawTiles(s, ids.length))
-  discoverInStartHand(s, p) // 새로 뽑은 타일이 엘도라도여도 처음 발견이면 문화 +1
   p.wastelandPending = true
   say(s, `${civById(p.civId).name} 불모지 탈출: 타일 ${ids.length}장 교체 (이번 차례 종료)`)
   endTurn(s)
@@ -428,6 +411,9 @@ function buildCity(
   // (startClaim은 영토 효과를 손에 미리 받던 예전 저장 파일용: 그때 받은 것은 다시 주지 않는다)
   for (const t of city.tiles) onTileGained(s, p, t.card, p.startClaim?.tileId === t.card.id)
   p.startClaim = undefined
+  // 시작 문화 보너스: 첫 도시를 4장으로 세운 뒤에 받는다 (그만큼 타일을 뽑아 붙임)
+  const startCulture = civById(p.civId).startCulture
+  if (startCulture) gainCulture(s, p, startCulture)
   // 문명 카드에 장군 그림이 있으면 위대한 장군을 받고 시작한다 (독일·중국·줄루·몽골·훈족).
   // 독일의 무료 군사 카드도 붙지만, 그 시점에 생산가능한 카드가 없으므로 받지 못한다
   const startGenerals = civById(p.civId).startGenerals ?? 0
