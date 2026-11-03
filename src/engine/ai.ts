@@ -123,7 +123,7 @@ function tileScore(p: Player, card: TileCard): number {
 /** 불모지 탈출 (첫 차례에 한 번): 나쁜 타일이 여럿이면 한 차례를 쉬더라도 나쁜 타일을 모두 바꾼다 */
 function wastelandCandidates(s: GameState, p: Player): Action[] {
   // 엘도라도로 타일을 더 받은 시작 패는 이미 넉넉하다. 자연경관은 버리지 않는다
-  if (s.round !== 1 || p.wastelandPending || AI_TUNE.wastelandScore <= 0 || p.hand.length > 4 + civById(p.civId).startCulture || p.hand.some((c) => c.wonder)) return []
+  if (s.round !== 1 || p.wastelandPending || AI_TUNE.wastelandScore <= 0 || p.hand.length > 4 || p.hand.some((c) => c.wonder)) return []
   const bad = p.hand.filter((c) => !c.wonder && tileScore(p, c) <= AI_TUNE.wastelandScore).sort((a, b) => tileScore(p, a) - tileScore(p, b))
   if (bad.length < AI_TUNE.wastelandMinBad) return []
   return [{ type: 'wasteland', discardTileIds: bad.map((c) => c.id) }]
