@@ -386,10 +386,9 @@
   "id": "greece",
   "name": "그리스",
   "priority": 30,
-  "happiness": 3,
+  "happiness": 4,
   "bonus": {},
   "startCulture": 1,
-  "startGenerals": 1,
   "ability": "고유 유닛 2장",
   "unique": "장갑보병 (창병), 헤타이로이 (기마병)",
   "uniques": [
