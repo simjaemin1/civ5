@@ -139,3 +139,4 @@ figcaption { font-family: 'NSans'; font-size: 7.4pt; color: var(--muted); text-a
 
 table.tight td, table.tight th { padding-top: 0.6mm; padding-bottom: 0.6mm; }
 .chhead + .lead { break-after: avoid; break-inside: avoid; }
+ol.steps .subnote { display: block; margin-top: 0.6mm; padding-left: 2.5mm; border-left: 0.6mm solid var(--line, #d8cfc0); font-size: 0.9em; color: var(--muted); }
