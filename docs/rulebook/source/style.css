@@ -140,3 +140,9 @@ figcaption { font-family: 'NSans'; font-size: 7.4pt; color: var(--muted); text-a
 table.tight td, table.tight th { padding-top: 0.6mm; padding-bottom: 0.6mm; }
 .chhead + .lead { break-after: avoid; break-inside: avoid; }
 ol.steps .subnote { display: block; margin-top: 0.6mm; padding-left: 2.5mm; border-left: 0.6mm solid var(--line, #d8cfc0); font-size: 0.9em; color: var(--muted); }
+.iconkey { display: grid; grid-template-columns: 1fr 1fr; gap: 2.2mm; margin: 2.5mm 0; }
+.iconkey .c { border: 0.25mm solid var(--line); background: #fff; border-radius: 1.6mm; padding: 2mm; text-align: center; font-family: 'NSans'; break-inside: avoid; }
+.iconkey .c b { display: block; font-size: 8pt; }
+.iconkey .c span { display: block; margin: 1.2mm 0 0.8mm; }
+.iconkey .c img { width: 6.5mm; height: 6.5mm; object-fit: contain; margin: 0 0.6mm; }
+.iconkey .c em { display: block; font-style: normal; font-size: 7pt; color: var(--muted); }
