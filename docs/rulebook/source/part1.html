@@ -177,9 +177,18 @@
 <!-- 5장 -->
 <section class="ch" id="ch5">
   <header class="chhead"><span class="num">5</span><h1>타일과 산출</h1></header>
-  <div class="two" style="grid-template-columns: 1fr 30mm; align-items:start">
+  <div class="two" style="grid-template-columns: 1fr 40mm; align-items:start">
     <p class="lead" style="margin:0">타일은 일꾼을 올리면 카드 아래쪽에 그려진 만큼 차례마다 식량·망치·과학·금을 만듭니다.</p>
-    <div class="cards"><div class="cd"><img src="assets/tile/24.webp" style="width:13mm"></div><div class="cd"><img src="assets/tile/74.webp" style="width:13mm"></div></div>
+    <svg viewBox="0 0 110 96" style="width:40mm;height:34.9mm;display:block">
+      <defs><filter id="shT" x="-10%" y="-10%" width="120%" height="120%"><feDropShadow dx="0" dy="0.8" stdDeviation="0.8" flood-opacity="0.25"/></filter></defs>
+      <image href="assets/tile/24.webp" x="4" y="3" width="48" height="68.5" filter="url(#shT)"/>
+      <image href="assets/tile/74.webp" x="58" y="3" width="48" height="68.5" filter="url(#shT)"/>
+      <g fill="none" stroke="#b3261e" stroke-width="1.2" stroke-dasharray="2.5 1.5">
+        <rect x="5" y="60.5" width="46" height="10" rx="1.5"/><rect x="59" y="60.5" width="46" height="10" rx="1.5"/>
+      </g>
+      <g stroke="#b3261e" stroke-width="0.9"><line x1="28" y1="70.5" x2="50" y2="82"/><line x1="82" y1="70.5" x2="60" y2="82"/></g>
+      <text x="55" y="91" text-anchor="middle" font-family="NSans" font-size="7.5" font-weight="800" fill="#b3261e">산출 (카드 아래쪽)</text>
+    </svg>
   </div>
 
   <h3>자원과 사치자원</h3>
