@@ -1,0 +1,9 @@
+{
+  "name": "civ5-agent",
+  "private": true,
+  "type": "module",
+  "description": "문명 보드게임 작업 도우미: Claude Agent SDK로 이 저장소에서 Claude에게 일을 시킨다 (API 크레딧 사용)",
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "0.3.304"
+  }
+}
