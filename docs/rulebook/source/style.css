@@ -160,3 +160,4 @@ td.cmp { font-family: 'NSans'; font-weight: 700; white-space: nowrap; }
 .foodex .minus .fx-tag { background: #f3d3cf; color: #b3261e; }
 .foodex .keep .fx-tag { background: #e9e3d8; color: #4a443c; }
 .foodex .plus .fx-tag { background: #d6e8cf; color: #3f7a3a; }
+img.ico { height: 1.15em; width: auto; vertical-align: -0.22em; margin: 0 0.05em; }
