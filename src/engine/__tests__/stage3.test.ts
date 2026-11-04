@@ -1318,6 +1318,36 @@ describe('정찰과 맡아두기', () => {
     expect(canDeclare(s)).toBe(true)
   })
 
+  it('정찰만 하고 타일을 맡아두지 않은 일꾼은 그 차례 선전포고에 쓸 수 있다 (맡아두면 쓸 수 없다)', () => {
+    const base = () =>
+      mod(round2(), (c) => {
+        const p = c.players[0]
+        p.generals = 1
+        p.cities[0].workers = 1
+      })
+    const canDeclare = (s: GameState) => declarationTargets(s, s.players[0]).some((t) => t.kind === 'normal')
+    // 정찰만 함: 남은 일꾼은 0이지만 정찰한 일꾼으로 선전포고할 수 있다
+    let s = apply(base(), { type: 'scout' })
+    expect(freeWorkers(me(s))).toBe(0)
+    expect(canDeclare(s)).toBe(true)
+    s = toDeclare(s)
+    expect(s.phase).toBe('declare')
+    s = mod(s, (c) => (c.players[0].cities[0].workers = 1)) // 식량 정산으로 늘어난 일꾼은 빼고 본다
+    expect(freeWorkers(me(s))).toBe(0)
+    expect(canDeclare(s)).toBe(true)
+    s = apply(s, { type: 'declareWar', defenderId: 1, cityId: 0, tileId: tileId(s, 1, 1) })
+    // 선전포고하면 차례가 끝난다: 정찰한 일꾼이 선전포고에 묶이고, 정찰한 카드는 덱으로 돌아간다
+    const p0 = s.players[0]
+    expect(s.declarations.filter((d) => d.attackerId === 0)).toHaveLength(1)
+    expect(p0.scouting).toBe(false)
+    expect(p0.scouted).toBeNull()
+    expect(p0.busyWorkers).toBe(1)
+    expect(freeWorkers(p0)).toBe(0)
+    // 맡아두면 그 일꾼은 타일 위에 있으므로 선전포고에 쓸 수 없다
+    const held = apply(apply(base(), { type: 'scout' }), { type: 'holdScouted' })
+    expect(canDeclare(held)).toBe(false)
+  })
+
   it('맡아둔 타일은 일꾼 배치(산출) 때 돌려보내고, 돌아온 일꾼은 그 차례에도 쓸 수 있다 (재정찰 포함). 배치가 끝난 뒤에는 돌려보낼 수 없다', () => {
     const held = () =>
       mod(round2(), (c) => {

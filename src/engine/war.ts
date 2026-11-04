@@ -2,7 +2,7 @@ import type { BattleHit, BattleState, CardInst, City, Declaration, GameState, Pl
 import { RuleError, SIDES } from './types'
 import { cardById, civById } from './data'
 import { gainCulture, say } from './core'
-import { declarationWorkers } from './scouting'
+import { declarationWorkers, scoutWorkerForWar } from './scouting'
 import { holdLimit, releaseUnique } from './military'
 import { cardStats, isCoastalOnly } from './cardstats'
 import type { CardStats } from './cardstats'
@@ -57,7 +57,7 @@ export function declarationTargets(s: GameState, p: Player): DeclTarget[] {
   const out: DeclTarget[] = []
   if (p.eliminated || s.declarations.some((d) => d.attackerId === p.id)) return out
   // 같은 타일에도 여러 문명이 선전포고할 수 있다. 정산 때 앞선 문명이 타일을 차지해 대상 문명이 바뀌면 뒤의 선전포고는 전투 없이 끝난다 (startNextBattle)
-  // 전제정치 시행 중에는 선전포고에 일꾼이 필요 없다. 정찰에 쓰고 돌아온 일꾼은 그 차례에 쓸 수 없다
+  // 전제정치 시행 중에는 선전포고에 일꾼이 필요 없다. 정찰만 하고 맡아두지 않은 일꾼은 쓸 수 있고, 맡아뒀다 돌려보낸 일꾼은 그 차례에 쓸 수 없다
   if (declarationWorkers(s, p) < 1 && p.policy !== 'despotism') return out
   for (const city of p.cities) {
     for (const t of city.tiles) {
@@ -112,7 +112,11 @@ export function declareWar(
   )
   if (!target) throw new RuleError('그 타일에는 선전포고할 수 없습니다')
   if (target.kind !== 'retake') p.generals -= 1
-  if (p.policy !== 'despotism') p.busyWorkers += 1 // 전제정치 시행 중에는 일꾼을 걸지 않는다
+  if (p.policy !== 'despotism') {
+    // 전제정치 시행 중에는 일꾼을 걸지 않는다. 남는 일꾼이 없으면 정찰만 하고 맡아두지 않은 일꾼을 건다
+    if (scoutWorkerForWar(p) && declarationWorkers(s, p) < 2) p.scouting = false
+    p.busyWorkers += 1
+  }
   s.declarations.push({ attackerId: p.id, defenderId: target.defenderId, cityId: target.cityId, tileId: target.tileId, kind: target.kind })
   const label = { normal: '선전포고', retake: '탈환 선전포고', city: '도시 공격 선전포고' }[target.kind]
   say(s, `${civById(p.civId).name} → ${civById(s.players[target.defenderId].civId).name} ${label}`)
