@@ -148,3 +148,15 @@ ol.steps .subnote { display: block; margin-top: 0.6mm; padding-left: 2.5mm; bord
 .iconkey .c em { display: block; font-style: normal; font-size: 7pt; color: var(--muted); }
 .stepno { display: inline-flex; align-items: center; justify-content: center; width: 4.6mm; height: 4.6mm; border-radius: 50%; background: var(--ink); color: #fff; font-family: 'NSans'; font-weight: 700; font-size: 7pt; line-height: 1; vertical-align: 0.2mm; }
 td.cmp { font-family: 'NSans'; font-weight: 700; white-space: nowrap; }
+.foodex { padding: 2.4mm 3mm; }
+.foodex .fx-head, .foodex .fx-row { display: grid; grid-template-columns: 22mm 5mm 30mm 6mm 24mm 1fr; align-items: center; column-gap: 1mm; }
+.foodex .fx-head { font-family: 'NSans'; font-size: 7pt; color: var(--muted); margin-bottom: 1mm; text-align: center; }
+.foodex .fx-row { padding: 1.4mm 0; border-top: 0.25mm solid var(--line); }
+.foodex .fx-cell { display: flex; justify-content: center; align-items: center; gap: 0.6mm; min-height: 6.5mm; }
+.foodex .fx-cell img { width: 6mm; height: 6mm; object-fit: contain; }
+.foodex .fx-cell .none { font-family: 'NSans'; font-size: 7.5pt; color: var(--muted); }
+.foodex .fx-op { font-family: 'NSans'; font-weight: 800; font-size: 11pt; color: var(--muted); text-align: center; }
+.foodex .fx-tag { font-family: 'NSans'; font-weight: 800; font-size: 8.5pt; text-align: center; border-radius: 1.2mm; padding: 1mm 0; }
+.foodex .minus .fx-tag { background: #f3d3cf; color: #b3261e; }
+.foodex .keep .fx-tag { background: #e9e3d8; color: #4a443c; }
+.foodex .plus .fx-tag { background: #d6e8cf; color: #3f7a3a; }
