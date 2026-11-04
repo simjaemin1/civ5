@@ -203,9 +203,9 @@
   <table>
     <thead><tr><th>남은 식량</th><th>결과</th></tr></thead>
     <tbody>
-      <tr><td>일꾼 수보다 적음</td><td>일꾼 토큰 1개를 잃습니다</td></tr>
-      <tr><td>일꾼 수 이상, 일꾼 수 × 2 미만</td><td>그대로 유지합니다</td></tr>
-      <tr><td>일꾼 수 × 2 이상</td><td>일꾼 토큰 1개를 얻습니다 (행복 한도까지)</td></tr>
+      <tr><td class="cmp">식량 &lt; 일꾼 수</td><td>일꾼 토큰 1개를 잃습니다</td></tr>
+      <tr><td class="cmp">일꾼 수 ≤ 식량 &lt; 일꾼 수 × 2</td><td>그대로 유지합니다</td></tr>
+      <tr><td class="cmp">식량 ≥ 일꾼 수 × 2</td><td>일꾼 토큰 1개를 얻습니다 (행복 한도까지)</td></tr>
     </tbody>
   </table>
 
