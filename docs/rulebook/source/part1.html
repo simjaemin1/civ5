@@ -209,50 +209,24 @@
     </tbody>
   </table>
 
-  <figure class="fig-frame">
-    <svg viewBox="0 0 300 104">
-      <defs><marker id="ar5" viewBox="0 0 10 10" refX="5" refY="9" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L10,0 L5,10 z" fill="#2a251f"/></marker></defs>
-      <text x="4" y="9" font-family="NSans" font-size="8" font-weight="700" fill="#2a251f">일꾼 토큰이 2개일 때, 남은 식량에 따라</text>
-      <g transform="translate(0,8)"><rect x="20" y="30" width="90" height="22" fill="#f3d3cf"/>
-      <rect x="110" y="30" width="90" height="22" fill="#e9e3d8"/>
-      <rect x="200" y="30" width="90" height="22" fill="#d6e8cf"/>
-      <rect x="20" y="30" width="270" height="22" fill="none" stroke="#2a251f" stroke-width="0.8"/>
-      <g font-family="NSans" font-size="8" font-weight="800" text-anchor="middle">
-        <text x="65" y="45" fill="#b3261e">일꾼 −1</text>
-        <text x="155" y="45" fill="#4a443c">유지</text>
-        <text x="245" y="45" fill="#3f7a3a">일꾼 +1</text>
-      </g>
-      <g font-family="NSans" font-size="7" text-anchor="middle" fill="#2a251f">
-        <line x1="20" y1="52" x2="20" y2="56" stroke="#2a251f"/><text x="20" y="64">0</text>
-        <line x1="65" y1="52" x2="65" y2="56" stroke="#2a251f"/><text x="65" y="64">1</text>
-        <line x1="110" y1="52" x2="110" y2="58" stroke="#2a251f" stroke-width="1.4"/><text x="110" y="64" font-weight="800">2</text>
-        <line x1="155" y1="52" x2="155" y2="56" stroke="#2a251f"/><text x="155" y="64">3</text>
-        <line x1="200" y1="52" x2="200" y2="58" stroke="#2a251f" stroke-width="1.4"/><text x="200" y="64" font-weight="800">4</text>
-        <line x1="245" y1="52" x2="245" y2="56" stroke="#2a251f"/><text x="245" y="64">5</text>
-        <text x="292" y="64" text-anchor="end">식량</text>
-        <text x="110" y="75" font-size="6.6" fill="#6d6458">일꾼 수</text>
-        <text x="200" y="75" font-size="6.6" fill="#6d6458">일꾼 수 × 2</text>
-      </g>
-      <!-- 예시 표시 -->
-      <g font-family="NSans" font-size="6.6" text-anchor="middle" fill="#2a251f">
-        <line x1="65" y1="19" x2="65" y2="29" stroke="#2a251f" stroke-width="1" marker-end="url(#ar5)"/><text x="65" y="17">식량 1 → 1개</text>
-        <line x1="155" y1="19" x2="155" y2="29" stroke="#2a251f" stroke-width="1" marker-end="url(#ar5)"/><text x="155" y="17">식량 3 → 2개</text>
-        <line x1="204" y1="19" x2="204" y2="29" stroke="#2a251f" stroke-width="1" marker-end="url(#ar5)"/><text x="232" y="17">식량 4 → 3개</text>
-      </g>
-      <text x="150" y="90" text-anchor="middle" font-family="NSans" font-size="6.8" fill="#6d6458">식량이 모자라도 한 차례에 잃는 일꾼 토큰은 1개뿐 · 얻는 것도 행복 한도까지</text>
-    </g></svg>
-    <figcaption>식량 정산 한눈에 보기</figcaption>
+  <figure class="fig-frame foodex">
+    <div class="fx-head"><span>일꾼 토큰</span><span></span><span>남은 식량</span><span></span><span>정산 뒤</span><span></span></div>
+    <div class="fx-row minus">
+      <div class="fx-cell"><img src="assets/icon/worker.png"><img src="assets/icon/worker.png"></div><div class="fx-op">+</div><div class="fx-cell"><img src="assets/icon/res-food.png"></div><div class="fx-op">→</div><div class="fx-cell"><img src="assets/icon/worker.png"></div><div class="fx-tag">일꾼 토큰 −1</div>
+    </div>
+    <div class="fx-row keep">
+      <div class="fx-cell"><img src="assets/icon/worker.png"><img src="assets/icon/worker.png"></div><div class="fx-op">+</div><div class="fx-cell"><img src="assets/icon/res-food.png"><img src="assets/icon/res-food.png"><img src="assets/icon/res-food.png"></div><div class="fx-op">→</div><div class="fx-cell"><img src="assets/icon/worker.png"><img src="assets/icon/worker.png"></div><div class="fx-tag">유지</div>
+    </div>
+    <div class="fx-row plus">
+      <div class="fx-cell"><img src="assets/icon/worker.png"><img src="assets/icon/worker.png"></div><div class="fx-op">+</div><div class="fx-cell"><img src="assets/icon/res-food.png"><img src="assets/icon/res-food.png"><img src="assets/icon/res-food.png"><img src="assets/icon/res-food.png"></div><div class="fx-op">→</div><div class="fx-cell"><img src="assets/icon/worker.png"><img src="assets/icon/worker.png"><img src="assets/icon/worker.png"></div><div class="fx-tag">일꾼 토큰 +1</div>
+    </div>
+    <div class="fx-row plus">
+      <div class="fx-cell"><span class="none">없음</span></div><div class="fx-op">+</div><div class="fx-cell"><span class="none">0</span></div><div class="fx-op">→</div><div class="fx-cell"><img src="assets/icon/worker.png"></div><div class="fx-tag">일꾼 토큰 +1</div>
+    </div>
+    <figcaption>식량 정산 예시 (식량 4 → 일꾼 토큰 +1은 행복이 3 이상일 때)</figcaption>
   </figure>
 
   <p>한 차례에 잃는 일꾼 토큰은 최대 1개입니다.</p>
-  <div class="example"><span class="tag">예시</span>
-    <ul style="margin:0.5mm 0 0">
-      <li>일꾼 토큰 2개, 식량 1 → 일꾼 토큰 1개를 잃습니다.</li>
-      <li>일꾼 토큰 2개, 식량 3 → 그대로 유지합니다.</li>
-      <li>일꾼 토큰 2개, 식량 4 → 일꾼 토큰 1개를 얻습니다 (행복이 3 이상일 때).</li>
-      <li>일꾼 토큰 0개 → 식량 0이어도 일꾼 토큰 1개를 얻습니다.</li>
-    </ul>
-  </div>
 
   <h3>행복</h3>
   <p>문명 카드의 시작 행복에서 출발해, 사치자원(5장)과 기술·정책·불가사의 카드로 늘어납니다. 일꾼이 행복에 막혔다면 14장을 보세요.</p>
