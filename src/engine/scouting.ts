@@ -63,9 +63,15 @@ export function holdScouted(s: GameState, p: Player, tileId?: number): void {
   say(s, `${civById(p.civId).name} 타일 맡아두기`)
 }
 
-/** 선전포고에 걸 수 있는 일꾼 수: 이번 차례에 정찰하고 맡아둔 뒤 돌려보낸 일꾼은 이미 쓴 일꾼이라 선전포고에 쓸 수 없다 (규칙서 9장) */
+/** 정찰만 하고 타일을 맡아두지 않은 일꾼: 타일 위에 없으므로 그 차례 선전포고에 쓸 수 있다 (사용자 결정) */
+export const scoutWorkerForWar = (p: Player): boolean => p.scouting && !p.held
+
+/**
+ * 선전포고에 걸 수 있는 일꾼 수: 타일에 올리지 않은 일꾼 + 정찰만 하고 맡아두지 않은 일꾼.
+ * 이번 차례에 정찰하고 맡아둔 뒤 돌려보낸 일꾼은 타일을 맡아뒀던 일꾼이라 그 차례 선전포고에 쓸 수 없다 (규칙서 9장)
+ */
 export function declarationWorkers(s: GameState, p: Player): number {
-  return freeWorkers(p) - (p.scoutReleasedRound === s.round ? 1 : 0)
+  return freeWorkers(p) + (scoutWorkerForWar(p) ? 1 : 0) - (p.scoutReleasedRound === s.round ? 1 : 0)
 }
 
 export function releaseHeld(s: GameState, p: Player): void {
@@ -73,7 +79,7 @@ export function releaseHeld(s: GameState, p: Player): void {
   returnToDeck(s, p.held)
   p.held = null
   p.scouting = false // 일꾼이 돌아온다: 돌려보내기는 일꾼 배치 때 하므로 이번 차례에도 쓸 수 있다
-  if (p.scoutedRound === s.round) p.scoutReleasedRound = s.round // 이번 차례에 정찰에 쓴 일꾼은 이미 쓴 일꾼
+  if (p.scoutedRound === s.round) p.scoutReleasedRound = s.round // 이번 차례에 타일을 맡아뒀던 일꾼은 그 차례 선전포고에 쓸 수 없다
   p.scoutCity = undefined
 }
 
