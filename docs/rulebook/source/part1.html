@@ -196,23 +196,23 @@
   <p class="lead">일꾼은 타일에 올려 산출을 만들고, 식량으로 늘어나며, 행복이 그 상한을 정합니다.</p>
 
   <h3>일꾼</h3>
-  <p>일꾼은 타일에 1개씩 올려 그 타일의 산출을 얻습니다 (4장).</p>
+  <p>일꾼 토큰을 타일에 1개씩 올려 그 타일의 산출을 얻습니다 (4장).</p>
 
   <h3>성장 (식량 정산)</h3>
   <p style="break-after:avoid">생산이 끝나면(내정 ④, 선전포고 전), 연구에 쓰고 남은 식량을 일꾼 수와 비교합니다.</p>
   <table>
     <thead><tr><th>남은 식량</th><th>결과</th></tr></thead>
     <tbody>
-      <tr><td>일꾼 수보다 적음</td><td>일꾼 1개를 잃습니다</td></tr>
+      <tr><td>일꾼 수보다 적음</td><td>일꾼 토큰 1개를 잃습니다</td></tr>
       <tr><td>일꾼 수 이상, 일꾼 수 × 2 미만</td><td>그대로 유지합니다</td></tr>
-      <tr><td>일꾼 수 × 2 이상</td><td>일꾼 1개를 얻습니다 (행복 한도까지)</td></tr>
+      <tr><td>일꾼 수 × 2 이상</td><td>일꾼 토큰 1개를 얻습니다 (행복 한도까지)</td></tr>
     </tbody>
   </table>
 
   <figure class="fig-frame">
     <svg viewBox="0 0 300 104">
       <defs><marker id="ar5" viewBox="0 0 10 10" refX="5" refY="9" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L10,0 L5,10 z" fill="#2a251f"/></marker></defs>
-      <text x="4" y="9" font-family="NSans" font-size="8" font-weight="700" fill="#2a251f">일꾼이 2개일 때, 남은 식량에 따라</text>
+      <text x="4" y="9" font-family="NSans" font-size="8" font-weight="700" fill="#2a251f">일꾼 토큰이 2개일 때, 남은 식량에 따라</text>
       <g transform="translate(0,8)"><rect x="20" y="30" width="90" height="22" fill="#f3d3cf"/>
       <rect x="110" y="30" width="90" height="22" fill="#e9e3d8"/>
       <rect x="200" y="30" width="90" height="22" fill="#d6e8cf"/>
@@ -239,22 +239,22 @@
         <line x1="155" y1="19" x2="155" y2="29" stroke="#2a251f" stroke-width="1" marker-end="url(#ar5)"/><text x="155" y="17">식량 3 → 2개</text>
         <line x1="204" y1="19" x2="204" y2="29" stroke="#2a251f" stroke-width="1" marker-end="url(#ar5)"/><text x="232" y="17">식량 4 → 3개</text>
       </g>
-      <text x="150" y="90" text-anchor="middle" font-family="NSans" font-size="6.8" fill="#6d6458">식량이 아무리 모자라도 한 차례에 잃는 일꾼은 1개뿐 · 늘어나는 것도 행복 한도까지</text>
+      <text x="150" y="90" text-anchor="middle" font-family="NSans" font-size="6.8" fill="#6d6458">식량이 모자라도 한 차례에 잃는 일꾼 토큰은 1개뿐 · 얻는 것도 행복 한도까지</text>
     </g></svg>
     <figcaption>식량 정산 한눈에 보기</figcaption>
   </figure>
 
-  <p>한 차례에 잃는 일꾼은 최대 1개입니다.</p>
+  <p>한 차례에 잃는 일꾼 토큰은 최대 1개입니다.</p>
   <div class="example"><span class="tag">예시</span>
     <ul style="margin:0.5mm 0 0">
-      <li>일꾼 2개, 식량 1 → 일꾼이 1개가 됩니다.</li>
-      <li>일꾼 2개, 식량 3 → 일꾼이 2개로 유지됩니다.</li>
-      <li>일꾼 2개, 식량 4 → 일꾼이 3개가 됩니다 (행복이 3 이상일 때).</li>
-      <li>일꾼 0개 → 식량 0이어도 일꾼이 1개가 됩니다.</li>
+      <li>일꾼 토큰 2개, 식량 1 → 일꾼 토큰 1개를 잃습니다.</li>
+      <li>일꾼 토큰 2개, 식량 3 → 그대로 유지합니다.</li>
+      <li>일꾼 토큰 2개, 식량 4 → 일꾼 토큰 1개를 얻습니다 (행복이 3 이상일 때).</li>
+      <li>일꾼 토큰 0개 → 식량 0이어도 일꾼 토큰 1개를 얻습니다.</li>
     </ul>
   </div>
 
   <h3>행복</h3>
   <p>문명 카드의 시작 행복에서 출발해, 사치자원(5장)과 기술·정책·불가사의 카드로 늘어납니다. 일꾼이 행복에 막혔다면 14장을 보세요.</p>
-  <div class="key"><span class="tag">핵심 규칙</span><b>일꾼 수는 행복을 넘을 수 없습니다.</b> 넘치면 넘친 만큼 원하는 일꾼을 버립니다. 식량이 많아도 행복이 모자라면 일꾼은 늘지 않습니다.</div>
+  <div class="key"><span class="tag">핵심 규칙</span><b>일꾼 수는 행복을 넘을 수 없습니다.</b> 넘치면 넘친 만큼 원하는 일꾼 토큰을 버립니다. 식량이 많아도 행복이 모자라면 일꾼 토큰을 얻지 못합니다.</div>
 </section>
